@@ -5,13 +5,12 @@ import Link from "next/link"
 import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
 import { ArrowLeft, ArrowRight, LayoutDashboard, LogIn, MapPin, Search, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SITE_TYPES, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
 import { UI, t } from "@/lib/i18n"
 import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegion, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
-import { TypeBadge, typeDot, typeText } from "@/components/type-badge"
+import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 
 export type MapSite = {
@@ -225,14 +224,28 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
   const siteHref = (s: MapSite) => `/site/${encodeURIComponent(s.slug)}${lang === "en" ? "?lang=en" : ""}`
 
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-4">
-        <Link href="/" className="flex items-center gap-2 font-heading text-lg font-bold whitespace-nowrap">
-          <span className="text-primary">☦</span>
-          <span className="hidden sm:inline">{siteTitle[lang]}</span>
+    <div className="flex h-dvh flex-col bg-background">
+      <header className="z-10 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 md:gap-x-7 border-b bg-card px-4 py-3 md:h-22 md:flex-nowrap md:px-7 md:py-0">
+        <Link href="/" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
+          <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-[#d7ddcc] bg-[#eef1e7] text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</span>
+          <span className="grid min-w-0 gap-1 md:gap-2">
+            <span className="font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteTitle[lang]}</span>
+            <span className="truncate text-[9px] tracking-wide text-muted-foreground md:text-[11px]">{t("caption", lang)}</span>
+          </span>
         </Link>
+        <div className="ml-auto flex shrink-0 items-center gap-1 md:order-last md:ml-0">
+          <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")} aria-label={lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}>
+            {lang === "el" ? "EN" : "ΕΛ"}
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={account ? "/admin" : "/login"}>
+              {account ? <LayoutDashboard /> : <LogIn />}
+              <span className="hidden lg:inline">{account ? t("dashboard", lang) : t("signIn", lang)}</span>
+            </Link>
+          </Button>
+        </div>
         {regions.length > 1 && (
-          <div className="flex min-w-0 gap-1 overflow-x-auto rounded-lg border bg-muted p-0.5" role="group" aria-label="Region">
+          <div className="order-3 flex w-full gap-1 rounded-xl bg-muted p-1 md:order-none md:ml-auto md:w-auto" role="group" aria-label="Region">
             {regions.map((r) => (
               <button
                 key={r.id}
@@ -240,8 +253,8 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                 aria-pressed={r.id === regionId}
                 onClick={() => { setRegionId(r.id); setSelected(null) }}
                 className={cn(
-                  "rounded-md px-3 py-1 text-sm whitespace-nowrap text-muted-foreground transition",
-                  r.id === regionId && "bg-card font-semibold text-foreground shadow-sm",
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition md:flex-none md:px-4 md:py-2",
+                  r.id === regionId && "bg-card font-semibold text-primary shadow-[0_2px_5px_#293c3310]",
                 )}
               >
                 {r.name[lang]}
@@ -249,29 +262,18 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
             ))}
           </div>
         )}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")}>
-            {lang === "el" ? "EN" : "ΕΛ"}
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={account ? "/admin" : "/login"}>
-              {account ? <LayoutDashboard /> : <LogIn />}
-              <span className="hidden md:inline">{account ? t("dashboard", lang) : t("signIn", lang)}</span>
-            </Link>
-          </Button>
-        </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-rows-[1fr_42dvh] md:grid-cols-[380px_1fr] md:grid-rows-1">
-        <aside className="order-2 flex min-h-0 flex-col border-t bg-card md:order-1 md:border-t-0 md:border-r">
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(190px,43%)_minmax(0,1fr)] gap-2.5 p-2.5 md:grid-cols-[330px_minmax(0,1fr)] md:grid-rows-1 md:gap-3 md:p-3 lg:grid-cols-[370px_minmax(0,1fr)] lg:gap-4 lg:p-4 2xl:grid-cols-[400px_minmax(0,1fr)] 2xl:gap-5 2xl:p-5">
+        <aside className="order-2 flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-[0_4px_20px_#293c3305] md:order-1 md:rounded-2xl">
           {current ? (
             <ScrollArea className="min-h-0 flex-1">
               <div className="pb-5">
-                <Button variant="link" className="px-4 pt-3" onClick={back}><ArrowLeft />{t("back", lang)}</Button>
-                <div className="grid gap-2 px-4 py-2">
+                <Button variant="link" className="px-6 pt-5 text-xs" onClick={back}><ArrowLeft />{t("back", lang)}</Button>
+                <div className="grid gap-3 px-6 py-4">
                   <TypeBadge type={current.type} lang={lang} />
-                  <h2 className="text-2xl font-bold">{name(current)}</h2>
-                  <p className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="size-4" />{current.location[lang] || current.location.el}</p>
+                  <h2 className="text-[27px] leading-snug font-bold">{name(current)}</h2>
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4" />{current.location[lang] || current.location.el}</p>
                   {!current.coordsVerified && (
                     <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><TriangleAlert className="size-4 text-gold" />{t("approx", lang)}</p>
                   )}
@@ -282,19 +284,27 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                     <img src={current.cover} alt="" className="aspect-[16/10] w-full object-cover" />
                   </Link>
                 )}
-                <div className="grid gap-4 px-4 pt-4">
-                  <p className="leading-relaxed">{current.summary[lang] || current.summary.el}</p>
-                  <Button asChild size="lg"><Link href={siteHref(current)}>{t("more", lang)}<ArrowRight /></Link></Button>
+                <div className="grid gap-5 px-6 pt-5">
+                  <p className="text-sm leading-[1.8]">{current.summary[lang] || current.summary.el}</p>
+                  <Button asChild size="lg" className="h-11"><Link href={siteHref(current)}>{t("more", lang)}<ArrowRight /></Link></Button>
                 </div>
               </div>
             </ScrollArea>
           ) : (
             <>
-              <div className="grid gap-2.5 border-b p-4">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search", lang)} className="bg-background pl-8" />
+              <div className="grid gap-2.5 border-b px-4 pt-3.5 pb-3 md:gap-4 md:px-6 md:pt-6 md:pb-5 2xl:px-7 2xl:pt-7">
+                <div className="hidden md:block">
+                  <p className="mb-3 text-[10px] font-semibold tracking-[.14em] text-[#7a805f]">{t("eyebrow", lang)}</p>
+                  <h1 className="mb-2.5 text-[27px] leading-snug font-bold tracking-tight 2xl:text-3xl">{t("title", lang)}</h1>
+                  <p className="text-xs leading-[1.85] text-muted-foreground">{t("description", lang)}</p>
                 </div>
+                <label className="flex items-center gap-2.5 rounded-lg border border-[#dcded3] bg-[#f6f6ef] px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
+                  <Search className="size-[18px] flex-none text-[#7c8475]" />
+                  <input
+                    type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search", lang)} aria-label={t("search", lang)}
+                    className="min-w-0 flex-1 bg-transparent py-3 text-xs outline-none focus-visible:outline-none"
+                  />
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   {SITE_TYPES.map((k) => (
                     <button
@@ -302,17 +312,20 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                       type="button"
                       aria-pressed={types.has(k)}
                       onClick={() => setTypes((prev) => { const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n })}
-                      className="flex items-center gap-1.5 rounded-full border bg-card py-0.5 pr-2.5 pl-1.5 text-[13px] transition aria-[pressed=false]:opacity-45"
+                      className="group flex items-center gap-1.5 rounded-full border border-[#e0e2d7] px-2.5 py-1.5 text-[11px] transition hover:bg-[#edf0e4] aria-pressed:bg-[#f0f2e9] aria-[pressed=false]:border-dashed aria-[pressed=false]:text-[#75776f]"
                     >
-                      <span className={cn("size-2.5 rounded-full", typeDot[k])} />{TYPE_LABELS[k][lang]}
+                      <span className={cn("size-[7px] rounded-full border border-transparent group-aria-[pressed=false]:bg-transparent!", typeDot[k], typeBorder[k])} />
+                      {TYPE_LABELS[k][lang]}
                     </button>
                   ))}
                 </div>
               </div>
               <ScrollArea className="min-h-0 flex-1">
-                <p className="px-4 pt-3 pb-1 text-[13px] text-muted-foreground">{UI.count[lang](list.length)}</p>
-                {list.length === 0 && <p className="px-4 text-sm text-muted-foreground">{t("none", lang)}</p>}
-                <ul className="px-2 pb-4">
+                <p className="flex items-center justify-between px-5 pt-3 pb-1.5 text-[11px] text-muted-foreground md:px-6 md:pt-5 md:pb-3">
+                  <span>{UI.count[lang](list.length)}</span><span className="text-[9px] tracking-[.12em]">{t("results", lang)}</span>
+                </p>
+                {list.length === 0 && <p className="px-6 text-sm text-muted-foreground">{t("none", lang)}</p>}
+                <ul className="divide-y divide-[#eeeee5] px-3 pb-4">
                   {list.map((s) => (
                     <li key={s.id}>
                       <button
@@ -320,18 +333,20 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                         onClick={() => setSelected(s.id)}
                         onMouseEnter={() => showTip(s)}
                         onMouseLeave={() => tip.current?.remove()}
-                        className="grid w-full grid-cols-[56px_1fr] items-center gap-3 rounded-lg p-2 text-left transition hover:bg-muted"
+                        className="grid w-full grid-cols-[58px_minmax(0,1fr)_14px] items-center gap-3 rounded-lg p-2.5 text-left transition hover:bg-muted md:py-3.5"
                       >
                         {s.cover ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.cover} alt="" loading="lazy" className="size-14 rounded-lg border object-cover" />
+                          <img src={s.cover} alt="" loading="lazy" className="h-14 w-[58px] rounded-t-[30px] rounded-b-lg border border-[#e2e4d6] object-cover md:h-[68px]" />
                         ) : (
-                          <span className={cn("grid size-14 place-items-center rounded-lg border bg-muted text-xl", typeText[s.type])}>✝</span>
+                          <span className={cn("grid h-14 w-[58px] place-items-center rounded-t-[30px] rounded-b-lg border border-[#e2e4d6] bg-[#eeeee3] text-[25px] md:h-[68px]", typeText[s.type])}>✝</span>
                         )}
                         <span className="min-w-0">
-                          <span className="block font-semibold">{name(s)}</span>
-                          <span className="block truncate text-[13px] text-muted-foreground">{s.location[lang] || s.location.el}</span>
+                          <span className={cn("block text-[9px] tracking-[.07em] uppercase", typeText[s.type])}>{TYPE_LABELS[s.type][lang]}</span>
+                          <span className="mt-0.5 mb-1 block font-heading text-sm leading-normal font-medium">{name(s)}</span>
+                          <span className="block truncate text-[11px] text-muted-foreground">{s.location[lang] || s.location.el}</span>
                         </span>
+                        <span aria-hidden className="text-[17px] text-[#929b86]">↗</span>
                       </button>
                     </li>
                   ))}
@@ -340,7 +355,15 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
             </>
           )}
         </aside>
-        <div ref={mapEl} className="map3d order-1 min-h-0 bg-[linear-gradient(#bcd6e6,#f4efe4)] md:order-2" />
+        <div className="relative order-1 min-h-0 min-w-0 overflow-hidden rounded-xl border border-[#d4ded5] md:order-2 md:rounded-2xl">
+          <div ref={mapEl} className="map3d size-full bg-[linear-gradient(#bcd6e6,#f4efe4)]" />
+          <div className="pointer-events-none absolute bottom-6 left-2.5 flex max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-white/70 bg-card/95 px-2.5 py-1.5 text-[9px] text-[#506252] shadow-[0_3px_15px_#293c3310] md:bottom-7 md:left-5 md:px-4 md:py-3 md:text-[10px]">
+            <span className="size-1.5 flex-none rounded-full bg-primary" />
+            <span className="font-semibold">{region.name[lang]}</span>
+            <span className="hidden h-3 w-px bg-[#d8ddcf] lg:block" />
+            <span className="hidden text-muted-foreground lg:block">{current ? name(current) : t("hint", lang)}</span>
+          </div>
+        </div>
       </div>
     </div>
   )

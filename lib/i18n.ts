@@ -2,6 +2,12 @@ import type { Lang } from "@/lib/content"
 
 // Public-site interface text. (The admin area is in Greek only.)
 export const UI = {
+  caption: { el: "Ένας χάρτης της εκκλησιαστικής μας κληρονομιάς", en: "An atlas of our sacred heritage" },
+  eyebrow: { el: "ΤΟΠΟΙ ΠΙΣΤΗΣ & ΙΣΤΟΡΙΑΣ", en: "PLACES OF FAITH & HISTORY" },
+  title: { el: "Ανακαλύψτε την Κύπρο", en: "Discover Cyprus" },
+  description: { el: "Εκκλησίες, μοναστήρια και οι ιστορίες τους. Εξερευνήστε την κληρονομιά του τόπου μας.", en: "Churches, monasteries, and the stories they hold. Explore the heritage of our island." },
+  hint: { el: "Επιλέξτε ένα μνημείο στον χάρτη", en: "Select a monument to explore" },
+  results: { el: "ΣΤΟΝ ΧΑΡΤΗ", en: "ON THE MAP" },
   search: { el: "Αναζήτηση εκκλησίας ή χωριού…", en: "Search a church or village…" },
   count: { el: (n: number) => `${n} ${n === 1 ? "μνημείο" : "μνημεία"}`, en: (n: number) => `${n} ${n === 1 ? "monument" : "monuments"}` },
   none: { el: "Δεν βρέθηκαν αποτελέσματα.", en: "No results." },

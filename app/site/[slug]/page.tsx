@@ -68,7 +68,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
       {!site.published && <div className="bg-amber-100 py-2 text-center text-sm font-semibold text-amber-900">{t("draft", lang)}</div>}
 
-      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-linear-to-br from-[#3b1b1f] to-primary"}`}>
+      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%),#293f33]"}`}>
         {cover && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover.src} alt={photos[0].caption || name} className="absolute inset-0 size-full object-cover opacity-85" />
