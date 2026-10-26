@@ -27,7 +27,7 @@ export async function assertRole(level: "approved" | "admin" | "superadmin") {
   if (level === "superadmin" && !isSuperadmin(user.role)) throw new Forbidden("Μόνο για υπερδιαχειριστές.")
   if (level === "admin" && !isAdmin(user.role)) throw new Forbidden("Μόνο για διαχειριστές.")
   if (level === "approved" && !isAdmin(user.role) && !user.approved) {
-    throw new Forbidden("Ο λογαριασμός σας δεν έχει εγκριθεί ακόμα από διαχειριστή.")
+    throw new Forbidden("Ο λογαριασμός σας δεν έχει δικαίωμα υποβολής προτάσεων. Επικοινωνήστε με έναν διαχειριστή.")
   }
   return user
 }

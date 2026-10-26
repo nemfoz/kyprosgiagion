@@ -94,6 +94,12 @@ export const SCHEMA = [
     updated_at INTEGER NOT NULL
   )`,
   'CREATE INDEX IF NOT EXISTS verification_identifier ON verification(identifier)',
+  `CREATE TABLE IF NOT EXISTS rate_limit (
+    id           TEXT PRIMARY KEY,
+    key          TEXT NOT NULL UNIQUE,
+    count        INTEGER NOT NULL,
+    last_request INTEGER NOT NULL
+  )`,
 ];
 
 // Columns added after the first release, for databases created earlier: [table, column, definition].

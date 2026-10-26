@@ -1,19 +1,18 @@
 import Link from "next/link"
-import { ArrowRight, Church, FileClock, Plus, Users } from "lucide-react"
+import { ArrowRight, Church, FileClock, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { isAdmin } from "@/lib/permissions"
 import { requireUser } from "@/lib/session"
 import { listSites } from "@/lib/sites"
-import { countPending, listSubmissions, pendingAccounts } from "@/lib/submissions"
+import { countPending, listSubmissions } from "@/lib/submissions"
 
 export default async function Overview() {
   const user = await requireUser()
   const admin = isAdmin(user.role)
-  const [sites, pending, accounts, mine] = await Promise.all([
+  const [sites, pending, mine] = await Promise.all([
     listSites({ publishedOnly: false }),
     admin ? countPending() : 0,
-    admin ? pendingAccounts() : [],
     admin ? [] : listSubmissions({ authorId: user.id }),
   ])
   const published = sites.filter((s) => s.published).length
@@ -33,7 +32,6 @@ export default async function Overview() {
         {admin ? (
           <>
             <Stat icon={<FileClock />} title="Προτάσεις σε αναμονή" value={String(pending)} detail="από χρήστες" href="/admin/submissions" highlight={pending > 0} />
-            <Stat icon={<Users />} title="Λογαριασμοί για έγκριση" value={String(accounts.length)} detail="νέοι χρήστες" href="/admin/users" highlight={accounts.length > 0} />
           </>
         ) : (
           <Stat icon={<FileClock />} title="Οι προτάσεις μου" value={String(mine.length)}

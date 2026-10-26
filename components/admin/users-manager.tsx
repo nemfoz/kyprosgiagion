@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Ban, Check, Loader2, ShieldCheck, Trash2, UserPlus, Undo2 } from "lucide-react"
+import { Ban, Check, Loader2, MailCheck, ShieldCheck, Trash2, UserPlus, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,16 +16,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { setApprovedAction } from "@/app/admin/actions"
+import { setApprovedAction, setVerifiedAction } from "@/app/admin/actions"
 import { authClient } from "@/lib/auth-client"
 import { isRole, ROLE_LABELS, ROLES, type Role } from "@/lib/permissions"
 
-type U = { id: string; name: string; email: string; role: string; approved: boolean; banned: boolean; createdAt: string }
+type U = { id: string; name: string; email: string; role: string; approved: boolean; emailVerified: boolean; banned: boolean; createdAt: string }
 
 export function UsersManager({ users, meId, superadmin }: { users: U[]; meId: string; superadmin: boolean }) {
   const router = useRouter()
   const [pending, start] = useTransition()
-  const waiting = users.filter((u) => u.role === "user" && !u.approved && !u.banned)
 
   // Superadmin operations go through Better Auth's admin API, which checks the permission on the server.
   const act = (fn: () => Promise<{ error?: { message?: string } | null } | { ok: boolean; error?: string }>, done: string) =>
@@ -39,33 +38,12 @@ export function UsersManager({ users, meId, superadmin }: { users: U[]; meId: st
 
   return (
     <div className="grid gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg">Λογαριασμοί για έγκριση</CardTitle>
-          <CardDescription>Νέοι χρήστες μπορούν να στέλνουν προτάσεις μόνο αφού εγκριθούν.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2">
-          {waiting.length === 0 && <p className="text-sm text-muted-foreground">Κανένας λογαριασμός σε αναμονή.</p>}
-          {waiting.map((u) => (
-            <div key={u.id} className="flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{u.name}</p>
-                <p className="text-sm text-muted-foreground">{u.email} · εγγραφή {u.createdAt.slice(0, 10)}</p>
-              </div>
-              <Button size="sm" disabled={pending} onClick={() => act(() => setApprovedAction(u.id, true), `Εγκρίθηκε: ${u.name}`)}><Check />Έγκριση</Button>
-              {superadmin && (
-                <Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => authClient.admin.banUser({ userId: u.id, banReason: "Απορρίφθηκε η εγγραφή" }), "Ο λογαριασμός απενεργοποιήθηκε")}><Ban />Απόρριψη</Button>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
       <Card className="gap-0 overflow-hidden pb-0">
         <CardHeader className="flex flex-row flex-wrap items-center gap-3 pb-4">
           <div>
             <CardTitle className="font-heading text-lg">Όλοι οι χρήστες</CardTitle>
             <CardDescription>
+              Οι νέοι λογαριασμοί ενεργοποιούνται μόλις ο χρήστης επιβεβαιώσει το e-mail του.{" "}
               {superadmin ? "Ως υπερδιαχειριστής ορίζετε ρόλους, δημιουργείτε διαχειριστές και απενεργοποιείτε λογαριασμούς." : "Η διαχείριση ρόλων γίνεται από υπερδιαχειριστή."}
             </CardDescription>
           </div>
@@ -102,14 +80,18 @@ export function UsersManager({ users, meId, superadmin }: { users: U[]; meId: st
                   </TableCell>
                   <TableCell>
                     {u.banned ? <Badge className="bg-red-100 text-red-800">Απενεργοποιημένος</Badge>
+                      : !u.emailVerified ? <Badge className="bg-amber-100 text-amber-900">Δεν επιβεβαίωσε e-mail</Badge>
                       : role !== "user" || u.approved ? <Badge className="bg-emerald-100 text-emerald-800">Ενεργός</Badge>
-                      : <Badge className="bg-amber-100 text-amber-900">Σε αναμονή</Badge>}
+                      : <Badge variant="secondary">Χωρίς δικαίωμα προτάσεων</Badge>}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      {role === "user" && !u.banned && (u.approved
-                        ? <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => setApprovedAction(u.id, false), "Η έγκριση ανακλήθηκε")}><Undo2 />Ανάκληση έγκρισης</Button>
-                        : <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => setApprovedAction(u.id, true), "Εγκρίθηκε")}><Check />Έγκριση</Button>)}
+                      {superadmin && !u.emailVerified && !u.banned && (
+                        <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => setVerifiedAction(u.id), "Το e-mail επιβεβαιώθηκε χειροκίνητα")}><MailCheck />Επιβεβαίωση e-mail</Button>
+                      )}
+                      {role === "user" && u.emailVerified && !u.banned && (u.approved
+                        ? <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => setApprovedAction(u.id, false), "Αφαιρέθηκε το δικαίωμα προτάσεων")}><Undo2 />Αφαίρεση δικαιώματος</Button>
+                        : <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => setApprovedAction(u.id, true), "Το δικαίωμα προτάσεων επανήλθε")}><Check />Επαναφορά δικαιώματος</Button>)}
                       {superadmin && !me && (u.banned
                         ? <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => authClient.admin.unbanUser({ userId: u.id }), "Ο λογαριασμός ενεργοποιήθηκε")}>Ενεργοποίηση</Button>
                         : <Button size="sm" variant="ghost" disabled={pending} onClick={() => act(() => authClient.admin.banUser({ userId: u.id }), "Ο λογαριασμός απενεργοποιήθηκε")}><Ban />Απενεργοποίηση</Button>)}
@@ -151,7 +133,7 @@ function CreateUser({ onDone }: { onDone: () => void }) {
     start(async () => {
       const { error } = await authClient.admin.createUser({
         name: String(f.get("name")), email: String(f.get("email")), password: String(f.get("password")),
-        role, data: { approved: true },
+        role, data: { approved: true, emailVerified: true },
       })
       if (error) return void toast.error(error.message ?? "Η δημιουργία απέτυχε")
       toast.success("Ο λογαριασμός δημιουργήθηκε")
@@ -167,7 +149,7 @@ function CreateUser({ onDone }: { onDone: () => void }) {
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>Νέος λογαριασμός</DialogTitle>
-            <DialogDescription>Δώστε στον χρήστη το e-mail και τον κωδικό· μπορεί να τον αλλάξει αργότερα.</DialogDescription>
+            <DialogDescription>Ο λογαριασμός είναι αμέσως ενεργός (χωρίς επιβεβαίωση e-mail). Δώστε στον χρήστη τον κωδικό· μπορεί να τον αλλάξει με «Ξεχάσατε τον κωδικό;».</DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5"><Label htmlFor="cu-name">Ονοματεπώνυμο</Label><Input id="cu-name" name="name" required /></div>
           <div className="grid gap-1.5"><Label htmlFor="cu-email">E-mail</Label><Input id="cu-email" name="email" type="email" required /></div>

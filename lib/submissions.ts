@@ -1,5 +1,5 @@
 import "server-only"
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { normaliseContent, type SiteContent } from "@/lib/content"
 import { addPhoto, createSite, getSite, slugTaken, updateSite, type PhotoInput, type SiteInput } from "@/lib/sites"
@@ -85,8 +85,4 @@ export async function rejectSubmission(id: number, reviewerId: string, reviewNot
   await db.update(submissions).set({ status: "rejected", reviewerId, reviewNote, reviewedAt: sql`(datetime('now'))` })
     .where(eq(submissions.id, id))
   await Promise.all(sub.payload.photos.map((p) => deleteStored(p.src))) // uploaded only for this proposal
-}
-
-export async function pendingAccounts() {
-  return db.select().from(user).where(and(eq(user.approved, false), inArray(user.role, ["user"]))).orderBy(desc(user.createdAt))
 }

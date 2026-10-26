@@ -16,7 +16,7 @@ export default async function UsersPage() {
         meId={me.id}
         superadmin={isSuperadmin(me.role)}
         users={users.map((u) => ({
-          id: u.id, name: u.name, email: u.email, role: u.role, approved: u.approved,
+          id: u.id, name: u.name, email: u.email, role: u.role, approved: u.approved, emailVerified: u.emailVerified,
           banned: !!u.banned, createdAt: u.createdAt.toISOString(),
         }))}
       />

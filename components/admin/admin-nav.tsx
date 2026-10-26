@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge"
 import type { Role } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 
-export function AdminNav({ role, pending, pendingAccounts }: { role: Role; pending: number; pendingAccounts: number }) {
+export function AdminNav({ role, pending }: { role: Role; pending: number }) {
   const path = usePathname()
   const admin = role !== "user"
   const items = [
     { href: "/admin", label: "Επισκόπηση", exact: true },
     { href: "/admin/sites", label: "Μνημεία" },
     { href: "/admin/submissions", label: admin ? "Προτάσεις" : "Οι προτάσεις μου", count: admin ? pending : 0 },
-    ...(admin ? [{ href: "/admin/users", label: "Χρήστες", count: pendingAccounts }] : []),
+    ...(admin ? [{ href: "/admin/users", label: "Χρήστες", count: 0 }] : []),
   ]
   return (
     <nav className="flex min-w-0 gap-1 overflow-x-auto">

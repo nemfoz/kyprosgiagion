@@ -99,6 +99,14 @@ export const verification = sqliteTable("verification", {
   ...timestamps,
 })
 
+// Per-IP request counters for Better Auth's rate limiting (database storage works across serverless instances).
+export const rateLimit = sqliteTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: integer("last_request").notNull(),
+})
+
 export type Site = typeof sites.$inferSelect
 export type Photo = typeof photos.$inferSelect
 export type Submission = typeof submissions.$inferSelect

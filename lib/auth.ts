@@ -1,13 +1,19 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { APIError, createAuthMiddleware } from "better-auth/api"
 import { nextCookies } from "better-auth/next-js"
-import { admin } from "better-auth/plugins"
+import { admin, captcha } from "better-auth/plugins"
+import { eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
+import { actionEmail, sendEmail } from "@/lib/email"
+import { HONEYPOT_FIELD, isDisposableEmail, MIN_FORM_SECONDS } from "@/lib/antispam"
 import { ac, roles } from "@/lib/permissions"
 
-// Accounts with these e-mails become superadmins (and are approved) when they sign up.
+// Accounts with these e-mails become superadmins when they sign up (after confirming the address).
 const superadminEmails = (process.env.SUPERADMIN_EMAILS || "")
   .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
+
+const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
 
 export const auth = betterAuth({
   appName: "Κύπρος – Αγίων Γη",
@@ -19,9 +25,54 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || process.env.SESSION_SECRET,
   database: drizzleAdapter(db, {
     provider: "sqlite",
-    schema: { user: schema.user, session: schema.session, account: schema.account, verification: schema.verification },
+    schema: {
+      user: schema.user, session: schema.session, account: schema.account,
+      verification: schema.verification, rateLimit: schema.rateLimit,
+    },
   }),
-  emailAndPassword: { enabled: true, minPasswordLength: 8 },
+
+  // New accounts can sign in (and propose changes) only after confirming their e-mail address.
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Επαναφορά κωδικού – Κύπρος Αγίων Γη",
+        ...actionEmail({
+          name: user.name, url,
+          intro: ["Ζητήθηκε επαναφορά του κωδικού σας.", "A password reset was requested for your account."],
+          button: ["Ορισμός νέου κωδικού", "Set a new password"],
+          outro: ["Αν δεν το ζητήσατε εσείς, αγνοήστε αυτό το μήνυμα. Ο σύνδεσμος λήγει σε 1 ώρα.", "If you did not ask for this, ignore this e-mail. The link expires in 1 hour."],
+        }),
+      })
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true, // signing in unverified re-sends the link
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60 * 24,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Επιβεβαίωση e-mail – Κύπρος Αγίων Γη",
+        ...actionEmail({
+          name: user.name, url,
+          intro: ["Ευχαριστούμε για την εγγραφή σας. Επιβεβαιώστε τη διεύθυνση e-mail σας για να ενεργοποιηθεί ο λογαριασμός.", "Thank you for signing up. Please confirm your e-mail address to activate your account:"],
+          button: ["Επιβεβαίωση e-mail", "Confirm e-mail"],
+          outro: ["Ο σύνδεσμος ισχύει για 24 ώρες. Αν δεν κάνατε εσείς την εγγραφή, αγνοήστε αυτό το μήνυμα.", "The link is valid for 24 hours. If you did not sign up, ignore this e-mail."],
+        }),
+      })
+    },
+    // Confirming the address activates the account: no admin approval needed.
+    afterEmailVerification: async (user) => {
+      await db.update(schema.user).set({ approved: true, updatedAt: new Date() }).where(eq(schema.user.id, user.id))
+    },
+  },
+
   user: {
     additionalFields: {
       approved: { type: "boolean", defaultValue: false, input: false },
@@ -32,13 +83,45 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           if (!superadminEmails.includes(user.email.toLowerCase())) return { data: user }
-          return { data: { ...user, role: "superadmin", approved: true } }
+          return { data: { ...user, role: "superadmin" } }
         },
       },
     },
   },
+
+  // Anti-spam, before anything is written or e-mailed: honeypot, minimum fill-in time, throwaway domains.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-up/email") return
+      const h = ctx.headers
+      const formAge = Number(h?.get("x-form-age"))
+      if (h?.get(`x-${HONEYPOT_FIELD}`) || !Number.isFinite(formAge) || formAge < MIN_FORM_SECONDS) {
+        throw new APIError("BAD_REQUEST", { message: "Η εγγραφή δεν ολοκληρώθηκε. Δοκιμάστε ξανά.", code: "SPAM_SUSPECTED" })
+      }
+      if (isDisposableEmail(String(ctx.body?.email ?? ""))) {
+        throw new APIError("BAD_REQUEST", { message: "Χρησιμοποιήστε μια μόνιμη διεύθυνση e-mail.", code: "DISPOSABLE_EMAIL" })
+      }
+    }),
+  },
+
+  // Per-IP limits, stored in the database so they hold across serverless instances.
+  rateLimit: {
+    enabled: process.env.NODE_ENV === "production" || process.env.RATE_LIMIT === "1",
+    storage: "database",
+    window: 60,
+    max: 60,
+    customRules: {
+      "/sign-up/email": { window: 60 * 60, max: 5 },
+      "/sign-in/email": { window: 60, max: 8 },
+      "/send-verification-email": { window: 10 * 60, max: 3 },
+      "/request-password-reset": { window: 10 * 60, max: 3 },
+    },
+  },
+
   plugins: [
     admin({ ac, roles, defaultRole: "user", adminRoles: ["superadmin"] }),
+    // Cloudflare Turnstile on sign-up / sign-in / password reset, when keys are configured.
+    ...(turnstileSecret ? [captcha({ provider: "cloudflare-turnstile", secretKey: turnstileSecret })] : []),
     nextCookies(), // must stay last
   ],
 })

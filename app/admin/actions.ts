@@ -143,8 +143,19 @@ export async function importPhotoAction(url: string, siteId: number | null, cred
   })
 }
 
-// ---- accounts (admins approve; superadmins manage roles through Better Auth's admin API) ----
+// ---- accounts (activated by e-mail confirmation; superadmins manage roles through Better Auth's admin API) ----
 
+/** Superadmins: confirm an address by hand (e.g. the user never received the e-mail). Also activates the account. */
+export async function setVerifiedAction(userId: string) {
+  return run(async () => {
+    await assertRole("superadmin")
+    await db.update(schema.user).set({ emailVerified: true, approved: true, updatedAt: new Date() }).where(eq(schema.user.id, userId))
+    revalidatePath("/admin", "layout")
+    return {}
+  })
+}
+
+/** Admins: take away / give back a user's right to send proposals. */
 export async function setApprovedAction(userId: string, approved: boolean) {
   return run(async () => {
     await assertRole("admin")

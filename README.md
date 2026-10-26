@@ -20,11 +20,20 @@ npm run dev                     # http://localhost:3000  ·  sign up at /signup 
 
 | Role | Can |
 |---|---|
-| **Χρήστης** (user) | Sign up at `/signup`. Once an admin approves the account: propose new churches and changes (texts, location, photos). Proposals wait in a queue. |
-| **Διαχειριστής** (admin) | Edit and publish directly, review proposals (field-by-field comparison), approve new accounts. |
-| **Υπερδιαχειριστής** (superadmin) | Everything an admin can do, plus user management: roles, new accounts/admins, blocking, deleting. |
+| **Χρήστης** (user) | Signs up at `/signup` and confirms their e-mail address; the account is then active. Proposes new churches and changes (texts, location, photos), which wait in a queue. |
+| **Διαχειριστής** (admin) | Edits and publishes directly, reviews proposals (field-by-field comparison), can take away a user's right to propose. |
+| **Υπερδιαχειριστής** (superadmin) | Everything an admin can do, plus user management: roles, new accounts/admins, blocking, deleting, confirming an e-mail by hand. |
 
-Accounts whose e-mail is in `SUPERADMIN_EMAILS` become superadmins when they sign up. Roles and permissions
+Accounts whose e-mail is in `SUPERADMIN_EMAILS` become superadmins when they sign up (after confirming the address).
+
+### Spam protection on sign-up
+
+Before any account is created or e-mail is sent: Cloudflare **Turnstile** CAPTCHA (usually invisible), a hidden
+**honeypot** field, a **minimum fill-in time**, a block on **throwaway e-mail domains** (`lib/antispam.ts`), and
+per-IP **rate limits** stored in the database (5 sign-ups per hour, also on sign-in, password reset and re-sending
+the confirmation). The account only becomes active once the e-mail link is clicked.
+
+Roles and permissions
 are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them for user management, and
 `assertRole()` (`lib/session.ts`) for content actions.
 
@@ -60,6 +69,8 @@ Environment variables (Settings → Environment Variables), for Production **and
 | `BLOB_READ_WRITE_TOKEN` | from the Blob store |
 | `BETTER_AUTH_SECRET` | random string (`SESSION_SECRET` is used if this is missing) |
 | `SUPERADMIN_EMAILS` | your e-mail(s) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | e-mail sending ([resend.com](https://resend.com), with a verified sender domain) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget (dash.cloudflare.com → Turnstile; add the site's domains) |
 | `BETTER_AUTH_URL` | optional, only for a custom domain |
 
 Every build runs `scripts/migrate.mjs` first, which adds any missing tables/columns (it never drops anything).
