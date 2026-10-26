@@ -7,7 +7,8 @@ import { put, del } from "@vercel/blob"
 // Photos live in Vercel Blob in production and in ./uploads (served by app/uploads/[name]) locally.
 // We never hotlink: images from other sites are downloaded and stored here first.
 
-const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN
+// A read-write token, or the store id with Vercel's OIDC login (how newly connected Blob stores authenticate).
+const USE_BLOB = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
 const UPLOADS = path.join(process.cwd(), "uploads")
 
 export const IMAGE_TYPES: Record<string, string> = {

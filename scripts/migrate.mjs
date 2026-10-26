@@ -4,7 +4,14 @@
 import { createClient } from '@libsql/client';
 import { fileURLToPath } from 'node:url';
 import { SCHEMA, ADDED_COLUMNS } from './schema.mjs';
+import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
+import { importChurches } from './import-core.mjs';
+import { rehostPhotos } from './rehost-core.mjs';
+import { hasBlobStorage } from './lib.mjs';
+
+// Reviewed content files applied once per database (tracked in data_imports), in order.
+const IMPORTS = ['data/imports/imconstantias-occupied.json'];
 
 if (process.env.VERCEL && !(process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL)) {
   console.error('migrate: TURSO_DATABASE_URL is not set for this Vercel environment (Settings → Environment Variables).');
@@ -51,3 +58,39 @@ if (Number(rows[0].n) === 0) {
 }
 
 console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : 'remote'})`);
+
+// ---- one-off data steps (each runs at most once per database) ----
+
+const applied = new Set((await db.execute('SELECT name FROM data_imports')).rows.map((r) => r.name));
+const canStorePhotos = url.startsWith('file:') || hasBlobStorage();
+
+for (const file of IMPORTS) {
+  if (applied.has(file)) continue;
+  if (!canStorePhotos) { console.log(`migrate: skipping ${file} (no photo storage configured)`); continue; }
+  const entries = JSON.parse(fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
+  const c = await importChurches(db, entries, { log: (m) => console.log(`migrate:   ${m}`) });
+  const summary = `${c.added} added as drafts, ${c.exists} already present, ${c.noLocation} without location, ${c.photos} photos copied`;
+  if (c.photoErrors) { console.log(`migrate: ${file}: ${summary}; ${c.photoErrors} photos failed — will retry on the next deploy`); continue; }
+  await db.execute({ sql: 'INSERT INTO data_imports (name, summary) VALUES (?, ?)', args: [file, summary] });
+  console.log(`migrate: imported ${file}: ${summary}`);
+}
+
+// Test accounts created while checking the first live deploy (never confirmed, cannot log in).
+if (!applied.has('cleanup:probe-accounts')) {
+  const probes = ['probe-test@example.org', 'probe-two@example.org', 'probe-three@example.org'];
+  const marks = probes.map(() => '?').join(',');
+  await db.batch([
+    { sql: `DELETE FROM session WHERE user_id IN (SELECT id FROM user WHERE email IN (${marks}) AND email_verified = 0)`, args: probes },
+    { sql: `DELETE FROM account WHERE user_id IN (SELECT id FROM user WHERE email IN (${marks}) AND email_verified = 0)`, args: probes },
+    { sql: `DELETE FROM user WHERE email IN (${marks}) AND email_verified = 0`, args: probes },
+    { sql: "INSERT INTO data_imports (name, summary) VALUES ('cleanup:probe-accounts', 'removed unconfirmed probe accounts')", args: [] },
+  ], 'write');
+  console.log('migrate: removed test accounts');
+}
+
+// No hotlinks: copy any photo still loaded from another website into our storage (skips stored ones).
+if (canStorePhotos) {
+  const r = await rehostPhotos(db, { log: (m) => console.log(`migrate:   ${m}`) });
+  if (r.external) console.log(`migrate: copied ${r.done} of ${r.external} hotlinked photos into storage`);
+}
+

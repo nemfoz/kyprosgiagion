@@ -73,7 +73,11 @@ Environment variables (Settings → Environment Variables), for Production **and
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget (dash.cloudflare.com → Turnstile; add the site's domains) |
 | `BETTER_AUTH_URL` | optional, only for a custom domain |
 
-Every build runs `scripts/migrate.mjs` first, which adds any missing tables/columns (it never drops anything).
+Every build runs `scripts/migrate.mjs` first. It adds any missing tables/columns (never drops anything), applies
+the content files listed in its `IMPORTS` once per database (tracked in the `data_imports` table; churches arrive as
+drafts with their photos copied into Blob), and copies any hotlinked photo into storage. This is how production data
+is changed without downloading the production secrets (Vercel keeps the Turso credentials and Blob OIDC access
+server-side only).
 
 ## Production data from your computer
 

@@ -94,6 +94,12 @@ export const SCHEMA = [
     updated_at INTEGER NOT NULL
   )`,
   'CREATE INDEX IF NOT EXISTS verification_identifier ON verification(identifier)',
+  // Content imports already applied by scripts/migrate.mjs (each runs once).
+  `CREATE TABLE IF NOT EXISTS data_imports (
+    name       TEXT PRIMARY KEY,
+    summary    TEXT NOT NULL DEFAULT '',
+    applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
   `CREATE TABLE IF NOT EXISTS rate_limit (
     id           TEXT PRIMARY KEY,
     key          TEXT NOT NULL UNIQUE,
