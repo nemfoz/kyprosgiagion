@@ -10,7 +10,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "reset-db": "rm -f data/app.db* && node -e \"import('./lib/db.js')\""
+    "reset-db": "rm -f data/app.db* && node -e \"import('./lib/db.js')\"",
+    "dev:prod": "node --env-file=.env.production.local --watch server.js",
+    "sync:pull": "node --env-file=.env.production.local scripts/sync.mjs pull",
+    "sync:push": "node --env-file=.env.production.local scripts/sync.mjs push"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

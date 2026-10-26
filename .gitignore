@@ -3,3 +3,6 @@ data/app.db*
 data/.secret
 uploads/*
 !uploads/.gitkeep
+.env*
+!.env.example
+data/app.db.backup-*

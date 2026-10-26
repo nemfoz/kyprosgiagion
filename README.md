@@ -32,6 +32,32 @@ Every text field exists in Greek and English. The body text uses simple formatti
 blank line = new paragraph, `## Heading`, `**bold**`, `*italic*`, `[text](https://…)`, `- list`.
 "Details" are written one per line as `Label: Value`.
 
+## Local ↔ production
+
+Production (Turso + Blob) is the main copy. Put the production variables in `.env.production.local`
+(see `.env.example`; never commit it), then:
+
+| Command | What it does |
+|---|---|
+| `npm run dev:prod` | Run the site locally **against the production database and Blob** — edits are live immediately |
+| `npm run sync:pull` | Replace the local database with production (the local file is backed up first) |
+| `npm run sync:push` | Dry run: list what would be pushed from local to production |
+| `npm run sync:push -- --apply` | Push: add/update churches by slug, upload local photos to Blob. Never deletes in production; skips churches edited more recently in production unless `--force` |
+
+## Importing churches
+
+`scripts/fetch-imconstantias.mjs` reads the occupied parishes listed by the Holy Metropolis of
+Constantia–Ammochostos into `data/imports/imconstantias-occupied.json` (name, village, Google Maps pin, photo, source).
+Review/edit that file, then:
+
+```bash
+node scripts/import.mjs data/imports/imconstantias-occupied.json                                   # local
+node --env-file=.env.production.local scripts/import.mjs data/imports/imconstantias-occupied.json  # production
+```
+
+Entries are added as **unpublished drafts** (existing slugs are skipped). Add `--with-photos` to link the
+Metropolis' photos — only after they have given permission.
+
 ## Adding a new area later
 
 1. Add the area's outline to `public/data/boundaries.geojson` as a feature with `properties.region = "<id>"`.

@@ -9,6 +9,7 @@ import {
   addPhoto, getPhoto, updatePhoto, deletePhoto,
 } from './lib/db.js';
 import { renderSitePage, esc } from './lib/render.js';
+import { slugify } from './lib/slug.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS = path.join(ROOT, 'uploads');
@@ -51,10 +52,6 @@ function requireAdmin(req, res, next) {
 }
 
 // ---- validation ----------------------------------------------------------
-
-const slugify = (s) => String(s || '')
-  .normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 
 function validateSite(body) {
   const errors = [];
