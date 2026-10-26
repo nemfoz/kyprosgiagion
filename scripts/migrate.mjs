@@ -21,6 +21,9 @@ const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL
   || `file:${fileURLToPath(new URL('../data/app.db', import.meta.url))}`;
 const db = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN });
 
+// TEMP DIAGNOSTIC
+{ const u = new URL(url.replace(/^libsql:/, 'https:')); const t = (await db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")).rows.map((r) => r.name);
+  console.log(`diag: protocol=${url.split(':')[0]} host=${u.host} tables-before=[${t.join(',')}] sites=${t.includes('sites') ? (await db.execute('SELECT COUNT(*) n FROM sites')).rows[0].n : '-'}`); }
 await db.batch(SCHEMA, 'write');
 
 for (const [table, column, definition] of ADDED_COLUMNS) {
