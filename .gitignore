@@ -1,0 +1,5 @@
+node_modules/
+data/app.db*
+data/.secret
+uploads/*
+!uploads/.gitkeep

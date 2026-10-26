@@ -1,0 +1,43 @@
+{
+  "siteTitle": { "el": "Κύπρος – Αγίων Γη", "en": "Cyprus – Land of Saints" },
+  "defaultRegion": "famagusta",
+  "regions": [
+    {
+      "id": "famagusta",
+      "name": { "el": "Επαρχία Αμμοχώστου", "en": "Famagusta District" },
+      "boundary": "famagusta",
+      "bounds": [[34.94, 33.53], [35.72, 34.62]],
+      "camera": { "bearing": -20, "pitch": 50 },
+      "active": true
+    },
+    {
+      "id": "karpasia",
+      "parent": "famagusta",
+      "name": { "el": "Χερσόνησος Καρπασίας", "en": "Karpasia Peninsula" },
+      "boundary": "karpasia",
+      "bounds": [[35.21, 33.77], [35.71, 34.61]],
+      "camera": { "bearing": -36, "pitch": 58 },
+      "active": true
+    },
+    {
+      "id": "kyrenia",
+      "name": { "el": "Επαρχία Κερύνειας", "en": "Kyrenia District" },
+      "bounds": [[35.18, 32.90], [35.42, 33.80]],
+      "active": false
+    }
+  ],
+  "places": [
+    { "el": "Αμμόχωστος", "en": "Famagusta", "lat": 35.1210, "lng": 33.9380, "major": true },
+    { "el": "Τρίκωμο", "en": "Trikomo", "lat": 35.2870, "lng": 33.8920, "major": true },
+    { "el": "Ριζοκάρπασο", "en": "Rizokarpaso", "lat": 35.6000, "lng": 34.3800, "major": true },
+    { "el": "Γιαλούσα", "en": "Yialousa", "lat": 35.5330, "lng": 34.1880, "major": true },
+    { "el": "Λευκόνοικο", "en": "Lefkoniko", "lat": 35.2560, "lng": 33.7350 },
+    { "el": "Ακανθού", "en": "Akanthou", "lat": 35.3740, "lng": 33.7570 },
+    { "el": "Λεονάρισσο", "en": "Leonarisso", "lat": 35.4700, "lng": 34.1400 },
+    { "el": "Κώμη Κεπίρ", "en": "Komi Kebir", "lat": 35.4180, "lng": 34.0860 },
+    { "el": "Λιθράγκωμη", "en": "Lythrangomi", "lat": 35.5100, "lng": 34.2250 },
+    { "el": "Παραλίμνι", "en": "Paralimni", "lat": 35.0380, "lng": 33.9820 },
+    { "el": "Αγία Νάπα", "en": "Ayia Napa", "lat": 34.9880, "lng": 33.9990 },
+    { "el": "Δερύνεια", "en": "Deryneia", "lat": 35.0640, "lng": 33.9590 }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "kyprosagiongi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Map of the churches and monasteries of Cyprus, starting with the Karpasia peninsula and Famagusta District",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "reset-db": "rm -f data/app.db && node -e \"import('./lib/db.js')\""
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
