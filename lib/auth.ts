@@ -93,6 +93,10 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/sign-up/email") return
+      // The confirmation e-mail is sent in the background, so check up front that it can be sent at all.
+      if (process.env.VERCEL && !process.env.RESEND_API_KEY) {
+        throw new APIError("SERVICE_UNAVAILABLE", { message: "Οι εγγραφές δεν είναι ακόμα διαθέσιμες. Δοκιμάστε αργότερα.", code: "EMAIL_NOT_CONFIGURED" })
+      }
       const h = ctx.headers
       const formAge = Number(h?.get("x-form-age"))
       if (h?.get(`x-${HONEYPOT_FIELD}`) || !Number.isFinite(formAge) || formAge < MIN_FORM_SECONDS) {
