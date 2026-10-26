@@ -2,6 +2,12 @@
   const { TYPES, esc } = KA;
 
   const UI = {
+    caption: { el: 'Ένας χάρτης της εκκλησιαστικής μας κληρονομιάς', en: 'An atlas of our sacred heritage' },
+    eyebrow: { el: 'ΤΟΠΟΙ ΠΙΣΤΗΣ & ΙΣΤΟΡΙΑΣ', en: 'PLACES OF FAITH & HISTORY' },
+    title: { el: 'Ανακαλύψτε την Κύπρο', en: 'Discover Cyprus' },
+    description: { el: 'Εκκλησίες, μοναστήρια και οι ιστορίες τους. Εξερευνήστε την κληρονομιά του τόπου μας.', en: 'Churches, monasteries, and the stories they hold. Explore the heritage of our island.' },
+    hint: { el: 'Επιλέξτε ένα μνημείο στον χάρτη', en: 'Select a monument to explore' },
+    results: { el: 'ΣΤΟΝ ΧΑΡΤΗ', en: 'ON THE MAP' },
     search: { el: 'Αναζήτηση εκκλησίας ή χωριού…', en: 'Search a church or village…' },
     count: { el: (n) => `${n} ${n === 1 ? 'μνημείο' : 'μνημεία'}`, en: (n) => `${n} ${n === 1 ? 'monument' : 'monuments'}` },
     none: { el: 'Δεν βρέθηκαν αποτελέσματα.', en: 'No results.' },
@@ -169,11 +175,11 @@
     }
     const list = visibleSites().sort((a, b) => name(a).localeCompare(name(b), state.lang));
     panelBody.innerHTML = `
-      <div class="count">${t(UI.count)(list.length)}</div>
+      <div class="count"><span>${t(UI.count)(list.length)}</span><span class="count-label">${t(UI.results)}</span></div>
       ${list.length ? `<ul class="site-list">${list.map((x) => `
         <li><button type="button" data-id="${x.id}">
           ${thumb(x)}
-          <span><span class="name">${esc(name(x))}</span><span class="loc">${esc(loc(x))}</span></span>
+          <span class="site-list-copy"><span class="list-type type-${x.type}">${esc(TYPES[x.type]?.[state.lang] ?? x.type)}</span><span class="name">${esc(name(x))}</span><span class="loc">${esc(loc(x))}</span></span><span class="list-arrow" aria-hidden="true">↗</span>
         </button></li>`).join('')}</ul>` : `<p class="count">${t(UI.none)}</p>`}`;
   }
 
@@ -230,6 +236,12 @@
     document.getElementById('site-title').textContent = config.siteTitle[state.lang];
     langBtn.textContent = state.lang === 'el' ? 'EN' : 'ΕΛ';
     search.placeholder = t(UI.search);
+    search.setAttribute('aria-label', t(UI.search));
+    langBtn.setAttribute('aria-label', state.lang === 'el' ? 'Switch to English' : 'Αλλαγή σε Ελληνικά');
+    for (const [id, key] of [['brand-caption', 'caption'], ['explore-eyebrow', 'eyebrow'], ['explore-title', 'title'], ['explore-description', 'description'], ['map-hint', 'hint']]) {
+      document.getElementById(id).textContent = t(UI[key]);
+    }
+    document.getElementById('map-region').textContent = region().name[state.lang];
     regionTabs.hidden = regions.length < 2;
     regionTabs.innerHTML = regions.map((r) =>
       `<button type="button" data-region="${r.id}" aria-pressed="${r.id === state.region}">${esc(r.name[state.lang])}</button>`).join('');

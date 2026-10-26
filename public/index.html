@@ -11,9 +11,9 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="map-page">
 <header class="topbar">
-  <a class="brand" href="/"><span class="brand-text" id="site-title">Κύπρος – Αγίων Γη</span></a>
+  <a class="brand" href="/"><span class="brand-copy"><span class="brand-text" id="site-title">Κύπρος – Αγίων Γη</span><span class="brand-caption" id="brand-caption">Ένας χάρτης της εκκλησιαστικής μας κληρονομιάς</span></span></a>
   <div class="tabs" id="region-tabs" role="group" aria-label="Region"></div>
   <nav class="topbar-actions">
     <button class="btn btn-ghost" id="lang-toggle" type="button">EN</button>
@@ -23,12 +23,23 @@
 <div class="app">
   <aside class="panel">
     <div class="panel-head" id="panel-head">
-      <input type="search" id="search" autocomplete="off">
+      <div class="explore-intro">
+        <p class="eyebrow" id="explore-eyebrow">ΤΟΠΟΙ ΠΙΣΤΗΣ & ΙΣΤΟΡΙΑΣ</p>
+        <h1 id="explore-title">Ανακαλύψτε την Κύπρο</h1>
+        <p id="explore-description">Εκκλησίες, μοναστήρια και οι ιστορίες τους. Εξερευνήστε την κληρονομιά του τόπου μας.</p>
+      </div>
+      <label class="search-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input type="search" id="search" autocomplete="off" aria-label="Αναζήτηση εκκλησίας ή χωριού">
+      </label>
       <div class="chips" id="type-filters"></div>
     </div>
     <div class="panel-body" id="panel-body"></div>
   </aside>
-  <div id="map"></div>
+  <div class="map-stage">
+    <div id="map"></div>
+    <div class="map-caption"><span class="map-caption-dot"></span><span id="map-region"></span><span class="map-caption-divider"></span><span id="map-hint">Επιλέξτε ένα μνημείο στον χάρτη</span></div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
