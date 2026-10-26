@@ -7,13 +7,15 @@
 //   npm run sync:push -- --apply --force   also overwrite churches edited more recently in production
 //
 // Push matches churches by slug, never deletes anything in production, and uploads local photos to Blob.
+// Only churches and photos are synced — user accounts and proposals stay where they are.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@libsql/client';
-import { put, del } from '@vercel/blob';
-import { SCHEMA } from '../lib/schema.js';
+import { del } from '@vercel/blob';
+import { uploadLocal } from './lib.mjs';
+import { SCHEMA, ADDED_COLUMNS } from './schema.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const LOCAL_FILE = path.join(ROOT, 'data', 'app.db');
@@ -36,6 +38,10 @@ async function all(db, sql, args = []) {
 
 async function snapshot(db) {
   await db.batch(SCHEMA, 'write');
+  for (const [table, column, definition] of ADDED_COLUMNS) {
+    const cols = (await db.execute(`PRAGMA table_info(${table})`)).rows.map((r) => r.name);
+    if (!cols.includes(column)) await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
   const sites = await all(db, 'SELECT * FROM sites ORDER BY id');
   const photos = await all(db, 'SELECT * FROM photos ORDER BY site_id, sort, id');
   for (const s of sites) s.photos = photos.filter((p) => p.site_id === s.id);
@@ -43,7 +49,7 @@ async function snapshot(db) {
 }
 
 const SITE_COLS = ['slug', 'type', 'region', 'lat', 'lng', 'coords_verified', 'published', 'content', 'created_at', 'updated_at'];
-const PHOTO_COLS = ['src', 'caption_el', 'caption_en', 'credit', 'sort'];
+const PHOTO_COLS = ['src', 'caption_el', 'caption_en', 'credit', 'source_url', 'sort'];
 const signature = (s) => JSON.stringify([
   SITE_COLS.filter((c) => !c.endsWith('_at')).map((c) => s[c]),
   s.photos.map((p) => PHOTO_COLS.map((c) => p[c])),
@@ -81,16 +87,6 @@ async function pull() {
 
 // ---- push ------------------------------------------------------------------
 
-async function uploadLocalPhoto(src) {
-  if (!src.startsWith('/uploads/')) return src;
-  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new Error('BLOB_READ_WRITE_TOKEN is needed to upload local photos.');
-  const file = path.join(ROOT, 'uploads', path.basename(src));
-  const ext = path.extname(file).toLowerCase();
-  const contentType = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' }[ext];
-  const { url } = await put(`photos/${path.basename(file)}`, fs.readFileSync(file), { access: 'public', contentType });
-  return url;
-}
-
 async function push() {
   const [mine, theirs] = await Promise.all([snapshot(local), snapshot(remote)]);
   const bySlug = new Map(theirs.map((s) => [s.slug, s]));
@@ -120,7 +116,7 @@ async function push() {
     const existing = bySlug.get(s.slug);
     // Upload local photo files first and remember their new Blob URLs locally too.
     for (const p of s.photos) {
-      const url = await uploadLocalPhoto(p.src);
+      const url = await uploadLocal(p.src);
       if (url !== p.src) {
         await local.execute({ sql: 'UPDATE photos SET src = ? WHERE id = ?', args: [url, p.id] });
         p.src = url;
