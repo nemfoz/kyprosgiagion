@@ -24,14 +24,26 @@ const TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp'
 // A read-write token, or the store id with Vercel's OIDC login.
 export const hasBlobStorage = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 
-export const isStored = (src) => src.startsWith('/uploads/') || /\.blob\.vercel-storage\.com\//.test(src);
+export const isStored = (src) => src.startsWith('/uploads/') || src.startsWith('/media/') || /\.blob\.vercel-storage\.com\//.test(src);
+
+// Public stores give a CDN URL; private stores are served through the app's /media route.
+let blobAccess = process.env.BLOB_ACCESS === 'private' ? 'private' : 'public';
+async function putBlob(pathname, data, contentType) {
+  try {
+    const r = await put(pathname, data, { access: blobAccess, contentType });
+    return blobAccess === 'public' ? r.url : `/media/${r.pathname}`;
+  } catch (e) {
+    if (blobAccess === 'public' && /private store/i.test(e.message)) { blobAccess = 'private'; return putBlob(pathname, data, contentType); }
+    throw e;
+  }
+}
 
 /** Stores an image in Vercel Blob (if BLOB_READ_WRITE_TOKEN is set) or in ./uploads. Returns its URL. */
 export async function storePhoto(baseName, data, contentType) {
   const ext = TYPES[contentType];
   if (!ext) throw new Error(`unsupported image type ${contentType}`);
   const name = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}${ext}`;
-  if (hasBlobStorage()) return (await put(`photos/${name}`, data, { access: 'public', contentType })).url;
+  if (hasBlobStorage()) return putBlob(`photos/${name}`, data, contentType);
   fs.mkdirSync(path.join(ROOT, 'uploads'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'uploads', name), data);
   return `/uploads/${name}`;
@@ -52,5 +64,5 @@ export async function uploadLocal(src) {
   if (!hasBlobStorage()) throw new Error('Blob credentials (BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID) are needed to upload local photos.');
   const file = path.join(ROOT, 'uploads', path.basename(src));
   const type = Object.entries(TYPES).find(([, ext]) => file.toLowerCase().endsWith(ext) || (ext === '.jpg' && file.toLowerCase().endsWith('.jpeg')))?.[0];
-  return (await put(`photos/${path.basename(file)}`, fs.readFileSync(file), { access: 'public', contentType: type })).url;
+  return putBlob(`photos/${path.basename(file)}`, fs.readFileSync(file), type);
 }

@@ -2,7 +2,7 @@ import "server-only"
 import fs from "node:fs/promises"
 import path from "node:path"
 import crypto from "node:crypto"
-import { put, del } from "@vercel/blob"
+import { del, put } from "@vercel/blob"
 
 // Photos live in Vercel Blob in production and in ./uploads (served by app/uploads/[name]) locally.
 // We never hotlink: images from other sites are downloaded and stored here first.
@@ -16,14 +16,30 @@ export const IMAGE_TYPES: Record<string, string> = {
 }
 
 export function isStored(src: string) {
-  return src.startsWith("/uploads/") || /\.blob\.vercel-storage\.com\//.test(src)
+  return src.startsWith("/uploads/") || src.startsWith("/media/") || /\.blob\.vercel-storage\.com\//.test(src)
+}
+
+// Public stores give a CDN URL; private stores are served through our /media route (app/media/[...path]).
+let blobAccess: "public" | "private" = process.env.BLOB_ACCESS === "private" ? "private" : "public"
+
+async function putBlob(pathname: string, data: Buffer, contentType: string) {
+  try {
+    const r = await put(pathname, data, { access: blobAccess, contentType })
+    return blobAccess === "public" ? r.url : `/media/${r.pathname}`
+  } catch (e) {
+    if (blobAccess === "public" && /private store/i.test((e as Error).message)) {
+      blobAccess = "private"
+      return putBlob(pathname, data, contentType)
+    }
+    throw e
+  }
 }
 
 export async function storePhoto(baseName: string, data: Buffer, contentType: string) {
   const ext = IMAGE_TYPES[contentType]
   if (!ext) throw new Error("Μη υποστηριζόμενος τύπος εικόνας")
   const name = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString("hex")}${ext}`
-  if (USE_BLOB) return (await put(`photos/${name}`, data, { access: "public", contentType })).url
+  if (USE_BLOB) return putBlob(`photos/${name}`, data, contentType)
   await fs.mkdir(UPLOADS, { recursive: true })
   await fs.writeFile(path.join(UPLOADS, name), data)
   return `/uploads/${name}`
@@ -57,7 +73,7 @@ export async function rehostImage(url: string, baseName: string) {
 export async function deleteStored(src: string) {
   if (src.startsWith("/uploads/")) {
     await fs.rm(path.join(UPLOADS, path.basename(src)), { force: true })
-  } else if (USE_BLOB && /\.blob\.vercel-storage\.com\//.test(src)) {
-    await del(src).catch((e) => console.warn("blob delete failed:", e.message))
+  } else if (USE_BLOB && (src.startsWith("/media/") || /\.blob\.vercel-storage\.com\//.test(src))) {
+    await del(src.startsWith("/media/") ? src.slice("/media/".length) : src).catch((e) => console.warn("blob delete failed:", e.message))
   }
 }
