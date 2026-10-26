@@ -4,13 +4,17 @@
   "private": true,
   "description": "Map of the churches and monasteries of Cyprus, starting with the Karpasia peninsula and Famagusta District",
   "type": "module",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "reset-db": "rm -f data/app.db && node -e \"import('./lib/db.js')\""
+    "reset-db": "rm -f data/app.db* && node -e \"import('./lib/db.js')\""
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@vercel/blob": "^2.8.2",
     "express": "^4.21.2"
   }
 }

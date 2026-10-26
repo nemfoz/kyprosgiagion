@@ -345,9 +345,10 @@
       const credit = document.getElementById('photo-credit').value;
       for (const file of files) {
         try {
+          const body = await shrink(file);
           const p = await api(`/sites/${site.id}/photos/upload`, {
-            method: 'POST', body: file,
-            headers: { 'Content-Type': file.type, 'X-Credit': encodeURIComponent(credit) },
+            method: 'POST', body,
+            headers: { 'Content-Type': body.type, 'X-Credit': encodeURIComponent(credit) },
           });
           p.credit = credit;
           photos.push(p);
@@ -371,6 +372,19 @@
         render();
       } catch (err) { toast(err.message, true); }
     });
+  }
+
+  // Resize large photos in the browser (max 2400 px, JPEG) so uploads stay small and fast.
+  async function shrink(file, max = 2400) {
+    if (file.type === 'image/gif') return file;
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 2.5e6) return file;
+    const canvas = Object.assign(document.createElement('canvas'), {
+      width: Math.round(bitmap.width * scale), height: Math.round(bitmap.height * scale),
+    });
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
   }
 
   // ---- router --------------------------------------------------------------
