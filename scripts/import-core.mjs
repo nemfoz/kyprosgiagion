@@ -3,7 +3,7 @@ import { rehost, rows } from './lib.mjs';
 
 const SOURCE_EL = 'Ιερά Μητρόπολη Κωνσταντίας-Αμμοχώστου';
 const SOURCE_EN = 'Holy Metropolis of Constantia–Ammochostos';
-const slugify = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+export const slugify = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 
 function content(e) {
@@ -32,8 +32,8 @@ function content(e) {
   };
 }
 
-/** Adds the entries as unpublished drafts (existing slugs are kept) and copies their photos. Idempotent. */
-export async function importChurches(db, entries, { withPhotos = true, log = console.log } = {}) {
+/** Adds the entries (as drafts unless `published`; existing slugs are kept) and copies their photos. Idempotent. */
+export async function importChurches(db, entries, { withPhotos = true, published = false, log = console.log } = {}) {
   const counts = { added: 0, exists: 0, noLocation: 0, photos: 0, photoErrors: 0 };
 
   for (const e of entries) {
@@ -49,8 +49,8 @@ export async function importChurches(db, entries, { withPhotos = true, log = con
       counts.exists++;
     } else {
       const r = await db.execute({
-        sql: `INSERT INTO sites (slug, type, region, lat, lng, coords_verified, published, content) VALUES (?, 'church', ?, ?, ?, ?, 0, ?)`,
-        args: [slug, e.region || 'famagusta', e.lat, e.lng, e.coords?.startsWith('exact') ? 1 : 0, JSON.stringify(content(e))],
+        sql: `INSERT INTO sites (slug, type, region, lat, lng, coords_verified, published, content) VALUES (?, 'church', ?, ?, ?, ?, ?, ?)`,
+        args: [slug, e.region || 'famagusta', e.lat, e.lng, e.coords?.startsWith('exact') ? 1 : 0, published ? 1 : 0, JSON.stringify(content(e))],
       });
       site = { id: Number(r.lastInsertRowid) };
       counts.added++;

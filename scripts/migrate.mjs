@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { SCHEMA, ADDED_COLUMNS } from './schema.mjs';
 import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
-import { importChurches } from './import-core.mjs';
+import { importChurches, slugify } from './import-core.mjs';
 import { rehostPhotos } from './rehost-core.mjs';
 import { hasBlobStorage } from './lib.mjs';
 
 // Reviewed content files applied once per database (tracked in data_imports), in order.
-const IMPORTS = ['data/imports/imconstantias-occupied.json'];
+const IMPORTS = [{ file: 'data/imports/imconstantias-occupied.json', published: true }];
 
 if (process.env.VERCEL && !(process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL)) {
   console.error('migrate: TURSO_DATABASE_URL is not set for this Vercel environment (Settings → Environment Variables).');
@@ -64,15 +64,24 @@ console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' :
 const applied = new Set((await db.execute('SELECT name FROM data_imports')).rows.map((r) => r.name));
 const canStorePhotos = url.startsWith('file:') || hasBlobStorage();
 
-for (const file of IMPORTS) {
+for (const { file, published } of IMPORTS) {
   if (applied.has(file)) continue;
   if (!canStorePhotos) { console.log(`migrate: skipping ${file} (no photo storage configured)`); continue; }
   const entries = JSON.parse(fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
-  const c = await importChurches(db, entries, { log: (m) => console.log(`migrate:   ${m}`) });
-  const summary = `${c.added} added as drafts, ${c.exists} already present, ${c.noLocation} without location, ${c.photos} photos copied`;
+  const c = await importChurches(db, entries, { published, log: (m) => console.log(`migrate:   ${m}`) });
+  const summary = `${c.added} added${published ? " (published)" : " as drafts"}, ${c.exists} already present, ${c.noLocation} without location, ${c.photos} photos copied`;
   if (c.photoErrors) { console.log(`migrate: ${file}: ${summary}; ${c.photoErrors} photos failed — will retry on the next deploy`); continue; }
   await db.execute({ sql: 'INSERT INTO data_imports (name, summary) VALUES (?, ?)', args: [file, summary] });
   console.log(`migrate: imported ${file}: ${summary}`);
+}
+
+// The Metropolis churches were first imported as drafts; publish them (once).
+if (!applied.has('publish:imconstantias-occupied')) {
+  const entries = JSON.parse(fs.readFileSync(new URL('../data/imports/imconstantias-occupied.json', import.meta.url), 'utf8'));
+  const slugs = entries.filter((e) => e.lat != null).map((e) => slugify(`${e.name_en} ${e.village_en}`));
+  const r = await db.execute({ sql: `UPDATE sites SET published = 1, updated_at = datetime('now') WHERE published = 0 AND slug IN (${slugs.map(() => '?').join(',')})`, args: slugs });
+  await db.execute({ sql: "INSERT INTO data_imports (name, summary) VALUES ('publish:imconstantias-occupied', ?)", args: [`published ${r.rowsAffected}`] });
+  console.log(`migrate: published ${r.rowsAffected} Metropolis churches`);
 }
 
 // Test accounts created while checking the first live deploy (never confirmed, cannot log in).
