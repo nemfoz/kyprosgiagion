@@ -93,8 +93,8 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
         </div>
       </section>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-4 pt-8 pb-12 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-        <article className="max-w-[72ch] lg:order-2">
+      <main className="mx-auto grid max-w-6xl gap-8 px-4 pt-8 pb-12 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12">
+        <article className="max-w-[72ch]">
           {pick(c, lang, "summary") && (
             <p className="mb-6 font-heading text-xl leading-relaxed text-foreground/85" dangerouslySetInnerHTML={{ __html: inline(pick(c, lang, "summary")) }} />
           )}
@@ -137,8 +137,8 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
           )}
         </article>
 
-        {/* Sticky on wide screens; after the text on phones. */}
-        <aside className="grid content-start gap-3 lg:sticky lg:top-4 lg:order-1 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
+        {/* Right of the text and sticky on wide screens; after the text on phones. */}
+        <aside className="grid content-start gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <Card className="gap-2 py-4">
             <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("details", lang)}</CardTitle></CardHeader>
             <CardContent className="px-4">

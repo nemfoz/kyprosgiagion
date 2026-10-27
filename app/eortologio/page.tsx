@@ -127,7 +127,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
           </section>
         </div>
 
-        <aside className="grid content-start gap-4">
+        <aside className="grid content-start gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <Card className="gap-3 py-4">
             <CardHeader className="px-4"><CardTitle className="font-heading text-lg">{t("ndMovable", lang, { year: y })}</CardTitle></CardHeader>
             <CardContent className="grid gap-3 px-4 text-sm">

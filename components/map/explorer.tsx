@@ -6,6 +6,7 @@ import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
 import { ArrowLeft, ArrowRight, CalendarDays, Landmark, LayoutDashboard, LogIn, MapPin, Search, Sparkles, TriangleAlert } from "lucide-react"
 import { NameDayBar, type NameDays } from "@/components/namedays/nameday-bar"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SITE_TYPES, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
 import { useT } from "@/components/i18n-provider"
@@ -26,6 +27,7 @@ export type MapSite = {
   cover: string | null
   /** Page completeness; null for visitors who aren't signed in. */
   percent: number | null
+  metropolisId: number | null
   name: Record<Lang, string>
   location: Record<Lang, string>
   summary: Record<Lang, string>
@@ -35,26 +37,40 @@ type Props = {
   sites: MapSite[]
   initialLang: Lang
   initialRegion: string
+  initialMetropolis?: string
+  /** Metropolises that have churches on the map. */
+  metropolises: { id: number; slug: string; name: Record<Lang, string> }[]
   initialSlug?: string
   account: { name: string } | null
   nameDays: Record<Lang, NameDays>
 }
 
-const regions = allRegions.filter((r) => r.active)
+// Active regions, parents first with their sub-regions after them; "all" (the whole island) when there are
+// several top-level regions.
+const ALL: Region = { id: "all", name: { el: "Όλη η Κύπρος", en: "All of Cyprus" }, bounds: [[34.55, 32.25], [35.72, 34.62]], active: true }
+const active = allRegions.filter((r) => r.active)
+const tops = active.filter((r) => !r.parent || !active.some((p) => p.id === r.parent))
+const regions = [
+  ...(tops.length > 1 ? [ALL] : []),
+  ...tops.flatMap((r) => [r, ...active.filter((c) => c.parent === r.id)]),
+]
 const fold = (s: string) => s.toLocaleLowerCase("el").normalize("NFD").replace(/[̀-ͯ]/g, "")
 
-function regionCamera(map: MlMap, r: Region, is3d: boolean) {
+/** Camera for a region; `fit` frames a set of pins exactly (no extra zoom, more padding). */
+function regionCamera(map: MlMap, r: Region, is3d: boolean, fit = false) {
   const [[s, w], [n, e]] = r.bounds
   const bearing = is3d ? r.camera?.bearing ?? 0 : 0
-  const cam = map.cameraForBounds([[w, s], [e, n]], { bearing, padding: 30 })
+  const cam = map.cameraForBounds([[w, s], [e, n]], { bearing, padding: fit ? 70 : 30 })
   const wide = map.getContainer().clientWidth > 700
-  return { ...cam, bearing, pitch: is3d ? r.camera?.pitch ?? 50 : 0, zoom: (cam?.zoom ?? 8) + (is3d ? (wide ? 0.35 : -0.1) : 0) }
+  const extra = fit || !is3d ? 0 : wide ? 0.35 : -0.1
+  return { ...cam, bearing, pitch: is3d ? r.camera?.pitch ?? 50 : 0, zoom: (cam?.zoom ?? 8) + extra }
 }
 
-export function Explorer({ sites, initialLang, initialRegion, initialSlug, account, nameDays }: Props) {
+export function Explorer({ sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays }: Props) {
   const t = useT()
   const [lang, setLang] = useState<Lang>(initialLang)
   const [regionId, setRegionId] = useState(initialRegion)
+  const [metroId, setMetroId] = useState<number | null>(() => metropolises.find((m) => m.slug === initialMetropolis)?.id ?? null)
   const [types, setTypes] = useState<Set<SiteType>>(() => new Set(SITE_TYPES))
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<number | null>(() => sites.find((s) => s.slug === initialSlug)?.id ?? null)
@@ -75,9 +91,9 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
   const visible = useMemo(() => {
     const q = fold(query.trim())
     return sitesWithRegions.filter((s) =>
-      s.regions.includes(regionId) && types.has(s.type) &&
+      (regionId === ALL.id || s.regions.includes(regionId)) && (metroId === null || s.metropolisId === metroId) && types.has(s.type) &&
       (!q || fold([s.name.el, s.name.en, s.location.el, s.location.en].join(" ")).includes(q)))
-  }, [sitesWithRegions, regionId, types, query])
+  }, [sitesWithRegions, regionId, metroId, types, query])
   const current = sites.find((s) => s.id === selected) ?? null
   const name = (s: MapSite) => s.name[lang] || s.name.el || s.name.en
 
@@ -172,6 +188,19 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
   }
 
   // ---- camera ----
+  // With a Metropolis chosen, frame its churches (in the chosen region); otherwise the region.
+  const area = (): Region => {
+    const pins = metroId === null ? [] : visible
+    if (!pins.length) return region
+    const pad = 0.03
+    return {
+      ...region,
+      bounds: [
+        [Math.min(...pins.map((s) => s.lat)) - pad, Math.min(...pins.map((s) => s.lng)) - pad],
+        [Math.max(...pins.map((s) => s.lat)) + pad, Math.max(...pins.map((s) => s.lng)) + pad],
+      ],
+    }
+  }
   const firstFly = useRef(true)
   useEffect(() => {
     const map = mapRef.current
@@ -179,9 +208,9 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
     setRegion(map, region.boundary)
     if (firstFly.current && selected) { firstFly.current = false; return } // deep link: fly to the site instead
     firstFly.current = false
-    map.flyTo({ ...regionCamera(map, region, view.current.is3d), duration: 2200, essential: true, curve: 1.2 })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the region changes
-  }, [regionId, ready])
+    map.flyTo({ ...regionCamera(map, area(), view.current.is3d, metroId !== null), duration: 2200, essential: true, curve: 1.2 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the region or Metropolis changes
+  }, [regionId, metroId, ready])
 
   useEffect(() => {
     const map = mapRef.current
@@ -202,7 +231,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
     if (!map) return
     const onView = () => {
       if (selected) map.easeTo({ pitch: view.current.is3d ? 60 : 0, bearing: view.current.is3d ? map.getBearing() : 0, duration: 800 })
-      else map.easeTo({ ...regionCamera(map, region, view.current.is3d), duration: 900 })
+      else map.easeTo({ ...regionCamera(map, area(), view.current.is3d, metroId !== null), duration: 900 })
     }
     const onClick = () => { if (selected) back() }
     window.addEventListener("ka:view", onView)
@@ -213,7 +242,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
   function back() {
     setSelected(null)
     const map = mapRef.current
-    if (map) map.flyTo({ ...regionCamera(map, region, view.current.is3d), duration: 1500 })
+    if (map) map.flyTo({ ...regionCamera(map, area(), view.current.is3d, metroId !== null), duration: 1500 })
   }
 
   // ---- URL ----
@@ -221,11 +250,13 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
     const p = new URLSearchParams()
     if (lang !== "el") p.set("lang", lang)
     if (regionId !== defaultRegion) p.set("region", regionId)
+    const metro = metropolises.find((m) => m.id === metroId)
+    if (metro) p.set("metropolis", metro.slug)
     if (current) p.set("site", current.slug)
     history.replaceState(null, "", `${location.pathname}${p.size ? `?${p}` : ""}`)
     document.documentElement.lang = lang
     document.title = siteTitle[lang]
-  }, [lang, regionId, current])
+  }, [lang, regionId, metroId, metropolises, current])
 
   const list = [...visible].sort((a, b) => name(a).localeCompare(name(b), lang))
   const siteHref = (s: MapSite) => `/site/${encodeURIComponent(s.slug)}${lang === "en" ? "?lang=en" : ""}`
@@ -237,11 +268,11 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
         <Link href="/" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
           <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-border bg-accent text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</span>
           <span className="grid min-w-0 gap-1 md:gap-2">
-            <span className="font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteTitle[lang]}</span>
+            <span className="truncate font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteTitle[lang]}</span>
             <span className="truncate text-[9px] tracking-wide text-muted-foreground md:text-[11px]">{t("caption", lang)}</span>
           </span>
         </Link>
-        <div className="ml-auto flex shrink-0 items-center gap-1 md:order-last md:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {([
             ["/metropolis", "navMetropolises", <Landmark key="m" />],
             ["/eortologio", "navNameDays", <CalendarDays key="n" />],
@@ -261,24 +292,6 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
             </Link>
           </Button>
         </div>
-        {regions.length > 1 && (
-          <div className="order-3 flex w-full gap-1 rounded-xl bg-muted p-1 md:order-none md:ml-auto md:w-auto" role="group" aria-label="Region">
-            {regions.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                aria-pressed={r.id === regionId}
-                onClick={() => { setRegionId(r.id); setSelected(null) }}
-                className={cn(
-                  "flex-1 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition md:flex-none md:px-4 md:py-2",
-                  r.id === regionId && "bg-card font-semibold text-primary shadow-sm",
-                )}
-              >
-                {r.name[lang]}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(190px,43%)_minmax(0,1fr)] gap-2.5 p-2.5 md:grid-cols-[330px_minmax(0,1fr)] md:grid-rows-1 md:gap-3 md:p-3 lg:grid-cols-[370px_minmax(0,1fr)] lg:gap-4 lg:p-4 2xl:grid-cols-[400px_minmax(0,1fr)] 2xl:gap-5 2xl:p-5">
@@ -329,6 +342,29 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                     className="min-w-0 flex-1 bg-transparent py-3 text-xs outline-none focus-visible:outline-none"
                   />
                 </label>
+                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                  {regions.length > 1 && (
+                    <Select value={regionId} onValueChange={(r) => { setRegionId(r); setSelected(null) }}>
+                      <SelectTrigger size="sm" className="w-full min-w-0 text-xs" aria-label={t("filterRegion", lang)}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {regions.map((r) => (
+                          <SelectItem key={r.id} value={r.id} className={cn("text-xs", r.parent && "pl-6")}>{r.name[lang]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {metropolises.length > 0 && (
+                    <Select value={String(metroId ?? "all")} onValueChange={(m) => { setMetroId(m === "all" ? null : Number(m)); setSelected(null) }}>
+                      <SelectTrigger size="sm" className={cn("w-full min-w-0 text-xs", regions.length <= 1 && "sm:col-span-2 md:col-span-1")} aria-label={t("filterMetropolis", lang)}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="text-xs">{t("allMetropolises", lang)}</SelectItem>
+                        {metropolises.map((m) => <SelectItem key={m.id} value={String(m.id)} className="text-xs">{m.name[lang] || m.name.el}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {SITE_TYPES.map((k) => (
                     <button
@@ -383,7 +419,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
           <div ref={mapEl} className="map3d size-full bg-[linear-gradient(var(--secondary),var(--parchment))]" />
           <div className="pointer-events-none absolute bottom-6 left-2.5 flex max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-[9px] text-foreground/80 shadow-sm md:bottom-7 md:left-5 md:px-4 md:py-3 md:text-[10px]">
             <span className="size-1.5 flex-none rounded-full bg-primary" />
-            <span className="font-semibold">{region.name[lang]}</span>
+            <span className="font-semibold">{metropolises.find((m) => m.id === metroId)?.name[lang] || region.name[lang]}</span>
             <span className="hidden h-3 w-px bg-border lg:block" />
             <span className="hidden text-muted-foreground lg:block">{current ? name(current) : t("hint", lang)}</span>
           </div>

@@ -6,16 +6,17 @@ import { listSites } from "@/lib/sites"
 import type { SiteType } from "@/lib/content"
 import { missionBoard } from "@/lib/contributors"
 import { nameDaysAround } from "@/lib/namedays"
+import { listMetropolises } from "@/lib/metropolises"
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
-  const [rows, session] = await Promise.all([listSites({ publishedOnly: true }), getSession()])
+  const [rows, session, metros] = await Promise.all([listSites({ publishedOnly: true }), getSession(), listMetropolises()])
   // Completeness is for contributors only; visitors browsing the map don't see it.
   const board = session ? await missionBoard() : null
   const percent = new Map(board?.sites.map((s) => [s.id, s.percent]))
   const sites: MapSite[] = rows.map((s) => ({
     id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng,
-    coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? null,
+    coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? null, metropolisId: s.metropolisId,
     name: { el: s.content.el.name, en: s.content.en.name },
     location: { el: s.content.el.location, en: s.content.en.location },
     summary: { el: s.content.el.summary, en: s.content.en.summary },
@@ -27,6 +28,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       sites={sites}
       initialLang={langFrom(sp.lang)}
       initialRegion={region}
+      initialMetropolis={typeof sp.metropolis === "string" ? sp.metropolis : undefined}
+      metropolises={metros.filter((m) => m.churches > 0).map((m) => ({ id: m.id, slug: m.slug, name: { el: m.content.el.name, en: m.content.en.name } }))}
       initialSlug={typeof sp.site === "string" ? sp.site : undefined}
       account={session ? { name: session.user.name } : null}
       nameDays={{ el: nameDaysAround("el"), en: nameDaysAround("en") }}

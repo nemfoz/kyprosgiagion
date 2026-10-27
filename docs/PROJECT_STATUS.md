@@ -27,10 +27,12 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 ## 2. What exists (features)
 
 **Public**
-- `/` 3D map (MapLibre): region tabs (Famagusta District / Karpasia), list with search and type filters,
+- `/` 3D map (MapLibre): list panel with search, Region and Metropolis dropdowns (`?region=`, `?metropolis=`;
+  a Metropolis frames its churches) and type filters,
   fly-to on select, 3D/2D and Map/Satellite toggles, district mask (rest of Cyprus faded),
   Greek/English toggle (`?lang=en`), completeness bar per church in the side panel (signed-in users only).
-- `/site/[slug]` church page: hero photo; compact sticky sidebar on the left (details + completeness card for
+- Content sidebars (church, name days, Metropolis, contribute pages) are on the right and sticky on wide screens.
+- `/site/[slug]` church page: hero photo; compact sticky sidebar on the right (details + completeness card for
   signed-in users only — visitors never see completeness); history (simple Markdown — a YouTube link alone in
   a paragraph is embedded), YouTube videos, gallery with lightbox ("old photograph" label on archive photos),
   sources (links always show their destination domain); the 3D map closes the page edge to edge with a

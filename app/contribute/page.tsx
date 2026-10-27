@@ -71,7 +71,7 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
           </section>
         </div>
 
-        <aside className="grid content-start gap-4">
+        <aside className="grid content-start gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2 font-heading text-lg"><Trophy className="size-5 text-gold" />{el ? "Κορυφαίοι συνεισφέροντες" : "Top contributors"}</CardTitle></CardHeader>
             <CardContent><Leaderboard rows={top} lang={lang} highlight={session?.user.id} /></CardContent>
