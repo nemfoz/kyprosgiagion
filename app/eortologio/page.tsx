@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { PublicHeader } from "@/components/public-header"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
-import { addDays, findName, formatDay, isoDay, MONTH_NAMES, movableFeasts, nameDay, orthodoxEaster, today, weekday, type Day } from "@/lib/namedays"
+import { addDays, findName, formatDay, isoDay, feastName, monthName, movableFeasts, nameDay, orthodoxEaster, today, weekday, type Day } from "@/lib/namedays"
 import { getSession } from "@/lib/session"
+import { isExtra, localePath } from "@/lib/locales"
 import { cn } from "@/lib/utils"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
@@ -32,10 +33,10 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
 
   const href = (params: Record<string, string | number | undefined>) => {
     const u = new URLSearchParams()
-    for (const [k, v] of Object.entries({ y, m, q: q || undefined, lang: lang === "en" ? "en" : undefined, ...params })) {
+    for (const [k, v] of Object.entries({ y, m, q: q || undefined, ...params })) {
       if (v !== undefined && v !== "") u.set(k, String(v))
     }
-    return `?${u}`
+    return localePath(`/eortologio?${u}`, lang)
   }
   const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 }
   const next = m === 12 ? { y: y + 1, m: 1 } : { y, m: m + 1 }
@@ -50,7 +51,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
 
   return (
     <div className="min-h-dvh bg-background">
-      <PublicHeader lang={lang} otherLangHref={href({ lang: lang === "en" ? undefined : "en" })} signedIn={!!session} />
+      <PublicHeader lang={lang} path={`/eortologio?${new URLSearchParams({ y: String(y), m: String(m), ...(q ? { q } : {}) })}`} signedIn={!!session} />
 
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-[1fr_300px] md:items-end">
@@ -59,9 +60,10 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
             <h1 className="text-[clamp(26px,4vw,40px)] leading-tight font-bold">
               {weekday(now, lang)}, {formatDay(now, lang, true)}
             </h1>
-            {todayInfo.feasts.length > 0 && <p className="mt-2 font-heading text-lg text-gold">{todayInfo.feasts.map((f) => f[lang]).join(" · ")}</p>}
+            {todayInfo.feasts.length > 0 && <p className="mt-2 font-heading text-lg text-gold">{todayInfo.feasts.map((f) => feastName(f, lang)).join(" · ")}</p>}
             <p className="mt-2 text-lg text-parchment/90">{todayInfo.names.join(", ") || t("ndNobody", lang)}</p>
             <p className="mt-4 max-w-2xl text-sm text-parchment/75">{t("ndIntro", lang)}</p>
+            {isExtra(lang) && <p className="mt-2 max-w-2xl text-sm text-parchment/75">{t("ndCalendarNote", lang)}</p>}
           </div>
           <div className="rounded-xl bg-parchment/10 p-4 backdrop-blur">
             <p className="text-sm text-parchment/80">{t("ndEaster", lang, { year: easter.y })}</p>
@@ -72,10 +74,9 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
 
       <main className="mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="grid content-start gap-6">
-          <form className="flex gap-2" action="">
+          <form className="flex gap-2" action={localePath("/eortologio", lang)}>
             <input type="hidden" name="y" value={y} />
             <input type="hidden" name="m" value={m} />
-            {lang === "en" && <input type="hidden" name="lang" value="en" />}
             <div className="relative flex-1">
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input name="q" defaultValue={q} placeholder={t("ndSearch", lang)} className="h-10 pl-9" />
@@ -94,7 +95,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
                           <Link href={href({ m: r.day.m, q: undefined }) + `#d${r.day.d}`} className="font-semibold text-primary underline underline-offset-2">
                             {weekday(r.day, lang)}, {formatDay(r.day, lang)}
                           </Link>
-                          <span className="text-muted-foreground">{r.feasts.map((f) => f[lang]).join(" · ")}</span>
+                          <span className="text-muted-foreground">{r.feasts.map((f) => feastName(f, lang)).join(" · ")}</span>
                         </li>
                       ))}
                     </ul>
@@ -106,7 +107,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
 
           <section className="grid gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="mr-auto text-2xl font-bold">{MONTH_NAMES[lang][m - 1]} {y}</h2>
+              <h2 className="mr-auto text-2xl font-bold">{monthName(m, lang)} {y}</h2>
               <Button variant="outline" size="icon-sm" asChild><Link href={href(prev)} aria-label={t("ndPrev", lang)}><ChevronLeft /></Link></Button>
               {(y !== now.y || m !== now.m) && <Button variant="outline" size="sm" asChild><Link href={href({ y: now.y, m: now.m })}>{t("ndThisMonth", lang)}</Link></Button>}
               <Button variant="outline" size="icon-sm" asChild><Link href={href(next)} aria-label={t("ndNext", lang)}><ChevronRight /></Link></Button>
@@ -122,7 +123,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
                       <span className="text-[11px] text-muted-foreground">{weekday(d, lang).slice(0, 3)}</span>
                     </span>
                     <span className="grid content-center text-sm">
-                      {info.feasts.length > 0 && <span className="font-semibold text-gold-deep">{info.feasts.map((f) => f[lang]).join(" · ")}</span>}
+                      {info.feasts.length > 0 && <span className="font-semibold text-gold-deep">{info.feasts.map((f) => feastName(f, lang)).join(" · ")}</span>}
                       <span className={info.names.length ? "" : "text-muted-foreground"}>{info.names.join(", ") || "—"}</span>
                     </span>
                   </li>
@@ -140,7 +141,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
                 {movableFeasts(y).map((f) => (
                   <li key={f.feast.el} className="grid">
                     <span className="flex justify-between gap-3">
-                      <span className="font-medium">{f.feast[lang]}</span>
+                      <span className="font-medium">{feastName(f.feast, lang)}</span>
                       <Link href={href({ m: f.day.m }) + `#d${f.day.d}`} className="shrink-0 text-primary underline underline-offset-2">{formatDay(f.day, lang)}</Link>
                     </span>
                     {f.names.length > 0 && <span className="text-xs text-muted-foreground">{f.names.join(", ")}</span>}

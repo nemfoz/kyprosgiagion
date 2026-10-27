@@ -7,6 +7,7 @@ import { getAdminT } from "@/lib/i18n-server"
 import { nameDaysAround } from "@/lib/namedays"
 import { isAdmin, isRole, ROLE_LABELS } from "@/lib/permissions"
 import { requireUser } from "@/lib/session"
+import { countPendingSuggestions } from "@/lib/translations"
 import { countPending } from "@/lib/submissions"
 
 export const metadata = { title: "Διαχείριση", robots: { index: false } }
@@ -14,13 +15,13 @@ export const metadata = { title: "Διαχείριση", robots: { index: false 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [user, t] = await Promise.all([requireUser(), getAdminT()])
   const admin = isAdmin(user.role)
-  const pending = admin ? await countPending() : 0
+  const [pending, translations] = admin ? await Promise.all([countPending(), countPendingSuggestions()]) : [0, 0]
   const role = isRole(user.role) ? user.role : "user"
 
   return (
     <AdminLangProvider lang={t.lang}>
       <div className="min-h-dvh bg-muted/30 md:grid md:grid-cols-[248px_minmax(0,1fr)]">
-        <AdminSidebar role={role} pending={pending}
+        <AdminSidebar role={role} pending={pending} translations={translations}
           account={<UserMenu name={user.name} email={user.email} roleLabel={ROLE_LABELS[role]} />} />
         <div className="min-w-0">
           <NameDayBar days={nameDaysAround(t.lang)} lang={t.lang} className="md:px-6" />

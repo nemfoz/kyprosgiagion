@@ -3,18 +3,20 @@ import { langFrom } from "@/lib/i18n"
 import { defaultRegion, regions } from "@/lib/regions"
 import { getSession } from "@/lib/session"
 import { listSites } from "@/lib/sites"
-import type { SiteType } from "@/lib/content"
+import { byLocale, type SiteType } from "@/lib/content"
 import { missionBoard } from "@/lib/contributors"
 import { nameDaysAround } from "@/lib/namedays"
-import { listMetropolises } from "@/lib/metropolises"
+import { listMetropolises, metroText } from "@/lib/metropolises"
+import { LOCALES } from "@/lib/locales"
 import type { Metadata } from "next"
 import { getT } from "@/lib/i18n-server"
-import { alternates, openGraph, SITE_NAME } from "@/lib/seo"
+import { alternates, openGraph } from "@/lib/seo"
+import { siteName } from "@/lib/regions"
 
 export async function generateMetadata({ searchParams }: PageProps<"/">): Promise<Metadata> {
   const lang = langFrom((await searchParams).lang)
   const t = await getT()
-  const title = SITE_NAME[lang]
+  const title = siteName(lang)
   return {
     title: { absolute: title }, description: t("seoHome", lang),
     alternates: alternates("/", lang), openGraph: openGraph("/", lang, title, t("seoHome", lang)), twitter: { card: "summary_large_image" },
@@ -30,9 +32,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const sites: MapSite[] = rows.map((s) => ({
     id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng,
     coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? null, metropolisId: s.metropolisId,
-    name: { el: s.content.el.name, en: s.content.en.name },
-    location: { el: s.content.el.location, en: s.content.en.location },
-    summary: { el: s.content.el.summary, en: s.content.en.summary },
+    name: byLocale(s.content, "name"),
+    location: byLocale(s.content, "location"),
+    summary: byLocale(s.content, "summary"),
   }))
   const region = typeof sp.region === "string" && regions.some((r) => r.active && r.id === sp.region) ? sp.region : defaultRegion
 
@@ -42,7 +44,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       initialLang={langFrom(sp.lang)}
       initialRegion={region}
       initialMetropolis={typeof sp.metropolis === "string" ? sp.metropolis : undefined}
-      metropolises={metros.filter((m) => m.churches > 0).map((m) => ({ id: m.id, slug: m.slug, name: { el: m.content.el.name, en: m.content.en.name } }))}
+      metropolises={metros.filter((m) => m.churches > 0).map((m) => ({ id: m.id, slug: m.slug, name: Object.fromEntries(LOCALES.map((l) => [l, metroText(m, "name", l)])) }))}
       initialSlug={typeof sp.site === "string" ? sp.site : undefined}
       account={session ? { name: session.user.name } : null}
       nameDays={{ el: nameDaysAround("el"), en: nameDaysAround("en") }}

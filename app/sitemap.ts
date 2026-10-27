@@ -1,26 +1,32 @@
 import type { MetadataRoute } from "next"
+import { translatedInto } from "@/lib/content"
+import { LOCALES, localePath, type Locale } from "@/lib/locales"
 import { listSites } from "@/lib/sites"
 import { listMetropolises } from "@/lib/metropolises"
-import { langUrl, SITE_URL } from "@/lib/seo"
+import { SITE_URL } from "@/lib/seo"
 
 export const revalidate = 3600 // new churches appear within the hour
 
-// Every public page in both languages (Greek is the plain URL, English adds ?lang=en).
+// Every public page in each of its languages. Church pages are listed only in the languages they have
+// been translated into (Greek and English always); untranslated versions just show the English text.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [sites, metros] = await Promise.all([listSites({ publishedOnly: true }), listMetropolises()])
-  const entry = (path: string, lastModified?: string, priority = 0.5): MetadataRoute.Sitemap =>
-    (["el", "en"] as const).map((lang) => ({
-      url: SITE_URL + langUrl(path, lang),
-      lastModified: lastModified ? new Date(lastModified.replace(" ", "T") + "Z") : undefined,
-      priority,
-      alternates: { languages: { el: SITE_URL + path, en: SITE_URL + langUrl(path, "en") } },
+  const entry = (path: string, opts: { lastModified?: string; priority?: number; locales?: readonly Locale[] } = {}): MetadataRoute.Sitemap => {
+    const locales = opts.locales ?? LOCALES
+    const languages = Object.fromEntries(locales.map((l) => [l, SITE_URL + localePath(path, l)]))
+    return locales.map((l) => ({
+      url: SITE_URL + localePath(path, l),
+      lastModified: opts.lastModified ? new Date(opts.lastModified.replace(" ", "T") + "Z") : undefined,
+      priority: opts.priority ?? 0.5,
+      alternates: { languages },
     }))
+  }
   return [
-    entry("/", undefined, 1),
-    sites.map((s) => entry(`/site/${s.slug}`, s.updatedAt, 0.8)),
-    entry("/metropolis", undefined, 0.6),
+    entry("/", { priority: 1 }),
+    sites.map((s) => entry(`/site/${s.slug}`, { lastModified: s.updatedAt, priority: 0.8, locales: ["el", "en", ...translatedInto(s.content)] })),
+    entry("/metropolis", { priority: 0.6 }),
     metros.map((m) => entry(`/metropolis/${m.slug}`)),
-    entry("/eortologio", undefined, 0.6),
-    entry("/contribute", undefined, 0.4),
+    entry("/eortologio", { priority: 0.6 }),
+    entry("/contribute", { priority: 0.4 }),
   ].flat(2)
 }

@@ -11,9 +11,10 @@ import { regions } from "@/lib/regions"
 import { requireUser } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 import { getSubmission } from "@/lib/submissions"
-import { BONUSES, completeness, mediaBonuses, scoreProposal, type MissionKey } from "@/lib/completeness"
+import { BONUSES, completeness, mediaBonuses, translationBonuses, scoreProposal, type MissionKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
-import { youtubeEmbed } from "@/lib/content"
+import { EXTRA_FIELDS, youtubeEmbed } from "@/lib/content"
+import { EXTRA_LOCALES, LOCALE_NAMES } from "@/lib/locales"
 import { getAdminT } from "@/lib/i18n-server"
 import type { MessageKey } from "@/lib/i18n"
 import { sized } from "@/lib/photo-sizes.mjs"
@@ -34,7 +35,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   // Points the author would earn (location verification is added by the reviewer's choice).
   const before = current ? completeness({ content: current.content, coordsVerified: current.coordsVerified, photoCount: current.photos.length }, cfg).done : new Set<MissionKey>()
   const after = completeness({ content: p.content, coordsVerified: current?.coordsVerified ?? false, photoCount: (current?.photos.length ?? 0) + sub.payload.photos.length }, cfg)
-  const estimate = scoreProposal(cfg, before, after.done, mediaBonuses(current?.photos.length ?? 0, sub.payload.photos, sub.payload.videos)).points
+  const estimate = scoreProposal(cfg, before, after.done, [...mediaBonuses(current?.photos.length ?? 0, sub.payload.photos, sub.payload.videos), ...translationBonuses(current?.content ?? null, p.content)]).points
   const locationPoints = cfg.sections.location * 2
   const pinMoved = !current || current.lat !== p.lat || current.lng !== p.lng
   const canVerifyLocation = pinMoved && !current?.coordsVerified
@@ -49,6 +50,9 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   add(t("editor.diff.position"), current ? `${current.lat}, ${current.lng}` : "", `${p.lat}, ${p.lng}`)
   for (const lang of LANGS) {
     for (const f of TEXT_FIELDS) add(`${t(FIELD_LABELS[f])} (${lang.toUpperCase()})`, current?.content[lang][f] ?? "", p.content[lang][f])
+  }
+  for (const l of EXTRA_LOCALES) {
+    for (const f of EXTRA_FIELDS) add(`${t(FIELD_LABELS[f])} (${LOCALE_NAMES[l]})`, current?.content[l]?.[f] ?? "", p.content[l]?.[f] ?? "")
   }
 
   return (

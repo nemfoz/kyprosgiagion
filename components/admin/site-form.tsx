@@ -21,8 +21,9 @@ import { deleteSiteAction, proposeAction, saveSiteAction } from "@/app/admin/act
 import { LocationPicker } from "@/components/admin/location-picker"
 import { PhotoManager, type PhotoFields, type StoredPhoto } from "@/components/admin/photo-manager"
 import { VideoManager, type StoredVideo, type VideoFields } from "@/components/admin/video-manager"
-import { LANGS, SITE_TYPES, slugify, TYPE_LABELS, type Lang, type SiteContent, type SiteType } from "@/lib/content"
-import { completeness, mediaBonuses, PAGE_POINTS, scoreProposal, scoredMissions, SECTIONS, type MissionKey, type PointsConfig, type SectionKey } from "@/lib/completeness"
+import { EXTRA_FIELDS, LANGS, SITE_TYPES, slugify, TYPE_LABELS, type Lang, type SiteContent, type SiteType } from "@/lib/content"
+import { EXTRA_LOCALES, isLocale, LOCALE_NAMES, type ExtraLocale } from "@/lib/locales"
+import { completeness, mediaBonuses, PAGE_POINTS, scoreProposal, scoredMissions, SECTIONS, translationBonuses, translationDone, type MissionKey, type PointsConfig, type SectionKey } from "@/lib/completeness"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 import { useAdminT } from "@/components/i18n-provider"
 import type { AdminT, MessageKey } from "@/lib/i18n"
@@ -71,6 +72,8 @@ export function SiteForm(props: {
   points: PointsConfig
   regions: { id: string; name: string; active: boolean }[]
   metropolises: { id: number; name: string }[]
+  /** Open the "other languages" tab on this language (from a church page's "translate it" link). */
+  translate?: string
 }) {
   const { mode, siteId } = props
   const t = useAdminT()
@@ -85,6 +88,7 @@ export function SiteForm(props: {
   const [note, setNote] = useState("")
   const [pending, start] = useTransition()
   const direct = mode === "direct"
+  const [extra, setExtra] = useState<ExtraLocale>(() => (isLocale(props.translate) && props.translate !== "el" && props.translate !== "en" ? props.translate : "ru"))
 
   const set = <K extends keyof SiteFormValues>(k: K, val: SiteFormValues[K]) => setV((s) => ({ ...s, [k]: val }))
 
@@ -94,13 +98,17 @@ export function SiteForm(props: {
   const movedPin = v.lat !== props.initial.lat || v.lng !== props.initial.lng
   // A moved pin earns the location points if the reviewer verifies it.
   const after = !direct && movedPin && !v.coordsVerified ? new Set([...now.done, "location" as const]) : now.done
-  const earn = scoreProposal(cfg, base.done, after, mediaBonuses(siteId ? props.photos.length : 0, newPhotos, newVideos)).points
+  const bonuses = [...mediaBonuses(siteId ? props.photos.length : 0, newPhotos, newVideos), ...translationBonuses(siteId ? props.initial.content : null, v.content)]
+  const earn = scoreProposal(cfg, base.done, after, bonuses).points
   const locationPoints = cfg.sections.location * 2
   const setText = (lang: Lang, key: keyof SiteContent["el"], val: string) => setV((s) => {
     const content = { ...s.content, [lang]: { ...s.content[lang], [key]: val } }
     const slug = !slugTouched && lang === "en" && key === "name" && direct ? slugify(val) : s.slug
     return { ...s, content, slug }
   })
+
+  const setTranslation = (l: ExtraLocale, key: (typeof EXTRA_FIELDS)[number], val: string) =>
+    setV((s) => ({ ...s, content: { ...s.content, [l]: { ...s.content[l], [key]: val } } }))
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -186,11 +194,51 @@ export function SiteForm(props: {
 
         <Card>
           <CardContent>
-            <Tabs defaultValue="el">
+            <Tabs defaultValue={props.translate && isLocale(props.translate) && props.translate !== "el" ? (props.translate === "en" ? "en" : "other") : "el"}>
               <TabsList>
                 <TabsTrigger value="el">Ελληνικά</TabsTrigger>
                 <TabsTrigger value="en">English</TabsTrigger>
+                <TabsTrigger value="other">{t("editor.otherLangs")}</TabsTrigger>
               </TabsList>
+              <TabsContent value="other" className="mt-4 grid gap-4">
+                <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <p>{t("editor.otherLangsHelp", { points: cfg.bonuses.translation })}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={extra} onValueChange={(l) => setExtra(l as ExtraLocale)}>
+                      <SelectTrigger size="sm" className="w-48 bg-background"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {EXTRA_LOCALES.map((l) => (
+                          <SelectItem key={l} value={l}>{LOCALE_NAMES[l]}{translationDone(v.content, l) ? " ✓" : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {translationDone(v.content, extra)
+                      ? <span className="font-semibold text-primary">{t("editor.translationDone")}</span>
+                      : <span>{t("editor.translationMissing")}</span>}
+                  </div>
+                </div>
+                {FIELDS.filter((f) => (EXTRA_FIELDS as readonly string[]).includes(f.key)).map((f) => {
+                  const key = f.key as (typeof EXTRA_FIELDS)[number]
+                  const value = v.content[extra]?.[key] ?? ""
+                  return (
+                    <div key={`${extra}-${key}`} className="grid gap-1.5">
+                      <Label htmlFor={`${extra}-${key}`}>{t(f.label)} · {LOCALE_NAMES[extra]}</Label>
+                      {v.content.en[key] && (
+                        <details className="text-xs text-muted-foreground">
+                          <summary className="cursor-pointer">{t("editor.englishText")}</summary>
+                          <p className="mt-1 max-h-40 overflow-y-auto rounded border bg-muted/40 p-2 whitespace-pre-wrap">{v.content.en[key]}</p>
+                        </details>
+                      )}
+                      {f.rows ? (
+                        <Textarea id={`${extra}-${key}`} lang={extra} rows={f.rows} value={value} onChange={(e) => setTranslation(extra, key, e.target.value)}
+                          className={key === "body" ? "max-h-[60vh] min-h-64 overflow-y-auto leading-relaxed" : "max-h-72 overflow-y-auto"} />
+                      ) : (
+                        <Input id={`${extra}-${key}`} lang={extra} value={value} onChange={(e) => setTranslation(extra, key, e.target.value)} />
+                      )}
+                    </div>
+                  )
+                })}
+              </TabsContent>
               {LANGS.map((lang) => (
                 <TabsContent key={lang} value={lang} className="mt-4 grid gap-4">
                   {FIELDS.map((f) => (

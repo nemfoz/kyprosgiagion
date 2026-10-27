@@ -1,5 +1,7 @@
 import config from "@/data/regions.json"
 import type { Lang } from "@/lib/content"
+import type { Locale } from "@/lib/locales"
+import { trData } from "@/lib/i18n"
 
 export type Region = {
   id: string
@@ -13,6 +15,10 @@ export type Region = {
 export type Place = { el: string; en: string; lat: number; lng: number; major?: boolean }
 
 export const siteTitle = config.siteTitle as Record<Lang, string>
+/** The site's name in any language. */
+export const siteName = (l: Locale) => trData("data.siteTitle", siteTitle, l)
+/** A region's name in any language. */
+export const regionName = (r: Region, l: Locale) => trData(`data.region.${r.id}`, r.name, l)
 export const defaultRegion = config.defaultRegion
 export const regions = config.regions as Region[]
 export const places = config.places as Place[]

@@ -2,13 +2,14 @@
 
 import { createContext, useContext, useMemo } from "react"
 import type { Lang } from "@/lib/content"
-import { bindLang, makeT, type AdminT, type Overrides, type TFn } from "@/lib/i18n"
+import { bindLang, makeT, setDataOverrides, type AdminT, type Overrides, type TFn } from "@/lib/i18n"
 
 const OverridesContext = createContext<Overrides>({})
 const AdminLangContext = createContext<Lang>("el")
 
 /** Root layout: makes the superadmin's text overrides available to client components. */
 export function I18nProvider({ overrides, children }: { overrides: Overrides; children: React.ReactNode }) {
+  setDataOverrides(overrides) // for trData (labels kept as data) in client components
   return <OverridesContext.Provider value={overrides}>{children}</OverridesContext.Provider>
 }
 

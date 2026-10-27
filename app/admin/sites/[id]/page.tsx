@@ -10,7 +10,8 @@ import { listMetropolises } from "@/lib/metropolises"
 import { requireUser } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 
-export default async function EditSitePage({ params }: PageProps<"/admin/sites/[id]">) {
+export default async function EditSitePage({ params, searchParams }: PageProps<"/admin/sites/[id]">) {
+  const { translate } = await searchParams
   const user = await requireUser()
   const admin = isAdmin(user.role)
   const [site, points, t] = await Promise.all([getSite({ id: Number((await params).id) }), getPointsConfig(), getAdminT()])
@@ -25,7 +26,7 @@ export default async function EditSitePage({ params }: PageProps<"/admin/sites/[
         {admin && !site.published && <Badge variant="secondary">{t("editor.draft")}</Badge>}
       </div>
       {!admin && <p className="text-sm text-muted-foreground">{t("editor.proposeHelp")}</p>}
-      <SiteForm mode={admin ? "direct" : "propose"} siteId={site.id} initial={toFormValues(site)} photos={toFormPhotos(site)} videos={toFormVideos(site)} points={points} regions={regionOptions} metropolises={metroOptions} />
+      <SiteForm mode={admin ? "direct" : "propose"} siteId={site.id} initial={toFormValues(site)} photos={toFormPhotos(site)} videos={toFormVideos(site)} points={points} regions={regionOptions} metropolises={metroOptions} translate={typeof translate === "string" ? translate : undefined} />
     </div>
   )
 }

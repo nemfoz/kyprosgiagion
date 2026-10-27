@@ -9,9 +9,10 @@ import { PublicHeader } from "@/components/public-header"
 import { markdown, pick } from "@/lib/content"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
-import { getMetropolis, metropolisPage, refreshStaleNews } from "@/lib/metropolises"
+import { getMetropolis, metropolisPage, refreshStaleNews, metroText } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { sized } from "@/lib/photo-sizes.mjs"
+import { intlLocale, localePath } from "@/lib/locales"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
@@ -21,25 +22,22 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/met
   const m = await getMetropolis({ slug: (await params).slug })
   if (!m) return {}
   const path = `/metropolis/${m.slug}`
-  const title = m.content[lang].name || m.content.el.name
-  const description = m.content[lang].summary || m.content.el.summary
+  const title = metroText(m, "name", lang)
+  const description = metroText(m, "summary", lang)
   return { title: pageTitle(title, lang), description, alternates: alternates(path, lang), openGraph: openGraph(path, lang, title, description) }
 }
 
 export default async function MetropolisPage({ params, searchParams }: PageProps<"/metropolis/[slug]">) {
   const lang = langFrom((await searchParams).lang)
-  const other = lang === "el" ? "en" : "el"
   const [t, session, m] = await Promise.all([getT(), getSession(), metropolisPage((await params).slug)])
   if (!m) notFound()
   after(refreshStaleNews)
-  const c = m.content
-  const field = (f: keyof typeof c.el) => c[lang][f] || c[other][f]
-  const q = lang === "en" ? "?lang=en" : ""
-  const dateFmt = new Intl.DateTimeFormat(lang === "el" ? "el-GR" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Nicosia" })
+  const field = (f: Parameters<typeof metroText>[1]) => metroText(m, f, lang)
+  const dateFmt = new Intl.DateTimeFormat(intlLocale(lang), { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Nicosia" })
 
   return (
     <div className="min-h-dvh bg-background">
-      <PublicHeader lang={lang} otherLangHref={`?lang=${other}`} signedIn={!!session} />
+      <PublicHeader lang={lang} path={`/metropolis/${m.slug}`} signedIn={!!session} />
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-5 px-4 py-10">
           {m.logo && (
@@ -47,7 +45,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
             <img src={m.logo} alt="" className="size-24 rounded-xl bg-parchment object-contain p-2" />
           )}
           <div className="min-w-0 flex-1">
-            <Link href={`/metropolis${q}`} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment"><ArrowLeft className="size-4" />{t("metroAll", lang)}</Link>
+            <Link href={localePath("/metropolis", lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment"><ArrowLeft className="size-4" />{t("metroAll", lang)}</Link>
             <h1 className="text-[clamp(26px,4.5vw,42px)] leading-tight font-bold">{field("name")}</h1>
             {field("seat") && <p className="mt-1 text-parchment/85">{t("metroSeat", lang, { seat: field("seat") })}</p>}
           </div>
@@ -77,7 +75,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
             <ul className="grid gap-3 sm:grid-cols-2">
               {m.churches.map((s) => (
                 <li key={s.id}>
-                  <Link href={`/site/${s.slug}${q}`} className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
+                  <Link href={localePath(`/site/${s.slug}`, lang)} className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
                     {s.cover ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />

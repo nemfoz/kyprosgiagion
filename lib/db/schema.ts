@@ -86,6 +86,20 @@ export const submissions = sqliteTable("submissions", {
   reviewedAt: text("reviewed_at"),
 })
 
+/** Users' corrections to the interface text in the extra languages (lib/translations.ts). */
+export const translationSuggestions = sqliteTable("translation_suggestions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  key: text("key").notNull(),
+  locale: text("locale").notNull(),
+  text: text("text").notNull(),
+  note: text("note").notNull().default(""),
+  status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
+  authorId: text("author_id").notNull(),
+  reviewerId: text("reviewer_id"),
+  createdAt: text("created_at").notNull().default(now),
+  reviewedAt: text("reviewed_at"),
+})
+
 // ---- Better Auth ----
 
 const timestamps = {

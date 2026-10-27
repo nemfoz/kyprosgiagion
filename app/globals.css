@@ -9,10 +9,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-ui);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-heading: var(--font-serif);
-  --font-serif: var(--font-serif);
+  --font-heading: var(--font-display);
+  --font-serif: var(--font-display);
   --color-gold: var(--gold);
   --color-gold-deep: var(--gold-deep);
   --color-crimson: var(--crimson);
@@ -60,6 +60,9 @@
 }
 
 :root {
+  /* next/font families (app/layout.tsx); Georgian comes from its own Noto font. */
+  --font-ui: var(--font-noto-sans), var(--font-noto-sans-ka), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-noto-serif), var(--font-noto-serif-ka), ui-serif, Georgia, serif;
   /* The whole palette: three colours taken from the Orthodox Church websites in docs/sourcs.md
      (Ecumenical Patriarchate, Thyateira, Georgia…). Every other shade below is mixed from these. */
   --crimson: #6b1d1d;
@@ -148,7 +151,7 @@
 .pin.pin-approx span { border-style: dashed; }
 .pin-cluster {
   display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
-  background: var(--crimson); color: var(--parchment); font: 700 14px var(--font-sans);
+  background: var(--crimson); color: var(--parchment); font: 700 14px var(--font-ui);
   border: 2px solid var(--card); box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold) 70%, transparent), 0 2px 6px color-mix(in oklab, var(--ink) 25%, transparent);
   transition: transform .15s;
 }
@@ -158,14 +161,14 @@
 .pin-monastery { --c: var(--type-monastery); }
 .pin-chapel { --c: var(--type-chapel); }
 .pin-basilica { --c: var(--type-basilica); }
-.place-label { font: 600 12px var(--font-sans); color: var(--muted-foreground); text-shadow: 0 0 3px var(--card), 0 0 3px var(--card), 0 0 4px var(--card); white-space: nowrap; pointer-events: none; }
-.place-label.major { font: 700 14px var(--font-serif); color: var(--foreground); }
+.place-label { font: 600 12px var(--font-ui); color: var(--muted-foreground); text-shadow: 0 0 3px var(--card), 0 0 3px var(--card), 0 0 4px var(--card); white-space: nowrap; pointer-events: none; }
+.place-label.major { font: 700 14px var(--font-display); color: var(--foreground); }
 .map3d .place-label:not(.major) { visibility: hidden; }
 .map3d.show-minor .place-label { visibility: visible; }
-.site-tip .maplibregl-popup-content { font: 600 13px var(--font-sans); padding: 5px 10px; border-radius: 6px; box-shadow: 0 4px 16px color-mix(in oklab, var(--ink) 15%, transparent); }
+.site-tip .maplibregl-popup-content { font: 600 13px var(--font-ui); padding: 5px 10px; border-radius: 6px; box-shadow: 0 4px 16px color-mix(in oklab, var(--ink) 15%, transparent); }
 .site-tip .maplibregl-popup-tip { display: none; }
 .ka-ctrl { display: flex; flex-direction: column; }
-.maplibregl-ctrl-group .ka-ctrl-btn { width: auto; min-width: 29px; padding: 0 12px; font: 600 11px var(--font-sans); color: var(--foreground); }
+.maplibregl-ctrl-group .ka-ctrl-btn { width: auto; min-width: 29px; padding: 0 12px; font: 600 11px var(--font-ui); color: var(--foreground); }
 
 /* Calm "atlas" styling for the map controls and focus states. */
 .map3d .maplibregl-ctrl-top-right { top: 8px; right: 8px; }

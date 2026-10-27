@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27 (photo copies, SEO/sharing, pin clustering, nearby churches; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-27 (languages: /en/ URLs + Russian, Ukrainian, Romanian, Bulgarian, Serbian, Georgian; roadmap in §8). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -50,6 +50,19 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   their Metropolis.
 - `/contribute` gamification page: overall map completeness, pages that need help (filterable by section,
   least complete first), leaderboard (first name + last initial), how points work, titles and badges.
+- **Languages** (`lib/locales.ts`): Greek (plain URLs) and `/en/`, `/ru/`, `/uk/`, `/ro/`, `/bg/`, `/sr/` (Cyrillic), `/ka/`.
+  `proxy.ts` rewrites the prefix to `?lang=` for the pages (and redirects old `?lang=` links, 308); build links with
+  `localePath(path, lang)`. `Lang` (el/en) stays the type for the admin, scoring and required content; `Locale` is any
+  public language. Interface text for the extra languages: `lib/messages/locales/<code>.ts` (AI-drafted, to be checked
+  by native speakers; missing keys fall back to English, then Greek). Labels kept as data (types, regions, badges,
+  feasts, see names) use `trData("data.…", record, lang)`. Church texts: optional `content.<locale>` (name, location,
+  summary, history, facts), edited in the editor's "Άλλες γλώσσες" tab; untranslated pages show English with a
+  "translate it" notice, and are left out of the sitemap/hreflang (canonical → English). A complete translation earns
+  the `translation` bonus (+20, per language). Name days stay Greek names on the new calendar (note for other languages).
+- **Translation fixes**: `/admin/translations?locale=ru` — every signed-in user can suggest a fix (table
+  `translation_suggestions`), admins approve/reject (count in the sidebar), superadmins edit directly; approved texts are
+  overrides in `settings.translations`. The language menu on public pages links there ("Suggest a better translation").
+- Admin language without a cookie: Greek for Greek browsers, English otherwise.
 - Light theme only (the dark theme was removed 2026-10-27).
 - `/contribute` is labelled «Πάρτε μέρος» in Greek (owner's choice; «Συνεισφέρετε» sounded like a donation request).
 - **Photo copies**: every stored photo has `name.sm.webp` (320px, lists/thumbnails) and `name.md.webp` (960px, cards,
@@ -216,7 +229,9 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 ## 8. Next steps (roadmap agreed 2026-10-27)
 
 **Done 2026-10-27:** items 2 (photo copies), 4 (SEO/sharing) and 5 (clustering + nearby churches).
-Suggested next: 1 (backups) — production still has none — then 3 (feast days).
+Then (same day): `/en/` URLs and six more languages with user-suggested fixes (see §2 "Languages").
+Suggested next: 1 (backups) — production still has none — then 3 (feast days). Also: have native speakers check the
+drafted translations (agents' notes: see names in Bulgarian/Serbian, Georgian feast names, plural forms in Russian).
 
 1. **Backups**: nightly export of the DB (+ Blob inventory) and a tested restore. Production has no backups yet —
    do this before contributors grow.
@@ -224,7 +239,7 @@ Suggested next: 1 (backups) — production still has none — then 3 (feast days
 3. **Feast days / panigyria**: patron saint + feast day per church (+ century, current state: in use / ruined /
    occupied) as structured fields and map filters. Tie into name days: "Πανηγυρίζουν σήμερα" in the name-day bar
    and `/eortologio`, "celebrating this week" map filter, feast-day countdown on church pages, new mission for points.
-4. ~~SEO / sharing~~ — done (see §2). Possible later: separate `/en/…` paths instead of `?lang=en`; submit the
+4. ~~SEO / sharing~~ — done (see §2), now with `/en/…` paths. Possible later: submit the
    sitemap in Google Search Console once the custom domain is set (then set `SITE_URL`).
 5. ~~Pin clustering + "nearby churches"~~ — done.
 6. **More content**: more regions + region management in the admin; importers from the Metropolis parish lists

@@ -24,14 +24,14 @@ function Brand() {
 }
 
 /** Left sidebar on wide screens; a top bar with a slide-out menu on phones. `account` is the user menu. */
-export function AdminSidebar({ role, pending, account }: { role: Role; pending: number; account: React.ReactNode }) {
+export function AdminSidebar({ role, pending, translations, account }: { role: Role; pending: number; translations: number; account: React.ReactNode }) {
   const t = useAdminT()
   const [open, setOpen] = useState(false)
   return (
     <>
       <aside className="sticky top-0 hidden h-dvh flex-col gap-5 overflow-y-auto border-r bg-card py-5 pr-3 pl-3 md:flex">
         <Brand />
-        <div className="flex-1"><AdminNav role={role} pending={pending} /></div>
+        <div className="flex-1"><AdminNav role={role} pending={pending} translations={translations} /></div>
         <AdminLangSwitch />
         <div className="border-t px-1 pt-3">{account}</div>
       </aside>
@@ -42,7 +42,7 @@ export function AdminSidebar({ role, pending, account }: { role: Role; pending: 
           <SheetContent side="left" className="flex w-72 flex-col gap-5 p-4">
             <SheetTitle className="sr-only">{t("admin.nav.menu")}</SheetTitle>
             <Brand />
-            <div className="flex-1"><AdminNav role={role} pending={pending} onNavigate={() => setOpen(false)} /></div>
+            <div className="flex-1"><AdminNav role={role} pending={pending} translations={translations} onNavigate={() => setOpen(false)} /></div>
             <AdminLangSwitch />
           </SheetContent>
         </Sheet>

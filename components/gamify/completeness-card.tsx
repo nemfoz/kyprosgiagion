@@ -8,6 +8,7 @@ import { PAGE_POINTS, type BonusKey, type ScoredMission } from "@/lib/completene
 import { LANGS, type Lang } from "@/lib/content"
 import { useT } from "@/components/i18n-provider"
 import { cn } from "@/lib/utils"
+import { localePath } from "@/lib/locales"
 
 export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
   return (
@@ -63,7 +64,7 @@ export function CompletenessCard({ score, bonuses, siteId, lang }: {
             : `Bonus: +${bonuses.extra_photo} per additional photo, +${bonuses.historic_photo} per old photo, +${bonuses.video} per video.`}
         </p>
         <Button asChild size="sm"><Link href={`/admin/sites/${siteId}`}><Sparkles />{t("helpComplete", lang)}</Link></Button>
-        <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`} className="text-center text-xs text-muted-foreground underline">
+        <Link href={localePath("/contribute", lang)} className="text-center text-xs text-muted-foreground underline">
           {lang === "el" ? "Πώς λειτουργούν οι πόντοι" : "How points work"}
         </Link>
       </CardContent>

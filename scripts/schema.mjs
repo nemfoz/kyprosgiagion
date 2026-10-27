@@ -134,6 +134,20 @@ export const SCHEMA = [
     UNIQUE (metropolis_id, url)
   )`,
   'CREATE INDEX IF NOT EXISTS metropolis_news_recent ON metropolis_news(metropolis_id, published_at)',
+  // Users' corrections to the interface text in the extra languages (lib/translations.ts).
+  `CREATE TABLE IF NOT EXISTS translation_suggestions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    key         TEXT NOT NULL,
+    locale      TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    note        TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL DEFAULT 'pending',
+    author_id   TEXT NOT NULL,
+    reviewer_id TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    reviewed_at TEXT
+  )`,
+  'CREATE INDEX IF NOT EXISTS translation_suggestions_status ON translation_suggestions(status, locale)',
   // Site-wide settings edited in the admin, as JSON (e.g. 'points' — lib/points.ts).
   `CREATE TABLE IF NOT EXISTS settings (
     key        TEXT PRIMARY KEY,

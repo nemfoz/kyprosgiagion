@@ -5,7 +5,8 @@ import { ArrowRight, Church, Newspaper } from "lucide-react"
 import { PublicHeader } from "@/components/public-header"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
-import { listMetropolises, refreshStaleNews } from "@/lib/metropolises"
+import { listMetropolises, metroText, refreshStaleNews } from "@/lib/metropolises"
+import { localePath } from "@/lib/locales"
 import { getSession } from "@/lib/session"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
@@ -19,11 +20,10 @@ export default async function MetropolisesPage({ searchParams }: PageProps<"/met
   const lang = langFrom((await searchParams).lang)
   const [t, session, list] = await Promise.all([getT(), getSession(), listMetropolises()])
   after(refreshStaleNews) // news are fetched in the background, at most hourly
-  const q = lang === "en" ? "?lang=en" : ""
 
   return (
     <div className="min-h-dvh bg-background">
-      <PublicHeader lang={lang} otherLangHref={lang === "en" ? "?" : "?lang=en"} signedIn={!!session} />
+      <PublicHeader lang={lang} path="/metropolis" signedIn={!!session} />
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <p className="mb-3 text-[11px] font-semibold tracking-[.14em] text-gold uppercase">{t("navMetropolises", lang)}</p>
@@ -33,9 +33,9 @@ export default async function MetropolisesPage({ searchParams }: PageProps<"/met
       </section>
       <main className="mx-auto grid max-w-6xl gap-4 px-4 py-8 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((m) => {
-          const c = m.content[lang].name ? m.content[lang] : m.content.el
+          const c = { name: metroText(m, "name", lang), seat: metroText(m, "seat", lang), summary: metroText(m, "summary", lang) }
           return (
-            <Link key={m.id} href={`/metropolis/${m.slug}${q}`} className="group grid content-start gap-3 rounded-xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm">
+            <Link key={m.id} href={localePath(`/metropolis/${m.slug}`, lang)} className="group grid content-start gap-3 rounded-xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm">
               <div className="flex items-center gap-3">
                 {m.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element

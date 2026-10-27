@@ -16,6 +16,11 @@ export const EDITOR = {
   "editor.proposeNew": { el: "Πρόταση νέας εκκλησίας", en: "Propose a new church" },
 
   // church form
+  "editor.otherLangs": { el: "Άλλες γλώσσες", en: "Other languages" },
+  "editor.otherLangsHelp": { el: "Μεταφράσεις για επισκέπτες από άλλες Ορθόδοξες χώρες. Ό,τι λείπει εμφανίζεται στα αγγλικά. Πλήρης μετάφραση (όνομα, σύντομη περιγραφή και ιστορικό) κερδίζει +{points} πόντους ανά γλώσσα.", en: "Translations for visitors from other Orthodox countries. Anything missing is shown in English. A complete translation (name, short description and history) earns +{points} points per language." },
+  "editor.translationDone": { el: "Πλήρης μετάφραση", en: "Translation complete" },
+  "editor.translationMissing": { el: "Χρειάζονται όνομα, σύντομη περιγραφή και ιστορικό.", en: "Needs the name, short description and history." },
+  "editor.englishText": { el: "Αγγλικό κείμενο (για αναφορά)", en: "English text (for reference)" },
   "editor.field.name": { el: "Όνομα", en: "Name" },
   "editor.field.location": { el: "Τοποθεσία (χωριό, επαρχία)", en: "Location (village, district)" },
   "editor.field.summary": { el: "Σύντομη περιγραφή", en: "Short description" },

@@ -10,6 +10,8 @@
 // `settings` table, see lib/points.ts); labels, rules and badges are fixed here.
 import { LANGS, type Lang, type SiteContent } from "@/lib/content"
 import type { ErrorMessage } from "@/lib/session"
+import { trData } from "@/lib/i18n"
+import { EXTRA_LOCALES, intlLocale, isExtra, type ExtraLocale, type Locale } from "@/lib/locales"
 
 export type SectionKey = "identity" | "summary" | "history" | "facts" | "sources" | "photo" | "location"
 export type BadgeArea = "writer" | "translator" | "researcher" | "photographer" | "archivist" | "mapper"
@@ -34,7 +36,7 @@ export const SECTIONS: Section[] = [
   { key: "sources", shared: true, label: { el: "Πηγές", en: "Sources" }, hint: { el: "Τουλάχιστον 2 βιβλία, άρθρα ή ιστοσελίδες από όπου προέρχονται οι πληροφορίες.", en: "At least 2 books, articles or websites the information comes from." } },
 ]
 
-export type BonusKey = "extra_photo" | "historic_photo" | "video"
+export type BonusKey = "extra_photo" | "historic_photo" | "video" | "translation"
 
 export type PointsConfig = {
   /** Points per language version of the page, per section; they must add up to PAGE_POINTS. */
@@ -49,7 +51,7 @@ export type PointsConfig = {
 
 export const DEFAULT_POINTS: PointsConfig = {
   sections: { history: 35, summary: 10, facts: 10, identity: 5, photo: 15, location: 15, sources: 10 },
-  bonuses: { extra_photo: 5, historic_photo: 10, video: 10 },
+  bonuses: { extra_photo: 5, historic_photo: 10, video: 10, translation: 20 },
   proposal: 5,
   levels: [75, 250, 600, 1500],
 }
@@ -117,6 +119,13 @@ export const TOTAL_POINTS = PAGE_POINTS * LANGS.length
 export const missionPoints = (cfg: PointsConfig, m: Mission) => cfg.sections[m.section] * (m.lang ? 1 : LANGS.length)
 
 export type ScoredMission = Mission & { points: number }
+/** A mission's name in any language (e.g. "History (Greek)", "История (греческий)"). */
+export function missionLabel(m: Mission, lang: Locale) {
+  if (!isExtra(lang)) return m.label[lang]
+  const section = trData(`data.section.${m.section}`, SECTIONS.find((s) => s.key === m.section)!.label, lang)
+  return m.lang ? `${section} (${new Intl.DisplayNames([intlLocale(lang)], { type: "language" }).of(m.lang)})` : section
+}
+
 export const scoredMissions = (cfg: PointsConfig): ScoredMission[] => MISSIONS.map((m) => ({ ...m, points: missionPoints(cfg, m) }))
 
 // Text the importer and the samples use until someone writes the real history.
@@ -163,7 +172,22 @@ export const BONUSES: Record<BonusKey, { label: Record<Lang, string>; hint: Reco
   extra_photo: { badge: "photographer", label: { el: "Επιπλέον φωτογραφία", en: "Additional photograph" }, hint: { el: "Εσωτερικό, λεπτομέρειες, τοιχογραφίες, η σημερινή κατάσταση.", en: "Interior, details, wall paintings, the present state." } },
   historic_photo: { badge: "archivist", label: { el: "Παλιά φωτογραφία", en: "Old photograph" }, hint: { el: "Αρχειακή ή οικογενειακή φωτογραφία, π.χ. πριν από το 1974.", en: "An archive or family photo, e.g. from before 1974." } },
   video: { badge: "photographer", label: { el: "Βίντεο", en: "Video" }, hint: { el: "Σύνδεσμος YouTube με βίντεο του ναού (λειτουργία, ντοκιμαντέρ, επίσκεψη).", en: "A YouTube link to a video of the church (service, documentary, visit)." } },
+  translation: { badge: "translator", label: { el: "Μετάφραση σε άλλη γλώσσα", en: "Translation into another language" }, hint: { el: "Όνομα, σύντομη περιγραφή και ιστορικό σε ρωσικά, ουκρανικά, ρουμανικά, βουλγαρικά, σερβικά ή γεωργιανά (ανά γλώσσα).", en: "Name, short description and history in Russian, Ukrainian, Romanian, Bulgarian, Serbian or Georgian (per language)." } },
 }
+
+/**
+ * Whether a page is translated into an extra language: its name and short description, and the history too
+ * once the Greek or English page has one.
+ */
+export function translationDone(c: SiteContent, l: ExtraLocale) {
+  const t = c[l]
+  if (!t?.name?.trim() || !realText(t.summary ?? "", 40)) return false
+  return !LANGS.some((x) => realText(c[x].body, 400)) || realText(t.body ?? "", 400)
+}
+
+/** A translation bonus for each extra language a proposal completed. */
+export const translationBonuses = (before: SiteContent | null, after: SiteContent): BonusKey[] =>
+  EXTRA_LOCALES.filter((l) => translationDone(after, l) && !(before && translationDone(before, l))).map((): BonusKey => "translation")
 
 /** Bonuses for photos and videos added to a page that already has `existingPhotos` photos. */
 export function mediaBonuses(existingPhotos: number, photos: { historic?: boolean }[], videos: unknown[] = []): BonusKey[] {
@@ -201,7 +225,7 @@ export function scoreProposal(cfg: PointsConfig, before: Set<MissionKey>, after:
 export const BADGES = {
   first: { el: "Πρώτη συνεισφορά", en: "First contribution", icon: "🕯️", need: 1, hint: { el: "Η πρώτη εγκεκριμένη πρόταση.", en: "Your first approved proposal." } },
   writer: { el: "Συντάκτης", en: "Writer", icon: "📜", need: 3, hint: { el: "Ιστορικά και περιγραφές στα ελληνικά.", en: "Histories and descriptions in Greek." } },
-  translator: { el: "Μεταφραστής", en: "Translator", icon: "🌍", need: 3, hint: { el: "Κείμενα στα αγγλικά.", en: "Texts in English." } },
+  translator: { el: "Μεταφραστής", en: "Translator", icon: "🌍", need: 3, hint: { el: "Κείμενα στα αγγλικά και μεταφράσεις σε άλλες γλώσσες.", en: "Texts in English and translations into other languages." } },
   researcher: { el: "Ερευνητής πηγών", en: "Source researcher", icon: "📚", need: 3, hint: { el: "Βασικά στοιχεία και πηγές.", en: "Key facts and sources." } },
   photographer: { el: "Φωτογράφος", en: "Photographer", icon: "📷", need: 3, hint: { el: "Φωτογραφίες και βίντεο ναών.", en: "Photos and videos of churches." } },
   archivist: { el: "Αρχειονόμος", en: "Archivist", icon: "🗂️", need: 3, hint: { el: "Παλιές φωτογραφίες.", en: "Old photographs." } },
@@ -217,8 +241,8 @@ export const LEVEL_NAMES = [
   { el: "Χρονικογράφος", en: "Chronicler" },
   { el: "Θεματοφύλακας της μνήμης", en: "Custodian of memory" },
 ]
-export type Level = { min: number; el: string; en: string }
-export const levelsFor = (cfg: PointsConfig): Level[] => LEVEL_NAMES.map((n, i) => ({ ...n, min: i ? cfg.levels[i - 1] : 0 }))
+export type Level = { index: number; min: number; el: string; en: string }
+export const levelsFor = (cfg: PointsConfig): Level[] => LEVEL_NAMES.map((n, i) => ({ ...n, index: i, min: i ? cfg.levels[i - 1] : 0 }))
 export const levelFor = (cfg: PointsConfig, points: number) => [...levelsFor(cfg)].reverse().find((l) => points >= l.min)!
 export const nextLevel = (cfg: PointsConfig, points: number) => levelsFor(cfg).find((l) => l.min > points) ?? null
 

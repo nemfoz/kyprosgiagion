@@ -5,6 +5,7 @@ import { ProgressBar } from "@/components/gamify/completeness-card"
 import { BADGES, MISSIONS, type BadgeKey, type MissionKey } from "@/lib/completeness"
 import type { Lang } from "@/lib/content"
 import { getAdminT } from "@/lib/i18n-server"
+import { localePath } from "@/lib/locales"
 
 type Level = Record<Lang, string> & { min: number }
 type Stats = { points: number; approved: number; rank: number | null; level: Level; next: Level | null; badges: BadgeKey[] }
@@ -43,7 +44,7 @@ export async function MyProgress({ stats, suggestions, overall }: { stats: Stats
               )
             })}
           </div>
-          <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`} className="text-xs text-primary underline">{t("admin.progress.leaderboard")}</Link>
+          <Link href={localePath("/contribute", lang)} className="text-xs text-primary underline">{t("admin.progress.leaderboard")}</Link>
         </CardContent>
       </Card>
 
@@ -63,7 +64,7 @@ export async function MyProgress({ stats, suggestions, overall }: { stats: Stats
               <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" />
             </Link>
           ))}
-          <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`} className="mt-1 text-sm text-primary underline">{t("admin.progress.allPages")}</Link>
+          <Link href={localePath("/contribute", lang)} className="mt-1 text-sm text-primary underline">{t("admin.progress.allPages")}</Link>
         </CardContent>
       </Card>
     </div>

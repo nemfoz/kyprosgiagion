@@ -1,4 +1,5 @@
 // Site content model and the small text format used for history, details and sources.
+import { EXTRA_LOCALES, fallbacks, type ExtraLocale, type Locale } from "@/lib/locales"
 
 export const SITE_TYPES = ["church", "monastery", "chapel", "basilica"] as const
 export type SiteType = (typeof SITE_TYPES)[number]
@@ -14,25 +15,47 @@ export const TYPE_LABELS: Record<SiteType, Record<Lang, string>> = {
 
 export const TEXT_FIELDS = ["name", "location", "summary", "body", "facts", "sources"] as const
 export type LangContent = Record<(typeof TEXT_FIELDS)[number], string>
-export type SiteContent = Record<Lang, LangContent>
+/** Fields translated into the extra languages (sources are links and stay as they are). */
+export const EXTRA_FIELDS = ["name", "location", "summary", "body", "facts"] as const
+/** Greek and English are always present; other languages only once someone has translated the page. */
+export type SiteContent = Record<Lang, LangContent> & Partial<Record<ExtraLocale, Partial<LangContent>>>
 
 export function normaliseContent(input: unknown): SiteContent {
-  const src = (typeof input === "string" ? safeJson(input) : input) as Partial<Record<Lang, Partial<LangContent>>> | null
+  const src = (typeof input === "string" ? safeJson(input) : input) as Partial<Record<Locale, Partial<LangContent>>> | null
   const out = {} as SiteContent
   for (const lang of LANGS) {
     out[lang] = {} as LangContent
     for (const f of TEXT_FIELDS) out[lang][f] = String(src?.[lang]?.[f] ?? "").trim()
   }
+  for (const l of EXTRA_LOCALES) {
+    const t: Partial<LangContent> = {}
+    for (const f of EXTRA_FIELDS) {
+      const v = String(src?.[l]?.[f] ?? "").trim()
+      if (v) t[f] = v
+    }
+    if (Object.keys(t).length) out[l] = t
+  }
   return out
 }
+
+/** The extra languages a page has been translated into (at least its name and short description). */
+export const translatedInto = (c: SiteContent): ExtraLocale[] => EXTRA_LOCALES.filter((l) => c[l]?.name && c[l]?.summary)
 
 function safeJson(s: string) {
   try { return JSON.parse(s) } catch { return {} }
 }
 
-/** Picks the requested language, falling back to the other one when a field is empty. */
-export function pick(c: SiteContent, lang: Lang, field: keyof LangContent) {
-  return c[lang][field] || c[lang === "el" ? "en" : "el"][field]
+/** One field in every language it is filled in (for client components that switch language themselves). */
+export function byLocale(c: SiteContent, field: (typeof EXTRA_FIELDS)[number]): Partial<Record<Locale, string>> {
+  const out: Partial<Record<Locale, string>> = { el: c.el[field], en: c.en[field] }
+  for (const l of EXTRA_LOCALES) if (c[l]?.[field]) out[l] = c[l]![field]
+  return out
+}
+
+/** Picks the requested language, falling back to English, then Greek, when a field is empty. */
+export function pick(c: SiteContent, lang: Locale, field: keyof LangContent) {
+  for (const l of fallbacks(lang)) if (c[l]?.[field]) return c[l]![field]!
+  return ""
 }
 
 export const slugify = (s: string) => String(s || "")

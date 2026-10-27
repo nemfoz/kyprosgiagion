@@ -12,12 +12,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authMessage, withLang } from "@/components/auth/auth-form"
 import { useT } from "@/components/i18n-provider"
-import type { Lang } from "@/lib/content"
+import type { Locale } from "@/lib/locales"
 import { Turnstile, TURNSTILE_SITE_KEY } from "@/components/auth/turnstile"
 import { authClient } from "@/lib/auth-client"
 
 export function PasswordForms({ mode, lang, token = "", error: initialError = "" }: {
-  mode: "request" | "reset"; lang: Lang; token?: string; error?: string
+  mode: "request" | "reset"; lang: Locale; token?: string; error?: string
 }) {
   const t = useT()
   const router = useRouter()

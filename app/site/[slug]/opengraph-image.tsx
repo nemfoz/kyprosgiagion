@@ -2,7 +2,7 @@ import { OG_SIZE, shareCard } from "@/components/og/share-card"
 import { TYPE_LABELS, type SiteType } from "@/lib/content"
 import { regions } from "@/lib/regions"
 import { getSite } from "@/lib/sites"
-import { SITE_NAME } from "@/lib/seo"
+import { siteTitle as SITE_NAME } from "@/lib/regions"
 
 export const size = OG_SIZE
 export const contentType = "image/jpeg"

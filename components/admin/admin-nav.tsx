@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 type Item = { href: string; label: MessageKey; icon: React.ReactNode; exact?: boolean; count?: number }
 
 /** Vertical admin menu (sidebar on wide screens, sheet on phones). */
-export function AdminNav({ role, pending, onNavigate }: { role: Role; pending: number; onNavigate?: () => void }) {
+export function AdminNav({ role, pending, translations = 0, onNavigate }: { role: Role; pending: number; translations?: number; onNavigate?: () => void }) {
   const t = useAdminT()
   const path = usePathname()
   const admin = role !== "user"
@@ -28,8 +28,9 @@ export function AdminNav({ role, pending, onNavigate }: { role: Role; pending: n
     ] : []),
     ...(role === "superadmin" ? [
       { href: "/admin/points", label: "admin.nav.points", icon: <Trophy /> } as Item,
-      { href: "/admin/translations", label: "admin.nav.translations", icon: <Languages /> } as Item,
     ] : []),
+    // Superadmins edit every text; everyone else suggests fixes to the other languages.
+    { href: "/admin/translations", label: "admin.nav.translations", icon: <Languages />, count: admin ? translations : 0 },
   ]
   const link = "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0"
   return (

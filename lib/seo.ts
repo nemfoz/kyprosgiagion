@@ -1,27 +1,27 @@
 import type { Metadata } from "next"
-import type { Lang } from "@/lib/content"
+import { LOCALE_REGION, LOCALES, localePath, type Locale } from "@/lib/locales"
+import { siteName } from "@/lib/regions"
 
 // The public address: SITE_URL if set (e.g. a custom domain), else Vercel's production domain, else local dev.
 export const SITE_URL = (process.env.SITE_URL
   || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000")).replace(/\/$/, "")
 
-export const SITE_NAME = { el: "Κύπρος – Αγίων Γη", en: "Cyprus – Land of Saints" }
-
-/** A page's address in each language: Greek is the plain path, English adds ?lang=en. */
-export function langUrl(path: string, lang: Lang) {
-  return lang === "en" ? `${path}${path.includes("?") ? "&" : "?"}lang=en` : path
-}
-
-/** Canonical URL and hreflang alternates for a page that exists in both languages. */
-export function alternates(path: string, lang: Lang): Metadata["alternates"] {
-  return { canonical: langUrl(path, lang), languages: { el: path, en: langUrl(path, "en"), "x-default": path } }
+/**
+ * Canonical URL and hreflang alternates. `locales` are the languages the page really exists in (a church
+ * page only in the languages it has been translated into); other languages point search engines to English.
+ */
+export function alternates(path: string, lang: Locale, locales: readonly Locale[] = LOCALES): Metadata["alternates"] {
+  return {
+    canonical: localePath(path, locales.includes(lang) ? lang : "en"),
+    languages: { ...Object.fromEntries(locales.map((l) => [l, localePath(path, l)])), "x-default": path },
+  }
 }
 
 /** Open Graph basics shared by every public page (the image comes from opengraph-image files). */
-export function openGraph(path: string, lang: Lang, title?: string, description?: string): Metadata["openGraph"] {
+export function openGraph(path: string, lang: Locale, title?: string, description?: string): Metadata["openGraph"] {
   return {
-    type: "website", siteName: SITE_NAME[lang], url: langUrl(path, lang), title, description,
-    locale: lang === "el" ? "el_GR" : "en_GB", alternateLocale: lang === "el" ? "en_GB" : "el_GR",
+    type: "website", siteName: siteName(lang), url: localePath(path, lang), title, description,
+    locale: LOCALE_REGION[lang], alternateLocale: LOCALES.filter((l) => l !== lang).map((l) => LOCALE_REGION[l]),
   }
 }
 
@@ -34,5 +34,5 @@ export function plainText(md: string, max = 300) {
 /** A <script type="application/ld+json"> body; "<" is escaped so the text can't close the tag. */
 export const jsonLd = (data: object) => JSON.stringify(data).replace(/</g, "\\u003c")
 
-/** A page title: Greek pages use the layout's template; English pages end with the English site name. */
-export const pageTitle = (title: string, lang: Lang): Metadata["title"] => (lang === "en" ? { absolute: `${title} – ${SITE_NAME.en}` } : title)
+/** A page title: Greek pages use the layout's template; other languages end with the site's name in that language. */
+export const pageTitle = (title: string, lang: Locale): Metadata["title"] => (lang === "el" ? title : { absolute: `${title} – ${siteName(lang)}` })

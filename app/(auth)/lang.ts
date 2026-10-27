@@ -1,8 +1,8 @@
 import "server-only"
-import type { Lang } from "@/lib/content"
 import { getAdminLang } from "@/lib/i18n-server"
+import { isLocale, type Locale } from "@/lib/locales"
 
-/** Language of the sign-in pages: ?lang= in the address, otherwise the admin-language cookie, otherwise Greek. */
-export async function authLang(param: unknown): Promise<Lang> {
-  return param === "en" || param === "el" ? param : getAdminLang()
+/** Language of the sign-in pages: the /en/, /ru/… prefix (?lang=), otherwise the admin language. */
+export async function authLang(param: unknown): Promise<Locale> {
+  return isLocale(param) ? param : getAdminLang()
 }

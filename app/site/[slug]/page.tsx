@@ -9,18 +9,20 @@ import { MiniMap } from "@/components/map/mini-map"
 import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
-import { googleMapsUrl, inline, markdown, parseFacts, pick, TYPE_LABELS, youtubeEmbed, type Lang, type SiteType } from "@/lib/content"
+import { googleMapsUrl, inline, markdown, parseFacts, pick, translatedInto, TYPE_LABELS, youtubeEmbed, type Lang, type SiteType } from "@/lib/content"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
 import { isAdmin } from "@/lib/permissions"
-import { regions } from "@/lib/regions"
+import { regionName, regions } from "@/lib/regions"
 import { getPointsConfig } from "@/lib/points"
-import { getMetropolis } from "@/lib/metropolises"
+import { getMetropolis, metroText } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { getSite, nearbySites } from "@/lib/sites"
 import { sized } from "@/lib/photo-sizes.mjs"
-import { alternates, jsonLd, langUrl, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
+import { alternates, jsonLd, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
+import { baseLang, intlLocale, isExtra, localePath, type Locale } from "@/lib/locales"
+import { trData } from "@/lib/i18n"
 
 async function load(slug: string) {
   const [site, session] = await Promise.all([getSite({ slug }), getSession()])
@@ -39,7 +41,7 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/sit
   const description = plainText(pick(site.content, lang, "summary"))
   return {
     title: pageTitle(title, lang), description,
-    alternates: alternates(path, lang),
+    alternates: alternates(path, lang, ["el", "en", ...translatedInto(site.content)]),
     openGraph: { ...openGraph(path, lang, title, description), type: "article" },
     twitter: { card: "summary_large_image" },
     robots: site.published ? undefined : { index: false },
@@ -48,9 +50,11 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/sit
 
 export default async function SitePage({ params, searchParams }: PageProps<"/site/[slug]">) {
   const { slug } = await params
-  const lang: Lang = langFrom((await searchParams).lang)
+  const lang = langFrom((await searchParams).lang)
+  // The second name under the title: English on Greek pages, otherwise the Greek original.
   const other: Lang = lang === "el" ? "en" : "el"
   const [{ site, session, admin }, t] = await Promise.all([load(slug), getT()])
+  const untranslated = isExtra(lang) && !translatedInto(site.content).includes(lang)
   const [metropolis, nearby] = await Promise.all([site.metropolisId ? getMetropolis({ id: site.metropolisId }) : null, nearbySites(site)])
   const c = site.content
   const region = regions.find((r) => r.id === site.region)
@@ -67,7 +71,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
   const photos = site.photos.map((p) => ({
     src: p.src,
-    caption: (lang === "el" ? p.captionEl || p.captionEn : p.captionEn || p.captionEl) || "",
+    caption: (lang === "el" ? p.captionEl || p.captionEn : p.captionEn || p.captionEl) || "", // captions: Greek and English only
     credit: p.credit,
     sourceUrl: p.sourceUrl,
     historic: p.historic,
@@ -80,19 +84,19 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
     name,
     alternateName: altName && altName !== name ? altName : undefined,
     description: plainText(pick(c, lang, "summary")) || undefined,
-    url: SITE_URL + langUrl(`/site/${site.slug}`, lang),
+    url: SITE_URL + localePath(`/site/${site.slug}`, lang),
     image: site.photos.slice(0, 3).map((p) => (p.src.startsWith("/") ? SITE_URL + p.src : p.src)),
     geo: { "@type": "GeoCoordinates", latitude: site.lat, longitude: site.lng },
-    address: { "@type": "PostalAddress", addressLocality: pick(c, lang, "location") || undefined, addressRegion: region?.name[lang], addressCountry: "CY" },
+    address: { "@type": "PostalAddress", addressLocality: pick(c, lang, "location") || undefined, addressRegion: region && regionName(region, lang), addressCountry: "CY" },
     hasMap: googleMapsUrl(site.lat, site.lng),
-    containedInPlace: metropolis ? { "@type": "Organization", name: metropolis.content[lang].name || metropolis.content.el.name, url: SITE_URL + langUrl(`/metropolis/${metropolis.slug}`, lang) } : undefined,
-    inLanguage: lang,
+    containedInPlace: metropolis ? { "@type": "Organization", name: metroText(metropolis, "name", lang), url: SITE_URL + localePath(`/metropolis/${metropolis.slug}`, lang) } : undefined,
+    inLanguage: untranslated ? "en" : lang,
   }
 
   return (
     <div className="min-h-dvh">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(ld) }} />
-      <PublicHeader lang={lang} otherLangHref={`?lang=${other}`} signedIn={!!session}>
+      <PublicHeader lang={lang} path={`/site/${site.slug}`} signedIn={!!session}>
         {session && (
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/admin/sites/${site.id}`} aria-label={admin ? t("edit", lang) : t("propose", lang)}>
@@ -103,6 +107,14 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
       </PublicHeader>
 
       {!site.published && <div className="bg-gold/20 py-2 text-center text-sm font-semibold text-foreground">{t("draft", lang)}</div>}
+      {untranslated && (
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b bg-accent px-4 py-2 text-center text-sm">
+          <span>{t("notTranslated", lang)}</span>
+          <Link href={session ? `/admin/sites/${site.id}?translate=${lang}` : localePath("/signup", lang)} className="font-semibold text-primary underline underline-offset-2">
+            {t("translatePage", lang)}
+          </Link>
+        </div>
+      )}
 
       <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)]"}`}>
         {cover && (
@@ -111,13 +123,13 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
         )}
         {cover && <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />}
         <div className="relative mx-auto w-full max-w-6xl px-4 py-8 text-parchment">
-          <Link href={`/?site=${encodeURIComponent(site.slug)}${lang === "en" ? "&lang=en" : ""}`} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment">
+          <Link href={localePath(`/?site=${encodeURIComponent(site.slug)}`, lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment">
             <ArrowLeft className="size-4" />{t("backToMap", lang)}
           </Link>
           <TypeBadge type={site.type as SiteType} lang={lang} className="block text-gold [&>span]:bg-gold" />
           <h1 className="mt-2 text-[clamp(28px,5vw,46px)] leading-tight font-bold">{name}</h1>
           {altName && altName !== name && <p className="font-heading text-lg italic opacity-85">{altName}</p>}
-          <p className="mt-1.5 opacity-90">{pick(c, lang, "location")}{region ? ` · ${region.name[lang]}` : ""}</p>
+          <p className="mt-1.5 opacity-90">{pick(c, lang, "location")}{region ? ` · ${regionName(region, lang)}` : ""}</p>
         </div>
       </section>
 
@@ -171,11 +183,11 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
             <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("details", lang)}</CardTitle></CardHeader>
             <CardContent className="px-4">
               <dl className="grid text-[13px] leading-snug">
-                <Fact label={t("type", lang)}>{TYPE_LABELS[site.type as SiteType]?.[lang] ?? site.type}</Fact>
+                <Fact label={t("type", lang)}>{trData(`data.type.${site.type}`, TYPE_LABELS[site.type as SiteType], lang) || site.type}</Fact>
                 {pick(c, lang, "location") && <Fact label={t("location", lang)}>{pick(c, lang, "location")}</Fact>}
                 {metropolis && (
                   <Fact label={t("metropolis", lang)}>
-                    <Link href={`/metropolis/${metropolis.slug}${lang === "en" ? "?lang=en" : ""}`}>{metropolis.content[lang].name || metropolis.content.el.name}</Link>
+                    <Link href={localePath(`/metropolis/${metropolis.slug}`, lang)}>{metroText(metropolis, "name", lang)}</Link>
                   </Fact>
                 )}
                 {shownFacts.map(([k, v], i) => <Fact key={i} label={k}><span dangerouslySetInnerHTML={{ __html: inline(v) }} /></Fact>)}
@@ -188,7 +200,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("nearby", lang)}</CardTitle></CardHeader>
               <CardContent className="grid gap-1 px-2">
                 {nearby.map((s) => (
-                  <Link key={s.id} href={`/site/${s.slug}${lang === "en" ? "?lang=en" : ""}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted">
+                  <Link key={s.id} href={localePath(`/site/${s.slug}`, lang)} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted">
                     {s.cover
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-12 w-11 shrink-0 rounded-t-[22px] rounded-b-md object-cover" />
@@ -202,17 +214,17 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               </CardContent>
             </Card>
           )}
-          {score && cfg && <CompletenessCard score={score} bonuses={cfg.bonuses} siteId={site.id} lang={lang} />}
+          {score && cfg && <CompletenessCard score={score} bonuses={cfg.bonuses} siteId={site.id} lang={baseLang(lang)} />}
         </aside>
       </main>
 
       {/* The map closes the page, edge to edge. */}
       <section id="map" className="relative h-[min(65vh,560px)] scroll-mt-4 border-t bg-muted">
-        <MiniMap lat={site.lat} lng={site.lng} type={site.type} boundary={region?.boundary} lang={lang} className="h-full rounded-none" />
+        <MiniMap lat={site.lat} lng={site.lng} type={site.type} boundary={region?.boundary} lang={baseLang(lang)} className="h-full rounded-none" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-4 pb-8">
           <div className="pointer-events-auto grid max-w-sm gap-2 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur">
             <p className="font-heading text-lg leading-snug font-bold">{name}</p>
-            <p className="text-sm text-muted-foreground">{pick(c, lang, "location")}{region ? ` · ${region.name[lang]}` : ""}</p>
+            <p className="text-sm text-muted-foreground">{pick(c, lang, "location")}{region ? ` · ${regionName(region, lang)}` : ""}</p>
             <p className="font-mono text-xs text-muted-foreground">{site.lat.toFixed(6)}, {site.lng.toFixed(6)}</p>
             {!site.coordsVerified && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><TriangleAlert className="size-3.5 text-gold" />{t("approx", lang)}</p>
@@ -227,8 +239,8 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   )
 }
 
-function distance(km: number, lang: Lang) {
-  const locale = lang === "el" ? "el-GR" : "en-GB"
+function distance(km: number, lang: Locale) {
+  const locale = intlLocale(lang)
   return km < 1
     ? new Intl.NumberFormat(locale, { style: "unit", unit: "meter", maximumFractionDigits: 0 }).format(Math.round(km * 100) * 10)
     : new Intl.NumberFormat(locale, { style: "unit", unit: "kilometer", maximumFractionDigits: km < 10 ? 1 : 0 }).format(km)

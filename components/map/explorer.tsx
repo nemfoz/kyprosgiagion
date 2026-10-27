@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SITE_TYPES, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
+import { baseLang, intlLocale, localePath, tr, type Locale } from "@/lib/locales"
+import { trData } from "@/lib/i18n"
+import { LangMenu } from "@/components/lang-menu"
 import { useT } from "@/components/i18n-provider"
-import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegion, type Region } from "@/lib/regions"
+import { places, regionAncestors, regionName, regions as allRegions, siteName, defaultRegion, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
@@ -30,18 +33,18 @@ export type MapSite = {
   /** Page completeness; null for visitors who aren't signed in. */
   percent: number | null
   metropolisId: number | null
-  name: Record<Lang, string>
-  location: Record<Lang, string>
-  summary: Record<Lang, string>
+  name: Partial<Record<Locale, string>>
+  location: Partial<Record<Locale, string>>
+  summary: Partial<Record<Locale, string>>
 }
 
 type Props = {
   sites: MapSite[]
-  initialLang: Lang
+  initialLang: Locale
   initialRegion: string
   initialMetropolis?: string
   /** Metropolises that have churches on the map. */
-  metropolises: { id: number; slug: string; name: Record<Lang, string> }[]
+  metropolises: { id: number; slug: string; name: Partial<Record<Locale, string>> }[]
   initialSlug?: string
   account: { name: string } | null
   nameDays: Record<Lang, NameDays>
@@ -73,7 +76,7 @@ function regionCamera(map: MlMap, r: Region, is3d: boolean, fit = false) {
 
 export function Explorer({ sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays }: Props) {
   const t = useT()
-  const [lang, setLang] = useState<Lang>(initialLang)
+  const [lang, setLang] = useState<Locale>(initialLang)
   const [regionId, setRegionId] = useState(initialRegion)
   const [metroId, setMetroId] = useState<number | null>(() => metropolises.find((m) => m.slug === initialMetropolis)?.id ?? null)
   const [types, setTypes] = useState<Set<SiteType>>(() => new Set(SITE_TYPES))
@@ -99,10 +102,10 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     const q = fold(query.trim())
     return sitesWithRegions.filter((s) =>
       (regionId === ALL.id || s.regions.includes(regionId)) && (metroId === null || s.metropolisId === metroId) && types.has(s.type) &&
-      (!q || fold([s.name.el, s.name.en, s.location.el, s.location.en].join(" ")).includes(q)))
+      (!q || fold([...Object.values(s.name), ...Object.values(s.location)].join(" ")).includes(q)))
   }, [sitesWithRegions, regionId, metroId, types, query])
   const current = sites.find((s) => s.id === selected) ?? null
-  const name = (s: MapSite) => s.name[lang] || s.name.el || s.name.en
+  const name = (s: MapSite) => tr(s.name, lang)
 
   // ---- map setup (once) ----
   useEffect(() => {
@@ -125,14 +128,13 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
       })
       mapRef.current = map
       map.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right")
-      const L = { "3d": { el: ["3D", "2D"], en: ["3D", "2D"] }, sat: { el: [t("satellite", "el"), t("map", "el")], en: [t("satellite", "en"), t("map", "en")] } }
       controls.current = new ButtonsControl([
         {
-          label: () => L["3d"][langRef.current][view.current.is3d ? 1 : 0],
+          label: () => (view.current.is3d ? "2D" : "3D"),
           onClick: () => { view.current.is3d = !view.current.is3d; setTerrain(map!, view.current.is3d); savePrefs(); window.dispatchEvent(new Event("ka:view")) },
         },
         {
-          label: () => L.sat[langRef.current][view.current.satellite ? 1 : 0],
+          label: () => t(view.current.satellite ? "map" : "satellite", langRef.current),
           onClick: () => { view.current.satellite = !view.current.satellite; setSatellite(map!, view.current.satellite); savePrefs() },
         },
       ])
@@ -162,7 +164,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     if (!ready || !map || !ml) return
     labels.current.splice(0).forEach((m) => m.remove())
     for (const p of places) {
-      const el = Object.assign(document.createElement("div"), { className: cn("place-label", p.major && "major"), textContent: p[lang] })
+      const el = Object.assign(document.createElement("div"), { className: cn("place-label", p.major && "major"), textContent: p[baseLang(lang)] })
       labels.current.push(new ml.Marker({ element: el, anchor: "top", offset: [0, 4] }).setLngLat([p.lng, p.lat]).addTo(map))
     }
   }, [lang, ready])
@@ -214,7 +216,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   }, [clusters, visible, selected, ready, sites, lang])
 
   function showTip(s: MapSite) {
-    showTipAt(s.lng, s.lat, s.name[langRef.current] || s.name.el, 36)
+    showTipAt(s.lng, s.lat, tr(s.name, langRef.current), 36)
   }
 
   function showTipAt(lng: number, lat: number, text: string, offset = 24) {
@@ -286,27 +288,26 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   // ---- URL ----
   useEffect(() => {
     const p = new URLSearchParams()
-    if (lang !== "el") p.set("lang", lang)
     if (regionId !== defaultRegion) p.set("region", regionId)
     const metro = metropolises.find((m) => m.id === metroId)
     if (metro) p.set("metropolis", metro.slug)
     if (current) p.set("site", current.slug)
-    history.replaceState(null, "", `${location.pathname}${p.size ? `?${p}` : ""}`)
+    history.replaceState(null, "", localePath(`/${p.size ? `?${p}` : ""}`, lang))
     document.documentElement.lang = lang
-    document.title = siteTitle[lang]
+    document.title = siteName(lang)
   }, [lang, regionId, metroId, metropolises, current])
 
-  const list = [...visible].sort((a, b) => name(a).localeCompare(name(b), lang))
-  const siteHref = (s: MapSite) => `/site/${encodeURIComponent(s.slug)}${lang === "en" ? "?lang=en" : ""}`
+  const list = [...visible].sort((a, b) => name(a).localeCompare(name(b), intlLocale(lang)))
+  const siteHref = (s: MapSite) => localePath(`/site/${encodeURIComponent(s.slug)}`, lang)
 
   return (
     <div className="flex h-dvh flex-col bg-background">
-      <NameDayBar days={nameDays[lang]} lang={lang} />
+      <NameDayBar days={nameDays[baseLang(lang)]} lang={lang} />
       <header className="z-10 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 md:gap-x-7 border-b bg-card px-4 py-3 md:h-22 md:flex-nowrap md:px-7 md:py-0">
         <Link href="/" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
           <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-border bg-accent text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</span>
           <span className="grid min-w-0 gap-1 md:gap-2">
-            <span className="truncate font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteTitle[lang]}</span>
+            <span className="truncate font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteName(lang)}</span>
             <span className="truncate text-[9px] tracking-wide text-muted-foreground md:text-[11px]">{t("caption", lang)}</span>
           </span>
         </Link>
@@ -317,14 +318,12 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
             ["/contribute", "contribute", <Sparkles key="c" />],
           ] as const).map(([href, key, icon]) => (
             <Button key={href} variant="ghost" size="sm" asChild>
-              <Link href={`${href}${lang === "en" ? "?lang=en" : ""}`} aria-label={t(key, lang)}>{icon}<span className="hidden xl:inline">{t(key, lang)}</span></Link>
+              <Link href={localePath(href, lang)} aria-label={t(key, lang)}>{icon}<span className="hidden xl:inline">{t(key, lang)}</span></Link>
             </Button>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")} aria-label={lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}>
-            {lang === "el" ? "EN" : "ΕΛ"}
-          </Button>
+          <LangMenu lang={lang} onChange={setLang} />
           <Button variant="ghost" size="sm" asChild>
-            <Link href={account ? "/admin" : "/login"}>
+            <Link href={account ? "/admin" : localePath("/login", lang)}>
               {account ? <LayoutDashboard /> : <LogIn />}
               <span className="hidden lg:inline">{account ? t("dashboard", lang) : t("signIn", lang)}</span>
             </Link>
@@ -341,7 +340,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                 <div className="grid gap-3 px-6 py-4">
                   <TypeBadge type={current.type} lang={lang} />
                   <h2 className="text-[27px] leading-snug font-bold">{name(current)}</h2>
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4" />{current.location[lang] || current.location.el}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4" />{tr(current.location, lang)}</p>
                   {!current.coordsVerified && (
                     <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><TriangleAlert className="size-4 text-gold" />{t("approx", lang)}</p>
                   )}
@@ -353,7 +352,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                   </Link>
                 )}
                 <div className="grid gap-5 px-6 pt-5">
-                  <p className="text-sm leading-[1.8]">{current.summary[lang] || current.summary.el}</p>
+                  <p className="text-sm leading-[1.8]">{tr(current.summary, lang)}</p>
                   {current.percent !== null && current.percent < 100 && (
                     <Link href={`${siteHref(current)}#contribute`} className="grid gap-1.5 rounded-lg border border-gold/40 bg-accent/40 p-3 text-xs">
                       <span className="flex justify-between"><span>{t("completeness", lang)}</span><b className="text-gold-deep">{current.percent}%</b></span>
@@ -386,7 +385,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                       <SelectTrigger size="sm" className="w-full min-w-0 text-xs" aria-label={t("filterRegion", lang)}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {regions.map((r) => (
-                          <SelectItem key={r.id} value={r.id} className={cn("text-xs", r.parent && "pl-6")}>{r.name[lang]}</SelectItem>
+                          <SelectItem key={r.id} value={r.id} className={cn("text-xs", r.parent && "pl-6")}>{regionName(r, lang)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -398,7 +397,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all" className="text-xs">{t("allMetropolises", lang)}</SelectItem>
-                        {metropolises.map((m) => <SelectItem key={m.id} value={String(m.id)} className="text-xs">{m.name[lang] || m.name.el}</SelectItem>)}
+                        {metropolises.map((m) => <SelectItem key={m.id} value={String(m.id)} className="text-xs">{tr(m.name, lang)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
@@ -413,7 +412,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                       className="group flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1.5 text-[11px] transition hover:bg-accent aria-pressed:bg-accent/70 aria-[pressed=false]:border-dashed aria-[pressed=false]:text-muted-foreground"
                     >
                       <span className={cn("size-[7px] rounded-full border border-transparent group-aria-[pressed=false]:bg-transparent!", typeDot[k], typeBorder[k])} />
-                      {TYPE_LABELS[k][lang]}
+                      {trData(`data.type.${k}`, TYPE_LABELS[k], lang)}
                     </button>
                   ))}
                 </div>
@@ -440,7 +439,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                           <span className={cn("grid h-14 w-[58px] place-items-center rounded-t-[30px] rounded-b-lg border border-border bg-muted text-[25px] md:h-[68px]", typeText[s.type])}>✝</span>
                         )}
                         <span className="min-w-0">
-                          <span className={cn("block text-[9px] tracking-[.07em] uppercase", typeText[s.type])}>{TYPE_LABELS[s.type][lang]}</span>
+                          <span className={cn("block text-[9px] tracking-[.07em] uppercase", typeText[s.type])}>{trData(`data.type.${s.type}`, TYPE_LABELS[s.type], lang)}</span>
                           <span className="mt-0.5 mb-1 block font-heading text-sm leading-normal font-medium">{name(s)}</span>
                           <span className="block truncate text-[11px] text-muted-foreground">{s.location[lang] || s.location.el}</span>
                         </span>
@@ -457,7 +456,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
           <div ref={mapEl} className="map3d size-full bg-[linear-gradient(var(--secondary),var(--parchment))]" />
           <div className="pointer-events-none absolute bottom-6 left-2.5 flex max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-[9px] text-foreground/80 shadow-sm md:bottom-7 md:left-5 md:px-4 md:py-3 md:text-[10px]">
             <span className="size-1.5 flex-none rounded-full bg-primary" />
-            <span className="font-semibold">{metropolises.find((m) => m.id === metroId)?.name[lang] || region.name[lang]}</span>
+            <span className="font-semibold">{tr(metropolises.find((m) => m.id === metroId)?.name, lang) || regionName(region, lang)}</span>
             <span className="hidden h-3 w-px bg-border lg:block" />
             <span className="hidden text-muted-foreground lg:block">{current ? name(current) : t("hint", lang)}</span>
           </div>

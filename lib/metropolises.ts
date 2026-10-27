@@ -2,6 +2,8 @@ import "server-only"
 import { asc, desc, eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import type { Lang } from "@/lib/content"
+import { trData } from "@/lib/i18n"
+import { tr, type Locale } from "@/lib/locales"
 import { listSites } from "@/lib/sites"
 
 const { metropolises, metropolisNews, sites } = schema
@@ -19,6 +21,15 @@ export function normaliseMetroContent(input: unknown): MetroContent {
   return out
 }
 function safeJson(s: string) { try { return JSON.parse(s) } catch { return {} } }
+
+/**
+ * A Metropolis text in any language. Other languages show the English text (then Greek); the names of the
+ * sees are translated in lib/messages/locales ("data.metropolis.<slug>").
+ */
+export function metroText(m: { slug: string; content: MetroContent }, field: (typeof METRO_FIELDS)[number], lang: Locale) {
+  const record = { el: m.content.el[field], en: m.content.en[field] }
+  return field === "name" ? trData(`data.metropolis.${m.slug}`, record, lang) : tr(record, lang)
+}
 
 const withContent = <T extends { content: string }>(m: T) => ({ ...m, content: normaliseMetroContent(m.content) })
 

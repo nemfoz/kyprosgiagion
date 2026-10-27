@@ -4,7 +4,7 @@ import { db, schema } from "@/lib/db"
 import { normaliseContent, type SiteContent } from "@/lib/content"
 import { addPhoto, addVideo, createSite, getSite, slugTaken, updateSite, type PhotoInput, type SiteInput, type VideoInput } from "@/lib/sites"
 import { deleteStored } from "@/lib/storage"
-import { mediaBonuses, missionsDone, scoreProposal, type MissionKey } from "@/lib/completeness"
+import { mediaBonuses, missionsDone, scoreProposal, translationBonuses, type MissionKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
 import { UserError } from "@/lib/session"
 
@@ -67,6 +67,7 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
   const { site, photos, videos } = sub.payload
   let siteId: number
   let before = new Set<MissionKey>()
+  let beforeContent: SiteContent | null = null
   let existingPhotos = 0
 
   if (sub.kind === "create") {
@@ -77,6 +78,7 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
     const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
     if (!current) throw new UserError("error.submission.siteGone")
     before = doneFor(current)
+    beforeContent = current.content
     existingPhotos = current.photos.length
     siteId = current.id
     // Users cannot change the address, publication or "verified location" flags.
@@ -87,8 +89,9 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
   for (const p of photos) await addPhoto(siteId, p)
   for (const v of videos) await addVideo(siteId, v)
 
-  const after = doneFor(await getSite({ id: siteId }))
-  const { completed, points } = scoreProposal(await getPointsConfig(), before, after, mediaBonuses(existingPhotos, photos, videos))
+  const updated = (await getSite({ id: siteId }))!
+  const bonuses = [...mediaBonuses(existingPhotos, photos, videos), ...translationBonuses(beforeContent, updated.content)]
+  const { completed, points } = scoreProposal(await getPointsConfig(), before, doneFor(updated), bonuses)
 
   await db.update(submissions).set({
     status: "approved", reviewerId, reviewNote, reviewedAt: sql`(datetime('now'))`, siteId,

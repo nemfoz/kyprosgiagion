@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { LangMenu } from "@/components/lang-menu"
 import { Loader2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,9 +14,9 @@ import { Turnstile, TURNSTILE_SITE_KEY } from "@/components/auth/turnstile"
 import { authClient } from "@/lib/auth-client"
 import { HONEYPOT_FIELD } from "@/lib/antispam"
 import { useT } from "@/components/i18n-provider"
-import type { Lang } from "@/lib/content"
+import { localePath, type Locale } from "@/lib/locales"
 import type { MessageKey, TFn } from "@/lib/i18n"
-import { siteTitle } from "@/lib/regions"
+import { siteName } from "@/lib/regions"
 
 // Error codes from Better Auth (and lib/auth.ts) with a translated message; others show their own message.
 const ERROR_KEYS: Record<string, MessageKey> = {
@@ -32,33 +33,31 @@ const ERROR_KEYS: Record<string, MessageKey> = {
   SPAM_SUSPECTED: "auth.err.SPAM_SUSPECTED",
   DISPOSABLE_EMAIL: "auth.err.DISPOSABLE_EMAIL",
 }
-export const authMessage = (t: TFn, lang: Lang, e: { code?: string; message?: string; status?: number }) => {
+export const authMessage = (t: TFn, lang: Locale, e: { code?: string; message?: string; status?: number }) => {
   if (e.status === 429) return t("auth.err.tooMany", lang)
   const key = ERROR_KEYS[e.code ?? ""]
   return key ? t(key, lang) : e.message ?? t("auth.err.generic", lang)
 }
 
-/** Adds ?lang=en to an internal link when the page is in English (keeps other query parameters). */
-export const withLang = (href: string, lang: Lang) =>
-  lang === "en" ? `${href}${href.includes("?") ? "&" : "?"}lang=en` : href
+/** An internal link in the page's language (/en/login, /ru/login…). */
+export const withLang = (href: string, lang: Locale) => localePath(href, lang)
 
-/** Brand and EN/ΕΛ switch above the sign-in cards; the switch keeps the current address and its parameters. */
-export function AuthHeader({ lang }: { lang: Lang }) {
-  const t = useT()
-  const path = usePathname()
+/** Brand and language menu above the sign-in cards; the menu keeps the current address and its parameters. */
+export function AuthHeader({ lang }: { lang: Locale }) {
+  const path = usePathname().replace(/^\/(en|ru|uk|ro|bg|sr|ka)(?=\/|$)/, "") || "/"
   const params = new URLSearchParams(useSearchParams())
-  params.set("lang", lang === "el" ? "en" : "el")
+  params.delete("lang")
   return (
     <div className="grid justify-items-center gap-1">
       <Link href={withLang("/", lang)} className="flex items-center justify-center gap-2 font-heading text-xl font-bold">
-        <span className="text-primary">☦</span>{siteTitle[lang]}
+        <span className="text-primary">☦</span>{siteName(lang)}
       </Link>
-      <Link href={`${path}?${params}`} className="text-xs text-muted-foreground underline">{t("auth.switchLang", lang)}</Link>
+      <LangMenu lang={lang} path={params.size ? `${path}?${params}` : path} className="text-xs text-muted-foreground" />
     </div>
   )
 }
 
-export function AuthForm({ mode, next, lang }: { mode: "login" | "signup"; next: string; lang: Lang }) {
+export function AuthForm({ mode, next, lang }: { mode: "login" | "signup"; next: string; lang: Locale }) {
   const t = useT()
   const router = useRouter()
   const [error, setError] = useState("")
