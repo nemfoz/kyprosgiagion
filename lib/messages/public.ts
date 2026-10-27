@@ -32,7 +32,7 @@ export const PUBLIC = {
   dashboard: { el: "Διαχείριση", en: "Dashboard" },
   map: { el: "Χάρτης", en: "Map" },
   satellite: { el: "Δορυφόρος", en: "Satellite" },
-  contribute: { el: "Συνεισφέρετε", en: "Contribute" },
+  contribute: { el: "Πάρτε μέρος", en: "Contribute" },
   completeness: { el: "Πληρότητα σελίδας", en: "Page completeness" },
   missingTitle: { el: "Τι λείπει", en: "What's missing" },
   helpComplete: { el: "Βοηθήστε να συμπληρωθεί", en: "Help complete it" },
@@ -46,7 +46,8 @@ export const PUBLIC = {
   navNameDays: { el: "Εορτολόγιο", en: "Name days" },
   signUp: { el: "Εγγραφή", en: "Sign up" },
   // name days
-  ndYesterday: { el: "Χθες", en: "Yesterday" },
+  ndBarTitle: { el: "Ονομαστικές εορτές", en: "Name days" },
+  ndYesterday:{ el: "Χθες", en: "Yesterday" },
   ndToday: { el: "Σήμερα", en: "Today" },
   ndTomorrow: { el: "Αύριο", en: "Tomorrow" },
   ndTitle: { el: "Εορτολόγιο", en: "Name days" },

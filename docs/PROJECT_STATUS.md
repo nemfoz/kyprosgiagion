@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27 (bilingual admin, name days, Metropolises). Read this first when continuing work in a new session._
+_Last updated: 2026-10-27 (bilingual admin, name days, Metropolises, map filters; roadmap in §8). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -176,7 +176,7 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 
 ## 6. Owner preferences & decisions
 
-- Greek first, English second; admin UI Greek only.
+- Greek first, English second (admin UI in both, Greek default).
 - **No hotlinks**: every image is stored in our storage; the original page is kept as a visible source link.
 - Links in texts always show their destination domain.
 - Default map shows no third-party place names or borders (own outlines + labels); rest of Cyprus faded.
@@ -198,23 +198,40 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
   Arsinoe/Amathus share their parent Metropolis's website, so they have no feed of their own.
 - Church → see assignment: the 31 churches from the Constantia–Ammochostos parish list → Constantia; the 8 Karpasia
   churches (Trikomo included) → **Bishopric of Karpasia** (a separate see since 2007, per the Church's 2024
-  "Διοικητική Συγκρότησις"). Panagia Kantariotissa is unassigned — an admin should set it.
+  "Διοικητική Συγκρότησις"; confirmed by the owner). Panagia Kantariotissa is unassigned — an admin should set it.
+- The project is a demo for the Church of Cyprus, so using texts and photos from the Church's own sites is permitted
+  (still always with a visible source link).
 - Drizzle renders `${sites.id}` unqualified inside raw `sql` subqueries — write `"sites"."id"` explicitly.
 
-## 8. Next steps (agreed list, in suggested order)
+## 8. Next steps (roadmap agreed 2026-10-27)
 
-1. ~~Finish setup~~ → Turnstile keys (+ custom domain); Resend later.
-2. Backups: nightly export of DB (+ Blob inventory) and a tested restore.
-3. Change history / undo (audit log of edits and approvals).
-4. ~~Missing-content list~~ → done as gamification (`/contribute`).
-5. Image performance: resized variants/thumbnails (thumbnails currently load full images, ~400 KB).
-6. Pin clustering + "nearby churches" on site pages.
-7. Richer structured fields (patron saint/feast day, century, current state, looted icons…) + filters.
-8. SEO/sharing: sitemap, per-church OG images, hreflang EL/EN routes, schema.org markup.
-9. Contributor e-mails (approved/rejected, points) — after Resend.
-10. More regions (Kyrenia etc.) + region management in the admin; more importers — the Metropolis websites list
-    their parishes (Constantia ~89, Paphos ~114, Tamassos ~50, Kition 46, Limassol/Amathus, Morphou, Trimythous),
-    and the Church's 2024 PDF lists every see's parishes (strip the clergy/committee names and phones).
-11. English translations of the Metropolis histories (only Greek was imported).
+**Next session — start here (owner's choice): items 2, 4 and 5 below.**
+
+1. **Backups**: nightly export of the DB (+ Blob inventory) and a tested restore. Production has no backups yet —
+   do this before contributors grow.
+2. **Image performance** ← next: resized variants on upload (thumbnail / medium / full) + a one-off migrate step that
+   creates them for existing photos; use the thumbnails in the map list, gallery and cards (they currently load
+   full images, ~400 KB each).
+3. **Feast days / panigyria**: patron saint + feast day per church (+ century, current state: in use / ruined /
+   occupied) as structured fields and map filters. Tie into name days: "Πανηγυρίζουν σήμερα" in the name-day bar
+   and `/eortologio`, "celebrating this week" map filter, feast-day countdown on church pages, new mission for points.
+4. **SEO / sharing** ← next: per-church OG images (photo + name, for Facebook/WhatsApp previews), sitemap,
+   proper EL/EN URLs with hreflang, schema.org markup (Church / Place).
+5. **Pin clustering + "nearby churches"** ← next: cluster pins when zoomed out (Famagusta town overlaps), list the
+   closest churches on each church page.
+6. **More content**: more regions + region management in the admin; importers from the Metropolis parish lists
+   (Constantia ~89, Paphos ~114, Tamassos ~50, Kition 46, Limassol/Amathus, Morphou, Trimythous) or the Church's
+   2024 PDF (strip clergy/committee names and phones). The 31 imported churches still have placeholder history.
+7. Change history / undo (audit log of edits and approvals).
+8. Contributor e-mails (approved/rejected, points) — after Resend.
+9. English translations of the Metropolis histories (only Greek was imported).
 Smaller: privacy policy (accounts = personal data), Vercel Analytics, error monitoring, separate preview DB,
 monthly leaderboard, public contributor profiles.
+
+**Decided by the owner (2026-10-27):**
+- Karpasia assignment confirmed: the 8 Karpasia churches (Trikomo included) belong to the Bishopric of Karpasia.
+- Permission for the Metropolis history texts: yes — the project is a demo for the Church of Cyprus.
+- Priority: polish what's already there until the owner is happy with it, then continue with the roadmap.
+
+**Owner will look at later** (don't act on these unprompted): which see Panagia Kantariotissa belongs to;
+Turnstile keys + custom domain; Resend.

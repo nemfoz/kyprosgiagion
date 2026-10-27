@@ -19,6 +19,7 @@ export function NameDayBar({ days, lang, className }: { days: NameDays; lang: La
       title={t("navNameDays", lang)}
     >
       <CalendarDays className="size-3.5 shrink-0 text-gold" />
+      <span className="shrink-0 font-semibold tracking-wider text-gold uppercase">{t("ndBarTitle", lang)}</span>
       <span className="hidden min-w-0 truncate lg:inline">{t("ndYesterday", lang)}: {list(days.yesterday)}</span>
       <span className="min-w-0 truncate font-semibold text-parchment">
         {t("ndToday", lang)}: {days.feast && <span className="text-gold">{days.feast} · </span>}{list(days.today)}

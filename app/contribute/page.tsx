@@ -14,7 +14,7 @@ import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
 import { getSession } from "@/lib/session"
 
-export const metadata: Metadata = { title: "Συνεισφέρετε", description: "Βοηθήστε να συμπληρωθούν οι σελίδες των εκκλησιών και μοναστηριών." }
+export const metadata: Metadata = { title: "Πάρτε μέρος", description: "Βοηθήστε να συμπληρωθούν οι σελίδες των εκκλησιών και μοναστηριών." }
 
 export default async function ContributePage({ searchParams }: PageProps<"/contribute">) {
   const lang = langFrom((await searchParams).lang)
