@@ -33,7 +33,7 @@ export async function shareCard({ kicker, title, subtitle, footer, photo }: {
   kicker: string; title: string; subtitle?: string; footer?: string; photo?: string | null
 }) {
   const [[serif, sans], image] = await Promise.all([fonts, photoData(photo)])
-  return new ImageResponse(
+  const png = new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", backgroundColor: CRIMSON, backgroundImage: `radial-gradient(ellipse at top right, ${GOLD}aa, transparent 70%)` }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse renders plain <img> */}
@@ -50,4 +50,9 @@ export async function shareCard({ kicker, title, subtitle, footer, photo }: {
     ),
     { ...OG_SIZE, fonts: [{ name: "Serif", data: serif, weight: 700 }, { name: "Sans", data: sans, weight: 500 }] },
   )
+  // As JPEG: a photo card is ~1 MB as PNG, too big for WhatsApp previews.
+  const jpg = await sharp(Buffer.from(await png.arrayBuffer())).jpeg({ quality: 82, mozjpeg: true }).toBuffer()
+  return new Response(new Uint8Array(jpg), {
+    headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800" },
+  })
 }

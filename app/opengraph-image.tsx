@@ -2,7 +2,7 @@ import { OG_SIZE, shareCard } from "@/components/og/share-card"
 import { SITE_NAME } from "@/lib/seo"
 
 export const size = OG_SIZE
-export const contentType = "image/png"
+export const contentType = "image/jpeg"
 export const alt = SITE_NAME.el
 
 // The preview for every page without its own (the map, name days, Metropolises…).

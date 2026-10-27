@@ -5,7 +5,7 @@ import { getSite } from "@/lib/sites"
 import { SITE_NAME } from "@/lib/seo"
 
 export const size = OG_SIZE
-export const contentType = "image/png"
+export const contentType = "image/jpeg"
 export const alt = SITE_NAME.el
 
 // The preview shown when a church page is shared: its first photo with the Greek and English names.
