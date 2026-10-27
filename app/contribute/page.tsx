@@ -13,8 +13,13 @@ import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
 import { getSession } from "@/lib/session"
+import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
-export const metadata: Metadata = { title: "Πάρτε μέρος", description: "Βοηθήστε να συμπληρωθούν οι σελίδες των εκκλησιών και μοναστηριών." }
+export async function generateMetadata({ searchParams }: PageProps<"/contribute">): Promise<Metadata> {
+  const lang = langFrom((await searchParams).lang)
+  const t = await getT()
+  return { title: pageTitle(t("contribute", lang), lang), description: t("seoContribute", lang), alternates: alternates("/contribute", lang), openGraph: openGraph("/contribute", lang, t("contribute", lang), t("seoContribute", lang)) }
+}
 
 export default async function ContributePage({ searchParams }: PageProps<"/contribute">) {
   const lang = langFrom((await searchParams).lang)

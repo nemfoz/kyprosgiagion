@@ -10,8 +10,13 @@ import { getT } from "@/lib/i18n-server"
 import { addDays, findName, formatDay, isoDay, MONTH_NAMES, movableFeasts, nameDay, orthodoxEaster, today, weekday, type Day } from "@/lib/namedays"
 import { getSession } from "@/lib/session"
 import { cn } from "@/lib/utils"
+import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
-export const metadata: Metadata = { title: "Εορτολόγιο", description: "Ονομαστικές εορτές, κινητές εορτές και η ημερομηνία του Πάσχα." }
+export async function generateMetadata({ searchParams }: PageProps<"/eortologio">): Promise<Metadata> {
+  const lang = langFrom((await searchParams).lang)
+  const t = await getT()
+  return { title: pageTitle(t("ndTitle", lang), lang), description: t("seoNameDays", lang), alternates: alternates("/eortologio", lang), openGraph: openGraph("/eortologio", lang, t("ndTitle", lang), t("seoNameDays", lang)) }
+}
 
 const same = (a: Day, b: Day) => a.y === b.y && a.m === b.m && a.d === b.d
 const days = (a: Day, b: Day) => Math.round((Date.UTC(a.y, a.m - 1, a.d) - Date.UTC(b.y, b.m - 1, b.d)) / 86_400_000)

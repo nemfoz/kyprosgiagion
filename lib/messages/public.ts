@@ -46,6 +46,9 @@ export const PUBLIC = {
   navNameDays: { el: "Εορτολόγιο", en: "Name days" },
   signUp: { el: "Εγγραφή", en: "Sign up" },
   // name days
+  seoHome: { el: "Διαδραστικός τρισδιάστατος χάρτης των εκκλησιών και μοναστηριών της Καρπασίας και της επαρχίας Αμμοχώστου, με ιστορικό, φωτογραφίες και πηγές.", en: "An interactive 3D map of the churches and monasteries of Karpasia and Famagusta District, with their history, photographs and sources." },
+  seoContribute: { el: "Βοηθήστε να συμπληρωθούν οι σελίδες των εκκλησιών και μοναστηριών.", en: "Help complete the pages of the churches and monasteries." },
+  seoNameDays: { el: "Ονομαστικές εορτές, κινητές εορτές και η ημερομηνία του Πάσχα.", en: "Name days, movable feasts and the date of Easter." },
   ndBarTitle: { el: "Ονομαστικές εορτές", en: "Name days" },
   ndYesterday:{ el: "Χθες", en: "Yesterday" },
   ndToday: { el: "Σήμερα", en: "Today" },

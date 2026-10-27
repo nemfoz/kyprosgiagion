@@ -2,7 +2,7 @@ import "server-only"
 import fs from "node:fs/promises"
 import path from "node:path"
 import crypto from "node:crypto"
-import { del, put } from "@vercel/blob"
+import { del, get, put } from "@vercel/blob"
 import { UserError } from "@/lib/session"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { makeVariants } from "@/lib/photo-variants.mjs"
@@ -81,6 +81,24 @@ export async function rehostImage(url: string, baseName: string) {
   const data = Buffer.from(await res.arrayBuffer())
   if (data.length > MAX_BYTES) throw new UserError("error.image.tooLarge15")
   return storePhoto(baseName, data, type)
+}
+
+/** Reads a stored photo's bytes, or null if it can't be found. */
+export async function readStored(src: string): Promise<Buffer | null> {
+  try {
+    if (src.startsWith("/uploads/")) return await fs.readFile(path.join(UPLOADS, path.basename(src)))
+    if (src.startsWith("/media/")) {
+      const b = await get(src.slice("/media/".length), { access: "private" })
+      return b?.stream ? Buffer.from(await new Response(b.stream).arrayBuffer()) : null
+    }
+    if (/\.blob\.vercel-storage\.com\//.test(src)) {
+      const res = await fetch(src)
+      return res.ok ? Buffer.from(await res.arrayBuffer()) : null
+    }
+  } catch (e) {
+    console.warn("read photo failed:", (e as Error).message)
+  }
+  return null
 }
 
 export async function deleteStored(src: string) {

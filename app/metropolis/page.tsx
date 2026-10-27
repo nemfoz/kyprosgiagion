@@ -7,8 +7,13 @@ import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { listMetropolises, refreshStaleNews } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
+import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
-export const metadata: Metadata = { title: "Μητροπόλεις", description: "Οι Μητροπόλεις της Εκκλησίας της Κύπρου, τα νέα τους και οι εκκλησίες τους στον χάρτη." }
+export async function generateMetadata({ searchParams }: PageProps<"/metropolis">): Promise<Metadata> {
+  const lang = langFrom((await searchParams).lang)
+  const t = await getT()
+  return { title: pageTitle(t("navMetropolises", lang), lang), description: t("metroIntro", lang), alternates: alternates("/metropolis", lang), openGraph: openGraph("/metropolis", lang, t("metroTitle", lang), t("metroIntro", lang)) }
+}
 
 export default async function MetropolisesPage({ searchParams }: PageProps<"/metropolis">) {
   const lang = langFrom((await searchParams).lang)

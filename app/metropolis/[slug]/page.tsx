@@ -12,6 +12,7 @@ import { getT } from "@/lib/i18n-server"
 import { getMetropolis, metropolisPage, refreshStaleNews } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { sized } from "@/lib/photo-sizes.mjs"
+import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
 
@@ -19,7 +20,10 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/met
   const lang = langFrom((await searchParams).lang)
   const m = await getMetropolis({ slug: (await params).slug })
   if (!m) return {}
-  return { title: m.content[lang].name || m.content.el.name, description: m.content[lang].summary || m.content.el.summary }
+  const path = `/metropolis/${m.slug}`
+  const title = m.content[lang].name || m.content.el.name
+  const description = m.content[lang].summary || m.content.el.summary
+  return { title: pageTitle(title, lang), description, alternates: alternates(path, lang), openGraph: openGraph(path, lang, title, description) }
 }
 
 export default async function MetropolisPage({ params, searchParams }: PageProps<"/metropolis/[slug]">) {

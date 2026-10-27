@@ -7,6 +7,19 @@ import type { SiteType } from "@/lib/content"
 import { missionBoard } from "@/lib/contributors"
 import { nameDaysAround } from "@/lib/namedays"
 import { listMetropolises } from "@/lib/metropolises"
+import type { Metadata } from "next"
+import { getT } from "@/lib/i18n-server"
+import { alternates, openGraph, SITE_NAME } from "@/lib/seo"
+
+export async function generateMetadata({ searchParams }: PageProps<"/">): Promise<Metadata> {
+  const lang = langFrom((await searchParams).lang)
+  const t = await getT()
+  const title = SITE_NAME[lang]
+  return {
+    title: { absolute: title }, description: t("seoHome", lang),
+    alternates: alternates("/", lang), openGraph: openGraph("/", lang, title, t("seoHome", lang)), twitter: { card: "summary_large_image" },
+  }
+}
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams

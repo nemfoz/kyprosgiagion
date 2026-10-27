@@ -6,11 +6,13 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { I18nProvider } from "@/components/i18n-provider"
 import { getOverrides } from "@/lib/i18n-server"
+import { SITE_URL } from "@/lib/seo"
 
 const sans = Noto_Sans({ variable: "--font-sans", subsets: ["latin", "greek"], weight: ["400", "500", "600", "700"] })
 const serif = Noto_Serif({ variable: "--font-serif", subsets: ["latin", "greek"], weight: ["500", "700"], style: ["normal", "italic"] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "Κύπρος – Αγίων Γη", template: "%s – Κύπρος Αγίων Γη" },
   description: "Χάρτης των εκκλησιών και μοναστηριών της Καρπασίας και της επαρχίας Αμμοχώστου.",
 }

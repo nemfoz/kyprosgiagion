@@ -20,6 +20,7 @@ import { getMetropolis } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 import { sized } from "@/lib/photo-sizes.mjs"
+import { alternates, jsonLd, langUrl, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
 
 async function load(slug: string) {
   const [site, session] = await Promise.all([getSite({ slug }), getSession()])
@@ -33,7 +34,16 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/sit
   const lang = langFrom((await searchParams).lang)
   const site = await getSite({ slug })
   if (!site) return {}
-  return { title: pick(site.content, lang, "name"), description: pick(site.content, lang, "summary") }
+  const path = `/site/${site.slug}`
+  const title = pick(site.content, lang, "name")
+  const description = plainText(pick(site.content, lang, "summary"))
+  return {
+    title: pageTitle(title, lang), description,
+    alternates: alternates(path, lang),
+    openGraph: { ...openGraph(path, lang, title, description), type: "article" },
+    twitter: { card: "summary_large_image" },
+    robots: site.published ? undefined : { index: false },
+  }
 }
 
 export default async function SitePage({ params, searchParams }: PageProps<"/site/[slug]">) {
@@ -63,8 +73,25 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
     historic: p.historic,
   }))
 
+  // schema.org description for search engines (https://schema.org/Church).
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": site.type === "monastery" ? "PlaceOfWorship" : "Church",
+    name,
+    alternateName: altName && altName !== name ? altName : undefined,
+    description: plainText(pick(c, lang, "summary")) || undefined,
+    url: SITE_URL + langUrl(`/site/${site.slug}`, lang),
+    image: site.photos.slice(0, 3).map((p) => (p.src.startsWith("/") ? SITE_URL + p.src : p.src)),
+    geo: { "@type": "GeoCoordinates", latitude: site.lat, longitude: site.lng },
+    address: { "@type": "PostalAddress", addressLocality: pick(c, lang, "location") || undefined, addressRegion: region?.name[lang], addressCountry: "CY" },
+    hasMap: googleMapsUrl(site.lat, site.lng),
+    containedInPlace: metropolis ? { "@type": "Organization", name: metropolis.content[lang].name || metropolis.content.el.name, url: SITE_URL + langUrl(`/metropolis/${metropolis.slug}`, lang) } : undefined,
+    inLanguage: lang,
+  }
+
   return (
     <div className="min-h-dvh">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(ld) }} />
       <PublicHeader lang={lang} otherLangHref={`?lang=${other}`} signedIn={!!session}>
         {session && (
           <Button variant="ghost" size="sm" asChild>
