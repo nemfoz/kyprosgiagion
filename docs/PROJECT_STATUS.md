@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27 (per-language scoring). Read this first when continuing work in a new session._
+_Last updated: 2026-10-27 (bilingual admin, name days, Metropolises). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -35,6 +35,16 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   a paragraph is embedded), YouTube videos, gallery with lightbox ("old photograph" label on archive photos),
   sources (links always show their destination domain); the 3D map closes the page edge to edge with a
   name/coords/Google Maps card on top.
+- **Name-day bar** above every header (public and admin): yesterday, today (+ movable feast), tomorrow → `/eortologio`.
+- `/eortologio` name-day calendar: today, this year's (or next) Easter date, month view (?y=&m=), name search (?q=), the year's
+  movable feasts. Fixed days: `data/namedays.json` (built by `scripts/fetch-namedays.mjs` from newsbeast.gr, years
+  2024–2026 compared); Easter-dependent days computed in `lib/namedays.ts` (Orthodox Easter, Lazarus, Palm Sunday,
+  Life-giving Spring, Thomas, Whit Monday; St George/St Mark move after Easter when they fall before it).
+- `/metropolis` + `/metropolis/[slug]`: the 13 sees of the Church of Cyprus (Archdiocese, 9 Metropolises,
+  Bishoprics of Karpasia, Arsinoe, Amathus) — history (from their own sites, with source link), latest news from
+  their RSS feeds (titles/links only; refreshed in the background via `after()` at most hourly, stored in
+  `metropolis_news`), and the churches on our map that belong to each (`sites.metropolis_id`). Church pages link
+  their Metropolis.
 - `/contribute` gamification page: overall map completeness, pages that need help (filterable by section,
   least complete first), leaderboard (first name + last initial), how points work, titles and badges.
 - Light theme only (the dark theme was removed 2026-10-27).
@@ -60,7 +70,14 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 - Sign-ups are refused (`EMAIL_NOT_CONFIGURED`) on Vercel while `RESEND_API_KEY` is missing, except the
   bootstrap case. Forgot/reset password pages exist (need Resend).
 
-**Admin** (`/admin`, Greek UI)
+**Admin** (`/admin`, Greek or English — switch at the bottom of the left sidebar, remembered in the `admin_lang` cookie)
+- Left sidebar (slide-out sheet on phones).
+- **All interface text** lives in `lib/messages/{public,admin,shell,editor,auth}.ts` as `{el, en}` per key and can be
+  edited by superadmins at `/admin/translations` (overrides stored as JSON in `settings`, key `translations`).
+  Use `getT()`/`getAdminT()` on the server (`lib/i18n-server.ts`) and `useT()`/`useAdminT()` in client components
+  (`components/i18n-provider.tsx`). Server errors are thrown as `UserError(key)` and translated by the actions' `run()`.
+- `/admin/metropolises` (admins): edit texts (bilingual), website, feed, logo (a pasted link is copied to storage),
+  "fetch news now"; assign churches in the church editor ("Μητρόπολη" field).
 - Overview with personal progress (title, points, rank, badges, suggested missions).
 - `/admin/sites` list + editor (`components/admin/site-form.tsx`): bilingual tabs, satellite location
   picker, photo manager (upload with browser-side resize to ≤2400px; import by URL = copied, never
@@ -91,7 +108,8 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 
 ## 3. Data & content
 
-- Tables: `sites`, `photos` (with `source_url`, `historic`), `videos`, `settings`, `submissions`, Better Auth `user`/`session`/`account`/
+- Tables: `sites` (+ `metropolis_id`), `photos` (with `source_url`, `historic`), `videos`, `metropolises`, `metropolis_news`,
+  `settings` (keys `points`, `translations`), `submissions`, Better Auth `user`/`session`/`account`/
   `verification`, `rate_limit`, `data_imports`. Defined twice — keep in sync:
   `scripts/schema.mjs` (SQL, created by migrate) and `lib/db/schema.ts` (Drizzle). snake_case columns.
 - Content per site is a JSON blob `{el:{name,location,summary,body,facts,sources}, en:{…}}`.
@@ -171,7 +189,14 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 - Pins overlap in Famagusta town (no clustering yet).
 - Local photos for the 31 imported churches live in `./uploads` (gitignored); production has its own in Blob.
 - `scripts/fetch-imconstantias.mjs` depends on the Metropolis site's Elementor markup; re-check if it changes.
-- `scripts/sync.mjs` copies churches and photos only — not videos.
+- `scripts/sync.mjs` copies churches and photos only — not videos, Metropolises or Metropolis assignments.
+- Metropolis sources: churchofcyprus.org.cy is behind a Cloudflare challenge (no feed/history/logo for the
+  Archdiocese); imkitiou.org's robots.txt disallows crawlers (Kition has no feed, nothing scraped); Kyrenia has no
+  history page and stale news; Kykkos/Trimythous have no usable history page. Admins can fill these in by hand.
+  Arsinoe/Amathus share their parent Metropolis's website, so they have no feed of their own.
+- Church → see assignment: the 31 churches from the Constantia–Ammochostos parish list → Constantia; the 8 Karpasia
+  churches (Trikomo included) → **Bishopric of Karpasia** (a separate see since 2007, per the Church's 2024
+  "Διοικητική Συγκρότησις"). Panagia Kantariotissa is unassigned — an admin should set it.
 - Drizzle renders `${sites.id}` unqualified inside raw `sql` subqueries — write `"sites"."id"` explicitly.
 
 ## 8. Next steps (agreed list, in suggested order)
@@ -185,6 +210,9 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 7. Richer structured fields (patron saint/feast day, century, current state, looted icons…) + filters.
 8. SEO/sharing: sitemap, per-church OG images, hreflang EL/EN routes, schema.org markup.
 9. Contributor e-mails (approved/rejected, points) — after Resend.
-10. More regions (Kyrenia etc.) + region management in the admin; more importers.
+10. More regions (Kyrenia etc.) + region management in the admin; more importers — the Metropolis websites list
+    their parishes (Constantia ~89, Paphos ~114, Tamassos ~50, Kition 46, Limassol/Amathus, Morphou, Trimythous),
+    and the Church's 2024 PDF lists every see's parishes (strip the clergy/committee names and phones).
+11. English translations of the Metropolis histories (only Greek was imported).
 Smaller: privacy policy (accounts = personal data), Vercel Analytics, error monitoring, separate preview DB,
 monthly leaderboard, public contributor profiles.

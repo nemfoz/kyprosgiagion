@@ -24,19 +24,21 @@ import { VideoManager, type StoredVideo, type VideoFields } from "@/components/a
 import { LANGS, SITE_TYPES, slugify, TYPE_LABELS, type Lang, type SiteContent, type SiteType } from "@/lib/content"
 import { completeness, mediaBonuses, PAGE_POINTS, scoreProposal, scoredMissions, SECTIONS, type MissionKey, type PointsConfig, type SectionKey } from "@/lib/completeness"
 import { ProgressBar } from "@/components/gamify/completeness-card"
+import { useAdminT } from "@/components/i18n-provider"
+import type { AdminT, MessageKey } from "@/lib/i18n"
 
 export type SiteFormValues = {
-  slug: string; type: SiteType; region: string; lat: number | null; lng: number | null
+  slug: string; type: SiteType; region: string; lat: number | null; lng: number | null; metropolisId: number | null
   published: boolean; coordsVerified: boolean; content: SiteContent
 }
 
-const FIELDS: { key: keyof SiteContent["el"]; label: string; rows?: number; help?: string }[] = [
-  { key: "name", label: "Όνομα" },
-  { key: "location", label: "Τοποθεσία (χωριό, επαρχία)" },
-  { key: "summary", label: "Σύντομη περιγραφή", rows: 3, help: "Εμφανίζεται στον χάρτη και στην αρχή της σελίδας." },
-  { key: "body", label: "Κείμενο / Ιστορία", rows: 14, help: "Κενή γραμμή = νέα παράγραφος · ## Επικεφαλίδα · **έντονα** · *πλάγια* · [κείμενο](https://…) · - λίστα" },
-  { key: "facts", label: "Στοιχεία (ένα ανά γραμμή)", rows: 6, help: "Μορφή «Ετικέτα: Τιμή», π.χ. «Χρονολόγηση: 12ος αιώνας»" },
-  { key: "sources", label: "Πηγές (μία ανά γραμμή)", rows: 4, help: "Σύνδεσμοι ως [κείμενο](https://…) — στη σελίδα φαίνεται πάντα και ο ιστότοπος προορισμού." },
+const FIELDS: { key: keyof SiteContent["el"]; label: MessageKey; rows?: number; help?: MessageKey }[] = [
+  { key: "name", label: "editor.field.name" },
+  { key: "location", label: "editor.field.location" },
+  { key: "summary", label: "editor.field.summary", rows: 3, help: "editor.field.summaryHelp" },
+  { key: "body", label: "editor.field.body", rows: 14, help: "editor.field.bodyHelp" },
+  { key: "facts", label: "editor.field.facts", rows: 6, help: "editor.field.factsHelp" },
+  { key: "sources", label: "editor.field.sources", rows: 4, help: "editor.field.sourcesHelp" },
 ]
 
 // Which page section each text field counts towards (for the "missing" hints).
@@ -48,10 +50,10 @@ const fieldMission = (lang: Lang, field: keyof SiteContent["el"]): MissionKey =>
   return s.shared ? s.key : `${s.key}.${lang}`
 }
 
-function MissingTag({ mission, done, points }: { mission?: MissionKey; done: Set<MissionKey>; points: PointsConfig }) {
+function MissingTag({ mission, done, points, t }: { mission?: MissionKey; done: Set<MissionKey>; points: PointsConfig; t: AdminT }) {
   if (!mission || done.has(mission)) return null
   const m = scoredMissions(points).find((x) => x.key === mission)!
-  return <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-primary" title={m.hint.el}>λείπει · +{m.points}</span>
+  return <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-primary" title={m.hint[t.lang]}>{t("editor.missing", { n: m.points })}</span>
 }
 
 // Accepts "35.28, 33.88", "35.28 33.88" or a Google Maps URL containing coordinates.
@@ -68,8 +70,10 @@ export function SiteForm(props: {
   videos: StoredVideo[]
   points: PointsConfig
   regions: { id: string; name: string; active: boolean }[]
+  metropolises: { id: number; name: string }[]
 }) {
   const { mode, siteId } = props
+  const t = useAdminT()
   const router = useRouter()
   const [v, setV] = useState(props.initial)
   const [slugTouched, setSlugTouched] = useState(!!props.initial.slug)
@@ -104,13 +108,13 @@ export function SiteForm(props: {
       if (direct) {
         const r = await saveSiteAction(siteId, v)
         if (!r.ok) return void toast.error(r.error)
-        toast.success("Αποθηκεύτηκε")
+        toast.success(t("editor.saved"))
         if (!siteId) router.push(`/admin/sites/${r.id}`)
         else router.refresh()
       } else {
         const r = await proposeAction(siteId, v, newPhotos, newVideos, note)
         if (!r.ok) return void toast.error(r.error)
-        toast.success("Η πρόταση στάλθηκε για έγκριση")
+        toast.success(t("editor.proposalSent"))
         router.push(`/admin/submissions/${r.id}`)
       }
     })
@@ -122,15 +126,15 @@ export function SiteForm(props: {
         <CardContent className="grid gap-2 px-4 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-6">
           <div className="grid gap-1.5">
             <p className="text-sm">
-              Πληρότητα σελίδας: <b>{base.percent}%</b>
+              {t("editor.completeness")}: <b>{base.percent}%</b>
               {now.percent !== base.percent && <> → <b className="text-primary">{now.percent}%</b></>}
-              <span className="text-muted-foreground"> · ελληνικά {now.byLang.el}/{PAGE_POINTS} · αγγλικά {now.byLang.en}/{PAGE_POINTS}</span>
-              {now.missing.length > 0 && <span className="text-muted-foreground"> · λείπουν: {now.missing.map((m) => m.label.el).join(", ")}</span>}
+              <span className="text-muted-foreground"> · {t("editor.byLang", { el: now.byLang.el, en: now.byLang.en, max: PAGE_POINTS })}</span>
+              {now.missing.length > 0 && <span className="text-muted-foreground"> · {t("editor.missingList", { list: now.missing.map((m) => m.label[t.lang]).join(", ") })}</span>}
             </p>
             <ProgressBar percent={now.percent} />
           </div>
           {!direct && (
-            <p className="text-sm whitespace-nowrap">Με την έγκριση κερδίζετε έως <b className="font-heading text-xl text-primary">+{earn}</b> πόντους</p>
+            <p className="text-sm whitespace-nowrap">{t("editor.earnBefore")} <b className="font-heading text-xl text-primary">+{earn}</b> {t("editor.earnAfter")}</p>
           )}
         </CardContent>
       </Card>
@@ -139,31 +143,41 @@ export function SiteForm(props: {
           <CardContent className="grid gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
-                <Label>Τύπος</Label>
-                <Select value={v.type} onValueChange={(t) => set("type", t as SiteType)}>
+                <Label>{t("editor.type")}</Label>
+                <Select value={v.type} onValueChange={(type) => set("type", type as SiteType)}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>{SITE_TYPES.map((t) => <SelectItem key={t} value={t}>{TYPE_LABELS[t].el} / {TYPE_LABELS[t].en}</SelectItem>)}</SelectContent>
+                  <SelectContent>{SITE_TYPES.map((type) => <SelectItem key={type} value={type}>{TYPE_LABELS[type].el} / {TYPE_LABELS[type].en}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label>Περιοχή</Label>
+                <Label>{t("editor.region")}</Label>
                 <Select value={v.region} onValueChange={(r) => set("region", r)}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>{props.regions.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}{r.active ? "" : " (ανενεργή)"}</SelectItem>)}</SelectContent>
+                  <SelectContent>{props.regions.map((r) => <SelectItem key={r.id} value={r.id}>{r.active ? r.name : t("editor.regionInactive", { name: r.name })}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5 sm:col-span-2">
+                <Label>{t("editor.metropolis")}</Label>
+                <Select value={String(v.metropolisId ?? "none")} onValueChange={(m) => set("metropolisId", m === "none" ? null : Number(m))}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("editor.metropolisNone")}</SelectItem>
+                    {props.metropolises.map((m) => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
             {direct && (
               <>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="slug">Διεύθυνση σελίδας (slug)</Label>
-                  <Input id="slug" value={v.slug} pattern="[a-z0-9-]+" placeholder="π.χ. panagia-theotokos-trikomo"
+                  <Label htmlFor="slug">{t("editor.slug")}</Label>
+                  <Input id="slug" value={v.slug} pattern="[a-z0-9-]+" placeholder={t("editor.slugPlaceholder")}
                     onChange={(e) => { setSlugTouched(true); set("slug", e.target.value) }} />
-                  <p className="text-xs text-muted-foreground">/site/<b>{v.slug || "…"}</b> · λατινικοί χαρακτήρες, αριθμοί και παύλες</p>
+                  <p className="text-xs text-muted-foreground">/site/<b>{v.slug || "…"}</b> · {t("editor.slugHelp")}</p>
                 </div>
                 <div className="flex flex-wrap gap-6">
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={v.published} onCheckedChange={(c) => set("published", !!c)} />Δημοσιευμένο</label>
-                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={v.coordsVerified} onCheckedChange={(c) => set("coordsVerified", !!c)} />Επαληθευμένη θέση</label>
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={v.published} onCheckedChange={(c) => set("published", !!c)} />{t("editor.published")}</label>
+                  <label className="flex items-center gap-2 text-sm"><Checkbox checked={v.coordsVerified} onCheckedChange={(c) => set("coordsVerified", !!c)} />{t("editor.verifiedLocation")}</label>
                 </div>
               </>
             )}
@@ -181,14 +195,14 @@ export function SiteForm(props: {
                 <TabsContent key={lang} value={lang} className="mt-4 grid gap-4">
                   {FIELDS.map((f) => (
                     <div key={f.key} className="grid gap-1.5">
-                      <Label htmlFor={`${lang}-${f.key}`}>{f.label}<MissingTag mission={fieldMission(lang, f.key)} done={now.done} points={cfg} /></Label>
+                      <Label htmlFor={`${lang}-${f.key}`}>{t(f.label)}<MissingTag mission={fieldMission(lang, f.key)} done={now.done} points={cfg} t={t} /></Label>
                       {f.rows ? (
                         <Textarea id={`${lang}-${f.key}`} rows={f.rows} value={v.content[lang][f.key]} onChange={(e) => setText(lang, f.key, e.target.value)}
                           className={f.key === "body" ? "max-h-[60vh] min-h-64 overflow-y-auto leading-relaxed" : "max-h-72 overflow-y-auto"} />
                       ) : (
                         <Input id={`${lang}-${f.key}`} value={v.content[lang][f.key]} onChange={(e) => setText(lang, f.key, e.target.value)} />
                       )}
-                      {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+                      {f.help && <p className="text-xs text-muted-foreground">{t(f.help)}</p>}
                     </div>
                   ))}
                 </TabsContent>
@@ -200,8 +214,8 @@ export function SiteForm(props: {
         {!direct && (
           <Card>
             <CardHeader>
-              <CardTitle className="font-heading text-lg">Σημείωμα προς τους διαχειριστές</CardTitle>
-              <CardDescription>Τι αλλάξατε και από πού προέρχονται οι πληροφορίες (προαιρετικό).</CardDescription>
+              <CardTitle className="font-heading text-lg">{t("editor.note")}</CardTitle>
+              <CardDescription>{t("editor.noteHelp")}</CardDescription>
             </CardHeader>
             <CardContent><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></CardContent>
           </Card>
@@ -211,12 +225,12 @@ export function SiteForm(props: {
       <div className="grid content-start gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Θέση στον χάρτη<MissingTag mission="location" done={now.done} points={cfg} /></CardTitle>
-            {!direct && !v.coordsVerified && <p className="text-xs text-muted-foreground">Μετακινήστε το σημάδι ακριβώς πάνω στον ναό· ο διαχειριστής θα επαληθεύσει τη θέση (+{locationPoints}).</p>}
+            <CardTitle className="font-heading text-lg">{t("editor.mapLocation")}<MissingTag mission="location" done={now.done} points={cfg} t={t} /></CardTitle>
+            {!direct && !v.coordsVerified && <p className="text-xs text-muted-foreground">{t("editor.moveThePin", { n: locationPoints })}</p>}
           </CardHeader>
           <CardContent className="grid gap-3">
             <LocationPicker lat={v.lat} lng={v.lng} type={v.type} onChange={(lat, lng) => setV((s) => ({ ...s, lat, lng }))} />
-            <p className="text-xs text-muted-foreground">Κάντε κλικ στον χάρτη ή σύρετε το σημάδι. Μπορείτε να επικολλήσετε συντεταγμένες ή σύνδεσμο Google Maps στο πεδίο Lat.</p>
+            <p className="text-xs text-muted-foreground">{t("editor.mapHelp")}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="lat">Lat</Label>
@@ -234,16 +248,16 @@ export function SiteForm(props: {
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Φωτογραφίες<MissingTag mission="photo" done={now.done} points={cfg} /></CardTitle>
+            <CardTitle className="font-heading text-lg">{t("editor.photos")}<MissingTag mission="photo" done={now.done} points={cfg} t={t} /></CardTitle>
             {!direct && (
               <p className="text-xs text-muted-foreground">
-                Μπόνους: +{cfg.bonuses.extra_photo} για κάθε επιπλέον φωτογραφία, +{cfg.bonuses.historic_photo} για κάθε παλιά / αρχειακή.
+                {t("editor.photoBonus", { extra: cfg.bonuses.extra_photo, historic: cfg.bonuses.historic_photo })}
               </p>
             )}
           </CardHeader>
           <CardContent>
             {direct && !siteId ? (
-              <p className="text-sm text-muted-foreground">Αποθηκεύστε πρώτα την καταχώρηση για να προσθέσετε φωτογραφίες.</p>
+              <p className="text-sm text-muted-foreground">{t("editor.saveFirstPhotos")}</p>
             ) : direct ? (
               <PhotoManager mode="direct" siteId={siteId!} photos={photos} onChange={setPhotos} />
             ) : (
@@ -253,12 +267,12 @@ export function SiteForm(props: {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Βίντεο</CardTitle>
-            {!direct && <p className="text-xs text-muted-foreground">Μπόνους: +{cfg.bonuses.video} για κάθε βίντεο.</p>}
+            <CardTitle className="font-heading text-lg">{t("editor.videos")}</CardTitle>
+            {!direct && <p className="text-xs text-muted-foreground">{t("editor.videoBonus", { n: cfg.bonuses.video })}</p>}
           </CardHeader>
           <CardContent>
             {direct && !siteId ? (
-              <p className="text-sm text-muted-foreground">Αποθηκεύστε πρώτα την καταχώρηση για να προσθέσετε βίντεο.</p>
+              <p className="text-sm text-muted-foreground">{t("editor.saveFirstVideos")}</p>
             ) : direct ? (
               <VideoManager mode="direct" siteId={siteId!} videos={videos} onChange={setVideos} />
             ) : (
@@ -271,30 +285,30 @@ export function SiteForm(props: {
       <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-2 border-t bg-card/95 px-4 py-3 backdrop-blur lg:col-span-2">
         <Button type="submit" size="lg" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" /> : !direct && <Send />}
-          {direct ? (siteId ? "Αποθήκευση" : "Δημιουργία") : "Αποστολή πρότασης"}
+          {direct ? t(siteId ? "editor.save" : "editor.create") : t("editor.sendProposal")}
         </Button>
-        <Button type="button" variant="ghost" asChild><Link href="/admin/sites">Άκυρο</Link></Button>
+        <Button type="button" variant="ghost" asChild><Link href="/admin/sites">{t("editor.cancel")}</Link></Button>
         {siteId && v.slug && (
           <Button type="button" variant="outline" asChild className="ml-auto">
-            <Link href={`/site/${v.slug}`} target="_blank">Προβολή σελίδας<ExternalLink /></Link>
+            <Link href={`/site/${v.slug}`} target="_blank">{t("editor.viewPage")}<ExternalLink /></Link>
           </Button>
         )}
         {direct && siteId && (
           <AlertDialog>
-            <AlertDialogTrigger asChild><Button type="button" variant="destructive"><Trash2 />Διαγραφή</Button></AlertDialogTrigger>
+            <AlertDialogTrigger asChild><Button type="button" variant="destructive"><Trash2 />{t("editor.delete")}</Button></AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Οριστική διαγραφή;</AlertDialogTitle>
-                <AlertDialogDescription>Η καταχώρηση και όλες οι φωτογραφίες της θα διαγραφούν. Δεν αναιρείται.</AlertDialogDescription>
+                <AlertDialogTitle>{t("editor.deleteTitle")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("editor.deleteText")}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Άκυρο</AlertDialogCancel>
+                <AlertDialogCancel>{t("editor.cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => start(async () => {
                   const r = await deleteSiteAction(siteId)
                   if (!r.ok) return void toast.error(r.error)
-                  toast.success("Διαγράφηκε")
+                  toast.success(t("editor.deleted"))
                   router.push("/admin/sites")
-                })}>Διαγραφή</AlertDialogAction>
+                })}>{t("editor.delete")}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

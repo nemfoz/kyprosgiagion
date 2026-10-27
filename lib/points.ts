@@ -2,6 +2,7 @@ import "server-only"
 import { cache } from "react"
 import { eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
+import { UserError } from "@/lib/session"
 import { normalisePoints, normaliseEarned, proposalPoints, validatePoints, type PointsConfig } from "@/lib/completeness"
 
 const { settings, submissions } = schema
@@ -19,7 +20,7 @@ export const getPointsConfig = cache(async (): Promise<PointsConfig> => {
 export async function savePointsConfig(raw: unknown, userId: string) {
   const cfg = normalisePoints(raw)
   const errors = validatePoints(cfg)
-  if (errors.length) throw new Error(errors.join(" "))
+  if (errors.length) throw new UserError(errors)
   const value = JSON.stringify(cfg)
   await db.insert(settings).values({ key: "points", value, updatedBy: userId })
     .onConflictDoUpdate({ target: settings.key, set: { value, updatedBy: userId, updatedAt: sql`(datetime('now'))` } })

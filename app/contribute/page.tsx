@@ -9,8 +9,9 @@ import { Leaderboard } from "@/components/gamify/leaderboard"
 import { BADGES, BONUSES, levelsFor, PAGE_POINTS, SECTIONS, type BonusKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
 import { leaderboard, missionBoard } from "@/lib/contributors"
-import { langFrom, t } from "@/lib/i18n"
-import { siteTitle } from "@/lib/regions"
+import { langFrom } from "@/lib/i18n"
+import { getT } from "@/lib/i18n-server"
+import { PublicHeader } from "@/components/public-header"
 import { getSession } from "@/lib/session"
 
 export const metadata: Metadata = { title: "Συνεισφέρετε", description: "Βοηθήστε να συμπληρωθούν οι σελίδες των εκκλησιών και μοναστηριών." }
@@ -18,19 +19,13 @@ export const metadata: Metadata = { title: "Συνεισφέρετε", descripti
 export default async function ContributePage({ searchParams }: PageProps<"/contribute">) {
   const lang = langFrom((await searchParams).lang)
   const el = lang === "el"
-  const [board, top, session, cfg] = await Promise.all([missionBoard(), leaderboard(10), getSession(), getPointsConfig()])
-  const q = el ? "" : "?lang=en"
+  const [board, top, session, cfg, t] = await Promise.all([missionBoard(), leaderboard(10), getSession(), getPointsConfig(), getT()])
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="flex h-14 items-center gap-3 border-b bg-card px-4">
-        <Link href={`/${q}`} className="flex items-center gap-2 font-heading text-lg font-bold"><span className="text-primary">☦</span>{siteTitle[lang]}</Link>
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" asChild><Link href={`/${q}`}>{t("map", lang)}</Link></Button>
-          <Button variant="ghost" size="sm" asChild><Link href={el ? "?lang=en" : "?"}>{el ? "EN" : "ΕΛ"}</Link></Button>
-          <Button size="sm" asChild><Link href={session ? "/admin" : "/signup"}>{session ? t("dashboard", lang) : el ? "Εγγραφή" : "Sign up"}</Link></Button>
-        </div>
-      </header>
+      <PublicHeader lang={lang} otherLangHref={el ? "?lang=en" : "?"} signedIn={!!session}>
+        {!session && <Button size="sm" asChild><Link href="/signup">{t("signUp", lang)}</Link></Button>}
+      </PublicHeader>
 
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-[1fr_340px] md:items-end">

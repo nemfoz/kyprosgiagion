@@ -1,10 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import { Check, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PAGE_POINTS, type BonusKey, type ScoredMission } from "@/lib/completeness"
 import { LANGS, type Lang } from "@/lib/content"
-import { t } from "@/lib/i18n"
+import { useT } from "@/components/i18n-provider"
 import { cn } from "@/lib/utils"
 
 export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
@@ -23,6 +25,7 @@ export function CompletenessCard({ score, bonuses, siteId, lang }: {
   bonuses: Record<BonusKey, number>; siteId: number; lang: Lang
 }) {
   const { percent, byLang, missing } = score
+  const t = useT()
   return (
     <Card id="contribute" className={cn("gap-3 py-4", percent < 100 && "border-gold/50")}>
       <CardHeader className="gap-2 px-4">

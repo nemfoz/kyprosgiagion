@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
-import { assertRole, Forbidden } from "@/lib/session"
+import { assertRole, UserError } from "@/lib/session"
+import { getAdminT } from "@/lib/i18n-server"
 import { isAdmin } from "@/lib/permissions"
 import {
   addPhoto, addVideo, createSite, deletePhoto, deleteSite, deleteVideo, getSite, reorderPhotos, slugTaken, updatePhoto,
@@ -20,9 +21,10 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
   try {
     return { ok: true, ...(await fn()) }
   } catch (e) {
-    if (e instanceof Forbidden) return { ok: false, error: e.message }
+    const t = await getAdminT()
+    if (e instanceof UserError) return { ok: false, error: e.messages.map((m) => t(m.key, m.vars)).join(" ") }
     console.error(e)
-    return { ok: false, error: e instanceof Error ? e.message : "Κάτι πήγε στραβά." }
+    return { ok: false, error: t("error.generic") }
   }
 }
 
@@ -38,8 +40,8 @@ export async function saveSiteAction(id: number | null, raw: Record<string, unkn
   return run(async () => {
     await assertRole("admin")
     const { errors, data } = validateSite(raw)
-    if (errors.length) throw new Error(errors.join(" "))
-    if (await slugTaken(data.slug, id ?? undefined)) throw new Error(`Η διεύθυνση «${data.slug}» χρησιμοποιείται ήδη.`)
+    if (errors.length) throw new UserError(errors)
+    if (await slugTaken(data.slug, id ?? undefined)) throw new UserError("error.site.slugTaken", { slug: data.slug })
     let siteId = id
     if (id) await updateSite(id, data)
     else siteId = await createSite(data)
@@ -68,7 +70,7 @@ export async function proposeAction(siteId: number | null, raw: Record<string, u
   return run(async () => {
     const user = await assertRole("approved")
     const current = siteId ? await getSite({ id: siteId }) : null
-    if (siteId && !current) throw new Error("Η εκκλησία δεν βρέθηκε.")
+    if (siteId && !current) throw new UserError("error.site.notFound")
     const { errors, data } = validateSite({
       ...raw,
       // Only admins decide these:
@@ -76,7 +78,7 @@ export async function proposeAction(siteId: number | null, raw: Record<string, u
       published: current?.published ?? false,
       coordsVerified: current?.coordsVerified ?? false,
     })
-    if (errors.length) throw new Error(errors.join(" "))
+    if (errors.length) throw new UserError(errors)
     const cleanPhotos = photos.filter((p) => isStored(p.src)).map((p) => ({
       src: p.src, captionEl: p.captionEl ?? "", captionEn: p.captionEn ?? "", credit: p.credit ?? "", sourceUrl: p.sourceUrl ?? "", historic: !!p.historic,
     }))
@@ -137,7 +139,7 @@ export async function reorderPhotosAction(siteId: number, ids: number[]) {
 export async function importPhotoAction(url: string, siteId: number | null, credit: string) {
   return run(async () => {
     const user = await assertRole("approved")
-    if (!/^https?:\/\//.test(url)) throw new Error("Η διεύθυνση πρέπει να ξεκινά με http:// ή https://")
+    if (!/^https?:\/\//.test(url)) throw new UserError("error.image.urlScheme")
     const src = await rehostImage(url, "imported")
     const photo: PhotoInput = { src, credit, sourceUrl: url }
     if (siteId && isAdmin(user.role)) {
@@ -177,7 +179,7 @@ export async function addVideoAction(siteId: number, url: string) {
   return run(async () => {
     await assertRole("admin")
     const id = youtubeId(url)
-    if (!id) throw new Error("Δεν αναγνωρίστηκε σύνδεσμος YouTube.")
+    if (!id) throw new UserError("error.video.notYoutube")
     const video = await addVideo(siteId, { youtubeId: id })
     refresh((await getSite({ id: siteId }))?.slug)
     return { video }

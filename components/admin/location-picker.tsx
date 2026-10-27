@@ -2,12 +2,16 @@
 
 import { useEffect, useRef } from "react"
 import type { Map as MlMap, Marker } from "maplibre-gl"
+import { useAdminT } from "@/components/i18n-provider"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite } from "@/components/map/terrain"
 
 /** Satellite map for placing a church precisely: click or drag the pin. */
 export function LocationPicker({ lat, lng, type, onChange }: {
   lat: number | null; lng: number | null; type: string; onChange: (lat: number, lng: number) => void
 }) {
+  const t = useAdminT()
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<MlMap | null>(null)
   const marker = useRef<Marker | null>(null)
@@ -28,7 +32,7 @@ export function LocationPicker({ lat, lng, type, onChange }: {
       map.current = m
       m.addControl(new lib.NavigationControl({ showCompass: false }), "top-right")
       let satellite = true
-      m.addControl(new ButtonsControl([{ label: () => (satellite ? "Χάρτης" : "Δορυφόρος"), onClick: () => { satellite = !satellite; setSatellite(m, satellite) } }]), "top-left")
+      m.addControl(new ButtonsControl([{ label: () => tRef.current(satellite ? "map" : "satellite"), onClick: () => { satellite = !satellite; setSatellite(m, satellite) } }]), "top-left")
       m.getCanvas().style.cursor = "crosshair"
       m.on("load", () => { collapseAttribution(m); setSatellite(m, true); setRegion(m, "famagusta") })
       m.on("click", (e) => changeRef.current(+e.lngLat.lat.toFixed(6), +e.lngLat.lng.toFixed(6)))

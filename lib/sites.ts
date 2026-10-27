@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db"
 import { normaliseContent, SITE_TYPES, slugify, type SiteContent, type SiteType } from "@/lib/content"
 import { regions } from "@/lib/regions"
 import { deleteStored } from "@/lib/storage"
+import type { ErrorMessage } from "@/lib/session"
 
 const { sites, photos, videos } = schema
 
@@ -16,6 +17,8 @@ export type SiteInput = {
   coordsVerified: boolean
   published: boolean
   content: SiteContent
+  /** The Metropolis the church belongs to (null = not set). */
+  metropolisId: number | null
 }
 
 export type PhotoInput = { src: string; captionEl?: string; captionEn?: string; credit?: string; sourceUrl?: string; historic?: boolean }
@@ -51,24 +54,27 @@ export async function getSite(where: { id: number } | { slug: string }): Promise
   return { ...withContent(row), photos: list, videos: videoList }
 }
 
-/** Checks and cleans form input. Returns error messages in Greek. */
-export function validateSite(raw: Record<string, unknown>): { errors: string[]; data: SiteInput } {
-  const errors: string[] = []
+/** Checks and cleans form input. Returns error messages as text keys. */
+export function validateSite(raw: Record<string, unknown>): { errors: ErrorMessage[]; data: SiteInput } {
+  const errors: ErrorMessage[] = []
   const content = normaliseContent(raw.content)
   const lat = Number(raw.lat)
   const lng = Number(raw.lng)
   const type = raw.type as SiteType
   const region = String(raw.region ?? "")
-  if (!Number.isFinite(lat) || lat < 34.4 || lat > 35.8) errors.push("Το γεωγραφικό πλάτος (Lat) πρέπει να είναι εντός Κύπρου (34.4 – 35.8).")
-  if (!Number.isFinite(lng) || lng < 32.2 || lng > 34.7) errors.push("Το γεωγραφικό μήκος (Lng) πρέπει να είναι εντός Κύπρου (32.2 – 34.7).")
-  if (!SITE_TYPES.includes(type)) errors.push("Μη έγκυρος τύπος.")
-  if (!regions.some((r) => r.id === region)) errors.push("Άγνωστη περιοχή.")
-  if (!content.el.name && !content.en.name) errors.push("Απαιτείται όνομα σε τουλάχιστον μία γλώσσα.")
+  if (!Number.isFinite(lat) || lat < 34.4 || lat > 35.8) errors.push({ key: "error.site.lat" })
+  if (!Number.isFinite(lng) || lng < 32.2 || lng > 34.7) errors.push({ key: "error.site.lng" })
+  if (!SITE_TYPES.includes(type)) errors.push({ key: "error.site.type" })
+  if (!regions.some((r) => r.id === region)) errors.push({ key: "error.site.region" })
+  if (!content.el.name && !content.en.name) errors.push({ key: "error.site.name" })
   const slug = slugify(String(raw.slug || content.en.name || ""))
-  if (!slug) errors.push("Απαιτείται διεύθυνση σελίδας (slug) με λατινικούς χαρακτήρες — ή συμπληρώστε το αγγλικό όνομα.")
+  if (!slug) errors.push({ key: "error.site.slug" })
   return {
     errors,
-    data: { slug, type, region, lat, lng, coordsVerified: !!raw.coordsVerified, published: !!raw.published, content },
+    data: {
+      slug, type, region, lat, lng, coordsVerified: !!raw.coordsVerified, published: !!raw.published, content,
+      metropolisId: Number(raw.metropolisId) > 0 ? Math.trunc(Number(raw.metropolisId)) : null,
+    },
   }
 }
 

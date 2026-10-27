@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { deletePhotoAction, importPhotoAction, reorderPhotosAction, updatePhotoAction } from "@/app/admin/actions"
 import { BONUSES } from "@/lib/completeness"
+import { useAdminT } from "@/components/i18n-provider"
 import { uploadPhoto } from "@/lib/image-client"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +29,7 @@ type Props =
  * Users (propose): new photos are uploaded and kept with the proposal until an admin approves it.
  */
 export function PhotoManager(props: Props) {
+  const t = useAdminT()
   const [busy, setBusy] = useState(false)
   const [credit, setCredit] = useState("")
   const [url, setUrl] = useState("")
@@ -61,7 +63,7 @@ export function PhotoManager(props: Props) {
     if (!r.ok) return toast.error(r.error)
     set([...photos, (direct ? r.photo : r.pending) as PhotoFields])
     setUrl("")
-    toast.success("Η φωτογραφία αντιγράφηκε στον χώρο αποθήκευσης")
+    toast.success(t("editor.photo.copied"))
   }
 
   function edit(i: number, field: keyof PhotoFields, value: string | boolean) {
@@ -100,14 +102,14 @@ export function PhotoManager(props: Props) {
     <div className="grid gap-3">
       {props.mode === "propose" && props.existing.length > 0 && (
         <div className="grid gap-1.5">
-          <p className="text-sm text-muted-foreground">Υπάρχουσες φωτογραφίες</p>
+          <p className="text-sm text-muted-foreground">{t("editor.photo.existing")}</p>
           <div className="flex flex-wrap gap-2">
             {props.existing.map((p) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img key={p.id} src={p.src} alt="" className="size-16 rounded-md border object-cover" />
             ))}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Νέες φωτογραφίες για την πρόταση</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("editor.photo.new")}</p>
         </div>
       )}
 
@@ -116,30 +118,30 @@ export function PhotoManager(props: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={p.src} alt="" className="size-24 rounded-md object-cover" />
           <div className="grid gap-1.5">
-            <Input value={p.captionEl} onChange={(e) => edit(i, "captionEl", e.target.value)} onBlur={() => persist(i)} placeholder="Λεζάντα (ΕΛ)" className="h-8 text-sm" />
-            <Input value={p.captionEn} onChange={(e) => edit(i, "captionEn", e.target.value)} onBlur={() => persist(i)} placeholder="Caption (EN)" className="h-8 text-sm" />
-            <Input value={p.credit} onChange={(e) => edit(i, "credit", e.target.value)} onBlur={() => persist(i)} placeholder="Φωτογράφος / ©" className="h-8 text-sm" />
-            <Input value={p.sourceUrl} onChange={(e) => edit(i, "sourceUrl", e.target.value)} onBlur={() => persist(i)} placeholder="Σύνδεσμος πηγής (https://…)" className="h-8 text-sm" />
-            <label className="flex items-center gap-2 text-xs" title={BONUSES.historic_photo.hint.el}>
+            <Input value={p.captionEl} onChange={(e) => edit(i, "captionEl", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.captionEl")} className="h-8 text-sm" />
+            <Input value={p.captionEn} onChange={(e) => edit(i, "captionEn", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.captionEn")} className="h-8 text-sm" />
+            <Input value={p.credit} onChange={(e) => edit(i, "credit", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.credit")} className="h-8 text-sm" />
+            <Input value={p.sourceUrl} onChange={(e) => edit(i, "sourceUrl", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.sourceUrl")} className="h-8 text-sm" />
+            <label className="flex items-center gap-2 text-xs" title={BONUSES.historic_photo.hint[t.lang]}>
               <Checkbox checked={!!p.historic} onCheckedChange={(c) => persist(i, edit(i, "historic", !!c))} />
-              Παλιά / αρχειακή φωτογραφία{props.mode === "propose" && <span className="font-semibold text-primary">+{props.historicPoints}</span>}
+              {t("editor.photo.historic")}{props.mode === "propose" && <span className="font-semibold text-primary">+{props.historicPoints}</span>}
             </label>
             <div className="flex items-center gap-1">
-              <Button type="button" variant="outline" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Πάνω"><ArrowUp /></Button>
-              <Button type="button" variant="outline" size="icon-sm" disabled={i === photos.length - 1} onClick={() => move(i, 1)} aria-label="Κάτω"><ArrowDown /></Button>
-              {i === 0 && <span className="ml-1 text-xs text-muted-foreground">Κύρια φωτογραφία</span>}
+              <Button type="button" variant="outline" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label={t("editor.photo.up")}><ArrowUp /></Button>
+              <Button type="button" variant="outline" size="icon-sm" disabled={i === photos.length - 1} onClick={() => move(i, 1)} aria-label={t("editor.photo.down")}><ArrowDown /></Button>
+              {i === 0 && <span className="ml-1 text-xs text-muted-foreground">{t("editor.photo.main")}</span>}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive" size="sm" className="ml-auto"><Trash2 />Διαγραφή</Button>
+                  <Button type="button" variant="destructive" size="sm" className="ml-auto"><Trash2 />{t("editor.delete")}</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Διαγραφή φωτογραφίας;</AlertDialogTitle>
-                    <AlertDialogDescription>{direct ? "Η φωτογραφία θα αφαιρεθεί οριστικά από τη σελίδα." : "Η φωτογραφία θα αφαιρεθεί από την πρόταση."}</AlertDialogDescription>
+                    <AlertDialogTitle>{t("editor.photo.deleteTitle")}</AlertDialogTitle>
+                    <AlertDialogDescription>{t(direct ? "editor.photo.deleteDirect" : "editor.photo.deletePropose")}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Άκυρο</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => remove(i)}>Διαγραφή</AlertDialogAction>
+                    <AlertDialogCancel>{t("editor.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => remove(i)}>{t("editor.delete")}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -149,8 +151,8 @@ export function PhotoManager(props: Props) {
       ))}
 
       <div className="grid gap-1.5">
-        <Label htmlFor="photo-credit">Φωτογράφος για τις νέες φωτογραφίες</Label>
-        <Input id="photo-credit" value={credit} onChange={(e) => setCredit(e.target.value)} placeholder="π.χ. Γιώργος Κωνσταντίνου, 2016" />
+        <Label htmlFor="photo-credit">{t("editor.photo.creditNew")}</Label>
+        <Input id="photo-credit" value={credit} onChange={(e) => setCredit(e.target.value)} placeholder={t("editor.photo.creditPlaceholder")} />
       </div>
       <button
         type="button"
@@ -161,14 +163,14 @@ export function PhotoManager(props: Props) {
         className={cn("flex flex-col items-center gap-1 rounded-lg border-2 border-dashed p-5 text-sm text-muted-foreground transition hover:border-primary/50", over && "border-primary bg-accent")}
       >
         {busy ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
-        Σύρετε φωτογραφίες εδώ ή <span className="text-primary underline">επιλέξτε αρχεία</span>
+        {t("editor.photo.drop")} <span className="text-primary underline">{t("editor.photo.choose")}</span>
       </button>
       <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => upload([...(e.target.files ?? [])])} />
       <div className="flex gap-2">
-        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="ή διεύθυνση εικόνας από άλλη ιστοσελίδα (https://…)" />
-        <Button type="button" variant="outline" onClick={importUrl} disabled={busy}><Link2 />Αντιγραφή</Button>
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("editor.photo.urlPlaceholder")} />
+        <Button type="button" variant="outline" onClick={importUrl} disabled={busy}><Link2 />{t("editor.photo.copy")}</Button>
       </div>
-      <p className="text-xs text-muted-foreground">Οι εικόνες από άλλες ιστοσελίδες αντιγράφονται στον δικό μας χώρο — δεν φορτώνονται από τον ξένο ιστότοπο. Συμπληρώστε τον σύνδεσμο πηγής για να εμφανίζεται στη σελίδα.</p>
+      <p className="text-xs text-muted-foreground">{t("editor.photo.importHelp")}</p>
     </div>
   )
 }

@@ -9,6 +9,7 @@
 // The point values are a PointsConfig that superadmins edit at /admin/points (stored in the
 // `settings` table, see lib/points.ts); labels, rules and badges are fixed here.
 import { LANGS, type Lang, type SiteContent } from "@/lib/content"
+import type { ErrorMessage } from "@/lib/session"
 
 export type SectionKey = "identity" | "summary" | "history" | "facts" | "sources" | "photo" | "location"
 export type BadgeArea = "writer" | "translator" | "researcher" | "photographer" | "archivist" | "mapper"
@@ -72,12 +73,12 @@ export function normalisePoints(raw: unknown): PointsConfig {
   }
 }
 
-/** Problems with a config, in Greek (empty = valid). */
-export function validatePoints(cfg: PointsConfig): string[] {
-  const errors: string[] = []
+/** Problems with a config, as text keys (empty = valid). */
+export function validatePoints(cfg: PointsConfig): ErrorMessage[] {
+  const errors: ErrorMessage[] = []
   const sum = Object.values(cfg.sections).reduce((n, v) => n + v, 0)
-  if (sum !== PAGE_POINTS) errors.push(`Οι ενότητες πρέπει να έχουν άθροισμα ${PAGE_POINTS} ανά γλώσσα (τώρα ${sum}).`)
-  if (cfg.levels.some((v, i) => v <= (i ? cfg.levels[i - 1] : 0))) errors.push("Οι πόντοι των τίτλων πρέπει να αυξάνονται.")
+  if (sum !== PAGE_POINTS) errors.push({ key: "error.points.sum", vars: { total: PAGE_POINTS, sum } })
+  if (cfg.levels.some((v, i) => v <= (i ? cfg.levels[i - 1] : 0))) errors.push({ key: "error.points.levels" })
   return errors
 }
 

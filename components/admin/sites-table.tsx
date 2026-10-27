@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TypeBadge, typeText } from "@/components/type-badge"
 import type { SiteType } from "@/lib/content"
 import { cn } from "@/lib/utils"
+import { useAdminT } from "@/components/i18n-provider"
 
 type Row = {
   id: number; slug: string; type: SiteType; cover: string | null; published: boolean; coordsVerified: boolean
@@ -19,6 +20,7 @@ type Row = {
 const fold = (s: string) => s.toLocaleLowerCase("el").normalize("NFD").replace(/[̀-ͯ]/g, "")
 
 export function SitesTable({ rows, admin }: { rows: Row[]; admin: boolean }) {
+  const t = useAdminT()
   const router = useRouter()
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<"all" | "published" | "draft">("all")
@@ -31,27 +33,27 @@ export function SitesTable({ rows, admin }: { rows: Row[]; admin: boolean }) {
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
         <div className="relative min-w-60 flex-1 sm:max-w-sm">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Φιλτράρισμα…" className="pl-8" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("editor.sites.filter")} className="pl-8" />
         </div>
         {admin && (
           <div className="flex gap-1 rounded-lg border bg-muted p-0.5 text-sm">
-            {([["all", "Όλα"], ["published", "Δημοσιευμένα"], ["draft", "Πρόχειρα"]] as const).map(([k, l]) => (
+            {([["all", "editor.sites.all"], ["published", "editor.sites.publishedPl"], ["draft", "editor.sites.draftPl"]] as const).map(([k, l]) => (
               <button key={k} type="button" onClick={() => setStatus(k)}
-                className={cn("rounded-md px-3 py-1 text-muted-foreground", status === k && "bg-card font-semibold text-foreground shadow-sm")}>{l}</button>
+                className={cn("rounded-md px-3 py-1 text-muted-foreground", status === k && "bg-card font-semibold text-foreground shadow-sm")}>{t(l)}</button>
             ))}
           </div>
         )}
-        <span className="ml-auto text-sm text-muted-foreground">{shown.length} από {rows.length}</span>
+        <span className="ml-auto text-sm text-muted-foreground">{t("editor.sites.shownOf", { n: shown.length, total: rows.length })}</span>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-16" />
-            <TableHead>Όνομα</TableHead>
-            <TableHead className="hidden md:table-cell">Τύπος</TableHead>
-            <TableHead className="hidden lg:table-cell">Περιοχή</TableHead>
-            {admin && <TableHead>Κατάσταση</TableHead>}
-            <TableHead className="hidden lg:table-cell">Ενημέρωση</TableHead>
+            <TableHead>{t("editor.sites.name")}</TableHead>
+            <TableHead className="hidden md:table-cell">{t("editor.type")}</TableHead>
+            <TableHead className="hidden lg:table-cell">{t("editor.region")}</TableHead>
+            {admin && <TableHead>{t("editor.status")}</TableHead>}
+            <TableHead className="hidden lg:table-cell">{t("editor.sites.updated")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,16 +66,16 @@ export function SitesTable({ rows, admin }: { rows: Row[]; admin: boolean }) {
                   : <span className={cn("grid size-11 place-items-center rounded-md border bg-muted", typeText[r.type])}>✝</span>}
               </TableCell>
               <TableCell className="whitespace-normal">
-                <span className="font-semibold">{r.nameEl || r.nameEn}</span>
-                {r.nameEn && <span className="block text-sm text-muted-foreground">{r.nameEn}</span>}
+                <span className="font-semibold">{(t.lang === "en" ? r.nameEn : r.nameEl) || r.nameEl || r.nameEn}</span>
+                {r.nameEn && r.nameEl && <span className="block text-sm text-muted-foreground">{t.lang === "en" ? r.nameEl : r.nameEn}</span>}
               </TableCell>
-              <TableCell className="hidden md:table-cell"><TypeBadge type={r.type} lang="el" /></TableCell>
+              <TableCell className="hidden md:table-cell"><TypeBadge type={r.type} lang={t.lang} /></TableCell>
               <TableCell className="hidden lg:table-cell">{r.region}</TableCell>
               {admin && (
                 <TableCell>
                   <div className="flex flex-col items-start gap-1">
-                    {r.published ? <Badge className="bg-gold/20 text-foreground">Δημοσιευμένο</Badge> : <Badge variant="secondary">Πρόχειρο</Badge>}
-                    {!r.coordsVerified && <span className="flex items-center gap-1 text-xs text-muted-foreground"><TriangleAlert className="size-3 text-gold" />θέση κατά προσέγγιση</span>}
+                    {r.published ? <Badge className="bg-gold/20 text-foreground">{t("editor.published")}</Badge> : <Badge variant="secondary">{t("editor.draft")}</Badge>}
+                    {!r.coordsVerified && <span className="flex items-center gap-1 text-xs text-muted-foreground"><TriangleAlert className="size-3 text-gold" />{t("editor.sites.approx")}</span>}
                   </div>
                 </TableCell>
               )}

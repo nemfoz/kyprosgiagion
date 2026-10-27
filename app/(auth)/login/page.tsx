@@ -1,9 +1,20 @@
 import type { Metadata } from "next"
-import { AuthForm } from "@/components/auth/auth-form"
+import { AuthForm, AuthHeader } from "@/components/auth/auth-form"
+import { getT } from "@/lib/i18n-server"
+import { authLang } from "../lang"
 
-export const metadata: Metadata = { title: "Σύνδεση" }
+export async function generateMetadata({ searchParams }: PageProps<"/login">): Promise<Metadata> {
+  const [t, lang] = await Promise.all([getT(), authLang((await searchParams).lang)])
+  return { title: t("auth.title.login", lang) }
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { next } = await searchParams
-  return <AuthForm mode="login" next={typeof next === "string" && next.startsWith("/") ? next : "/admin"} />
+  const { next, lang: param } = await searchParams
+  const lang = await authLang(param)
+  return (
+    <>
+      <AuthHeader lang={lang} />
+      <AuthForm mode="login" lang={lang} next={typeof next === "string" && next.startsWith("/") ? next : "/admin"} />
+    </>
+  )
 }

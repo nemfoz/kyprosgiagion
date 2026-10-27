@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
-import { ArrowLeft, ArrowRight, LayoutDashboard, LogIn, MapPin, Search, Sparkles, TriangleAlert } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarDays, Landmark, LayoutDashboard, LogIn, MapPin, Search, Sparkles, TriangleAlert } from "lucide-react"
+import { NameDayBar, type NameDays } from "@/components/namedays/nameday-bar"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SITE_TYPES, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
-import { UI, t } from "@/lib/i18n"
+import { useT } from "@/components/i18n-provider"
 import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegion, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
@@ -36,6 +37,7 @@ type Props = {
   initialRegion: string
   initialSlug?: string
   account: { name: string } | null
+  nameDays: Record<Lang, NameDays>
 }
 
 const regions = allRegions.filter((r) => r.active)
@@ -49,7 +51,8 @@ function regionCamera(map: MlMap, r: Region, is3d: boolean) {
   return { ...cam, bearing, pitch: is3d ? r.camera?.pitch ?? 50 : 0, zoom: (cam?.zoom ?? 8) + (is3d ? (wide ? 0.35 : -0.1) : 0) }
 }
 
-export function Explorer({ sites, initialLang, initialRegion, initialSlug, account }: Props) {
+export function Explorer({ sites, initialLang, initialRegion, initialSlug, account, nameDays }: Props) {
+  const t = useT()
   const [lang, setLang] = useState<Lang>(initialLang)
   const [regionId, setRegionId] = useState(initialRegion)
   const [types, setTypes] = useState<Set<SiteType>>(() => new Set(SITE_TYPES))
@@ -99,7 +102,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
       })
       mapRef.current = map
       map.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right")
-      const L = { "3d": { el: ["3D", "2D"], en: ["3D", "2D"] }, sat: { el: [UI.satellite.el, UI.map.el], en: [UI.satellite.en, UI.map.en] } }
+      const L = { "3d": { el: ["3D", "2D"], en: ["3D", "2D"] }, sat: { el: [t("satellite", "el"), t("map", "el")], en: [t("satellite", "en"), t("map", "en")] } }
       controls.current = new ButtonsControl([
         {
           label: () => L["3d"][langRef.current][view.current.is3d ? 1 : 0],
@@ -122,6 +125,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
       })
     })
     return () => { cancelled = true; map?.remove(); mapRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the map is created once; t only changes with the text overrides
   }, [])
 
   // ---- place labels (language-dependent) ----
@@ -228,6 +232,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
 
   return (
     <div className="flex h-dvh flex-col bg-background">
+      <NameDayBar days={nameDays[lang]} lang={lang} />
       <header className="z-10 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 md:gap-x-7 border-b bg-card px-4 py-3 md:h-22 md:flex-nowrap md:px-7 md:py-0">
         <Link href="/" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
           <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-border bg-accent text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</span>
@@ -237,9 +242,15 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
           </span>
         </Link>
         <div className="ml-auto flex shrink-0 items-center gap-1 md:order-last md:ml-0">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`}><Sparkles /><span className="hidden lg:inline">{t("contribute", lang)}</span></Link>
-          </Button>
+          {([
+            ["/metropolis", "navMetropolises", <Landmark key="m" />],
+            ["/eortologio", "navNameDays", <CalendarDays key="n" />],
+            ["/contribute", "contribute", <Sparkles key="c" />],
+          ] as const).map(([href, key, icon]) => (
+            <Button key={href} variant="ghost" size="sm" asChild>
+              <Link href={`${href}${lang === "en" ? "?lang=en" : ""}`} aria-label={t(key, lang)}>{icon}<span className="hidden xl:inline">{t(key, lang)}</span></Link>
+            </Button>
+          ))}
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")} aria-label={lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}>
             {lang === "el" ? "EN" : "ΕΛ"}
           </Button>
@@ -335,7 +346,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
               </div>
               <ScrollArea className="min-h-0 flex-1">
                 <p className="flex items-center justify-between px-5 pt-3 pb-1.5 text-[11px] text-muted-foreground md:px-6 md:pt-5 md:pb-3">
-                  <span>{UI.count[lang](list.length)}</span><span className="text-[9px] tracking-[.12em]">{t("results", lang)}</span>
+                  <span>{t(list.length === 1 ? "countOne" : "countMany", lang, { n: list.length })}</span><span className="text-[9px] tracking-[.12em]">{t("results", lang)}</span>
                 </p>
                 {list.length === 0 && <p className="px-6 text-sm text-muted-foreground">{t("none", lang)}</p>}
                 <ul className="divide-y divide-border px-3 pb-4">

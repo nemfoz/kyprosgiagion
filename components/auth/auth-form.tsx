@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2, MailCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,22 +12,54 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Turnstile, TURNSTILE_SITE_KEY } from "@/components/auth/turnstile"
 import { authClient } from "@/lib/auth-client"
 import { HONEYPOT_FIELD } from "@/lib/antispam"
+import { useT } from "@/components/i18n-provider"
+import type { Lang } from "@/lib/content"
+import type { MessageKey, TFn } from "@/lib/i18n"
+import { siteTitle } from "@/lib/regions"
 
-export const AUTH_MESSAGES: Record<string, string> = {
-  INVALID_EMAIL_OR_PASSWORD: "Λάθος e-mail ή κωδικός.",
-  USER_ALREADY_EXISTS: "Υπάρχει ήδη λογαριασμός με αυτό το e-mail.",
-  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Υπάρχει ήδη λογαριασμός με αυτό το e-mail.",
-  PASSWORD_TOO_SHORT: "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.",
-  BANNED_USER: "Ο λογαριασμός σας έχει απενεργοποιηθεί.",
-  EMAIL_NOT_VERIFIED: "Επιβεβαιώστε πρώτα το e-mail σας. Σας στείλαμε ξανά τον σύνδεσμο επιβεβαίωσης.",
-  MISSING_RESPONSE: "Ολοκληρώστε τον έλεγχο ασφαλείας και δοκιμάστε ξανά.",
-  VERIFICATION_FAILED: "Ο έλεγχος ασφαλείας απέτυχε. Δοκιμάστε ξανά.",
-  INVALID_TOKEN: "Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει.",
+// Error codes from Better Auth (and lib/auth.ts) with a translated message; others show their own message.
+const ERROR_KEYS: Record<string, MessageKey> = {
+  INVALID_EMAIL_OR_PASSWORD: "auth.err.INVALID_EMAIL_OR_PASSWORD",
+  USER_ALREADY_EXISTS: "auth.err.USER_ALREADY_EXISTS",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "auth.err.USER_ALREADY_EXISTS",
+  PASSWORD_TOO_SHORT: "auth.err.PASSWORD_TOO_SHORT",
+  BANNED_USER: "auth.err.BANNED_USER",
+  EMAIL_NOT_VERIFIED: "auth.err.EMAIL_NOT_VERIFIED",
+  MISSING_RESPONSE: "auth.err.MISSING_RESPONSE",
+  VERIFICATION_FAILED: "auth.err.VERIFICATION_FAILED",
+  INVALID_TOKEN: "auth.err.INVALID_TOKEN",
+  EMAIL_NOT_CONFIGURED: "auth.err.EMAIL_NOT_CONFIGURED",
+  SPAM_SUSPECTED: "auth.err.SPAM_SUSPECTED",
+  DISPOSABLE_EMAIL: "auth.err.DISPOSABLE_EMAIL",
 }
-export const authMessage = (e: { code?: string; message?: string; status?: number }) =>
-  e.status === 429 ? "Πάρα πολλές προσπάθειες. Δοκιμάστε ξανά σε λίγα λεπτά." : AUTH_MESSAGES[e.code ?? ""] ?? e.message ?? "Κάτι πήγε στραβά."
+export const authMessage = (t: TFn, lang: Lang, e: { code?: string; message?: string; status?: number }) => {
+  if (e.status === 429) return t("auth.err.tooMany", lang)
+  const key = ERROR_KEYS[e.code ?? ""]
+  return key ? t(key, lang) : e.message ?? t("auth.err.generic", lang)
+}
 
-export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: string }) {
+/** Adds ?lang=en to an internal link when the page is in English (keeps other query parameters). */
+export const withLang = (href: string, lang: Lang) =>
+  lang === "en" ? `${href}${href.includes("?") ? "&" : "?"}lang=en` : href
+
+/** Brand and EN/ΕΛ switch above the sign-in cards; the switch keeps the current address and its parameters. */
+export function AuthHeader({ lang }: { lang: Lang }) {
+  const t = useT()
+  const path = usePathname()
+  const params = new URLSearchParams(useSearchParams())
+  params.set("lang", lang === "el" ? "en" : "el")
+  return (
+    <div className="grid justify-items-center gap-1">
+      <Link href={withLang("/", lang)} className="flex items-center justify-center gap-2 font-heading text-xl font-bold">
+        <span className="text-primary">☦</span>{siteTitle[lang]}
+      </Link>
+      <Link href={`${path}?${params}`} className="text-xs text-muted-foreground underline">{t("auth.switchLang", lang)}</Link>
+    </div>
+  )
+}
+
+export function AuthForm({ mode, next, lang }: { mode: "login" | "signup"; next: string; lang: Lang }) {
+  const t = useT()
   const router = useRouter()
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
@@ -40,7 +72,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: strin
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (TURNSTILE_SITE_KEY && !captcha) return setError(AUTH_MESSAGES.MISSING_RESPONSE)
+    if (TURNSTILE_SITE_KEY && !captcha) return setError(t("auth.err.MISSING_RESPONSE", lang))
     setError("")
     setPending(true)
     const f = new FormData(e.currentTarget)
@@ -51,35 +83,37 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: strin
       "x-form-age": String(Math.round((Date.now() - startedAt.current) / 1000)),
       [`x-${HONEYPOT_FIELD}`]: String(f.get(HONEYPOT_FIELD) ?? ""),
     }
+    const callbackURL = withLang("/verified", lang) // the confirmation link opens in the same language
     const { data, error } = signup
-      ? await authClient.signUp.email({ email, password, name: String(f.get("name")).trim(), callbackURL: "/verified" }, { headers })
-      : await authClient.signIn.email({ email, password, callbackURL: "/verified" }, { headers })
+      ? await authClient.signUp.email({ email, password, name: String(f.get("name")).trim(), callbackURL }, { headers })
+      : await authClient.signIn.email({ email, password, callbackURL }, { headers })
     setResetKey((k) => k + 1)
-    if (error) { setPending(false); return setError(authMessage(error)) }
+    if (error) { setPending(false); return setError(authMessage(t, lang, error)) }
     if (signup && !data?.user.emailVerified) { setPending(false); return setSentTo(email) }
     // Already confirmed (the first superadmin): sign straight in.
     if (signup) {
       const r = await authClient.signIn.email({ email, password })
-      if (r.error) { setPending(false); return setError(authMessage(r.error)) }
+      if (r.error) { setPending(false); return setError(authMessage(t, lang, r.error)) }
     }
     setPending(false)
     router.push(next)
     router.refresh()
   }
 
+  const loginHref = withLang(next === "/admin" ? "/login" : `/login?next=${encodeURIComponent(next)}`, lang)
+  const signupHref = withLang(next === "/admin" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`, lang)
+
   if (sentTo) {
+    const [before, after] = t("auth.sentConfirm", lang).split("{email}")
     return (
       <Card>
         <CardHeader className="text-center">
           <MailCheck className="mx-auto mb-2 size-10 text-primary" />
-          <CardTitle className="font-heading text-xl">Ελέγξτε το e-mail σας</CardTitle>
-          <CardDescription>
-            Στείλαμε σύνδεσμο επιβεβαίωσης στο <b className="text-foreground">{sentTo}</b>. Πατήστε τον για να ενεργοποιηθεί ο λογαριασμός σας.
-            Αν δεν το βλέπετε, κοιτάξτε και στα ανεπιθύμητα.
-          </CardDescription>
+          <CardTitle className="font-heading text-xl">{t("auth.checkEmail", lang)}</CardTitle>
+          <CardDescription>{before}<b className="text-foreground">{sentTo}</b>{after}</CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
-          <Button variant="link" asChild><Link href="/login">Μετάβαση στη σύνδεση</Link></Button>
+          <Button variant="link" asChild><Link href={loginHref}>{t("auth.goToLogin", lang)}</Link></Button>
         </CardFooter>
       </Card>
     )
@@ -88,30 +122,26 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: strin
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-xl">{signup ? "Δημιουργία λογαριασμού" : "Σύνδεση"}</CardTitle>
-        <CardDescription>
-          {signup
-            ? "Με λογαριασμό μπορείτε να προτείνετε νέες εκκλησίες ή διορθώσεις. Θα σας στείλουμε e-mail για να επιβεβαιώσετε τη διεύθυνσή σας."
-            : "Για συνεργάτες και διαχειριστές του χάρτη."}
-        </CardDescription>
+        <CardTitle className="font-heading text-xl">{t(signup ? "auth.signup.heading" : "auth.login.heading", lang)}</CardTitle>
+        <CardDescription>{t(signup ? "auth.signup.intro" : "auth.login.intro", lang)}</CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit}>
         <CardContent className="grid gap-4">
           {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
           {signup && (
             <div className="grid gap-1.5">
-              <Label htmlFor="name">Ονοματεπώνυμο</Label>
+              <Label htmlFor="name">{t("auth.name", lang)}</Label>
               <Input id="name" name="name" required autoComplete="name" />
             </div>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email">{t("auth.email", lang)}</Label>
             <Input id="email" name="email" type="email" required autoComplete="email" />
           </div>
           <div className="grid gap-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Κωδικός</Label>
-              {!signup && <Link href="/forgot-password" className="text-xs text-muted-foreground underline">Ξεχάσατε τον κωδικό;</Link>}
+              <Label htmlFor="password">{t("auth.password", lang)}</Label>
+              {!signup && <Link href={withLang("/forgot-password", lang)} className="text-xs text-muted-foreground underline">{t("auth.forgotLink", lang)}</Link>}
             </div>
             <Input id="password" name="password" type="password" required minLength={8} autoComplete={signup ? "new-password" : "current-password"} />
           </div>
@@ -123,11 +153,11 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: strin
         </CardContent>
         <CardFooter className="mt-6 flex-col gap-3">
           <Button type="submit" className="w-full" size="lg" disabled={pending}>
-            {pending && <Loader2 className="animate-spin" />}{signup ? "Εγγραφή" : "Είσοδος"}
+            {pending && <Loader2 className="animate-spin" />}{t(signup ? "auth.signupButton" : "auth.loginButton", lang)}
           </Button>
           <p className="text-sm text-muted-foreground">
-            {signup ? <>Έχετε ήδη λογαριασμό; <Link href="/login" className="text-primary underline">Σύνδεση</Link></>
-              : <>Δεν έχετε λογαριασμό; <Link href="/signup" className="text-primary underline">Εγγραφή</Link></>}
+            {signup ? <>{t("auth.haveAccount", lang)} <Link href={loginHref} className="text-primary underline">{t("auth.loginLink", lang)}</Link></>
+              : <>{t("auth.noAccount", lang)} <Link href={signupHref} className="text-primary underline">{t("auth.signupLink", lang)}</Link></>}
           </p>
         </CardFooter>
       </form>

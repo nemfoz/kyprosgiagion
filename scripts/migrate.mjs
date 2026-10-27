@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
 import { importChurches, slugify } from './import-core.mjs';
 import { rehostPhotos } from './rehost-core.mjs';
-import { hasBlobStorage } from './lib.mjs';
+import { hasBlobStorage, rehost } from './lib.mjs';
 
 // Reviewed content files applied once per database (tracked in data_imports), in order.
 const IMPORTS = [{ file: 'data/imports/imconstantias-occupied.json', published: true }];
@@ -95,6 +95,39 @@ if (!applied.has('cleanup:probe-accounts')) {
     { sql: "INSERT INTO data_imports (name, summary) VALUES ('cleanup:probe-accounts', 'removed unconfirmed probe accounts')", args: [] },
   ], 'write');
   console.log('migrate: removed test accounts');
+}
+
+// The sees of the Church of Cyprus (data/imports/metropolises.json, from scripts/fetch-metropolises.mjs).
+// Logos are copied into our storage; existing rows (edited in the admin) are never overwritten.
+if (!applied.has('import:metropolises') && canStorePhotos) {
+  const sees = JSON.parse(fs.readFileSync(new URL('../data/imports/metropolises.json', import.meta.url), 'utf8'));
+  let added = 0, logos = 0;
+  for (const m of sees) {
+    let logo = '';
+    if (m.logo) {
+      try { logo = await rehost(m.logo, `metropolis-${m.slug}`); logos++ } catch (e) { console.log(`migrate:   logo ${m.slug}: ${e.message}`) }
+    }
+    const r = await db.execute({
+      sql: `INSERT OR IGNORE INTO metropolises (slug, sort, website, feed_url, logo, content) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [m.slug, m.sort, m.website, m.feed, logo, JSON.stringify(m.content)],
+    });
+    added += r.rowsAffected;
+  }
+  await db.execute({ sql: "INSERT INTO data_imports (name, summary) VALUES ('import:metropolises', ?)", args: [`${added} added, ${logos} logos`] });
+  console.log(`migrate: added ${added} metropolises (${logos} logos copied)`);
+}
+
+// Which see each church belongs to (once): the Metropolis's own occupied-parish list → Constantia–Ammochostos;
+// the Karpasia peninsula (Trikomo included) → the Bishopric of Karpasia. Others are left for an admin to set.
+if (!applied.has('assign:metropolises')) {
+  const id = async (slug) => (await db.execute({ sql: 'SELECT id FROM metropolises WHERE slug = ?', args: [slug] })).rows[0]?.id;
+  const [constantia, karpasia] = [await id('constantia-ammochostos'), await id('karpasia')];
+  if (constantia && karpasia) {
+    const a = await db.execute({ sql: `UPDATE sites SET metropolis_id = ? WHERE metropolis_id IS NULL AND json_extract(content, '$.el.sources') LIKE '%imconstantias%'`, args: [constantia] });
+    const b = await db.execute({ sql: `UPDATE sites SET metropolis_id = ? WHERE metropolis_id IS NULL AND region = 'karpasia'`, args: [karpasia] });
+    await db.execute({ sql: "INSERT INTO data_imports (name, summary) VALUES ('assign:metropolises', ?)", args: [`${a.rowsAffected} Constantia, ${b.rowsAffected} Karpasia`] });
+    console.log(`migrate: assigned ${a.rowsAffected} churches to Constantia–Ammochostos, ${b.rowsAffected} to Karpasia`);
+  }
 }
 
 // No hotlinks: copy any photo still loaded from another website into our storage (skips stored ones).

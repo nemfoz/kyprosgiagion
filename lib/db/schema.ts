@@ -15,8 +15,31 @@ export const sites = sqliteTable("sites", {
   coordsVerified: integer("coords_verified", { mode: "boolean" }).notNull().default(false),
   published: integer("published", { mode: "boolean" }).notNull().default(false),
   content: text("content").notNull().default("{}"),
+  metropolisId: integer("metropolis_id"),
   createdAt: text("created_at").notNull().default(now),
   updatedAt: text("updated_at").notNull().default(now),
+})
+
+export const metropolises = sqliteTable("metropolises", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  sort: integer("sort").notNull().default(0),
+  website: text("website").notNull().default(""),
+  feedUrl: text("feed_url").notNull().default(""),
+  logo: text("logo").notNull().default(""),
+  content: text("content").notNull().default("{}"),
+  newsFetchedAt: text("news_fetched_at"),
+  createdAt: text("created_at").notNull().default(now),
+  updatedAt: text("updated_at").notNull().default(now),
+})
+
+export const metropolisNews = sqliteTable("metropolis_news", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  metropolisId: integer("metropolis_id").notNull().references(() => metropolises.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull().default(""),
+  publishedAt: text("published_at"),
 })
 
 export const photos = sqliteTable("photos", {

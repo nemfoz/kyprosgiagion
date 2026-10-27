@@ -110,6 +110,30 @@ export const SCHEMA = [
     summary    TEXT NOT NULL DEFAULT '',
     applied_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Metropolises of the Church of Cyprus: bilingual content JSON {el:{name,seat,summary,history}, en:{…}}.
+  `CREATE TABLE IF NOT EXISTS metropolises (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug            TEXT NOT NULL UNIQUE,
+    sort            INTEGER NOT NULL DEFAULT 0,
+    website         TEXT NOT NULL DEFAULT '',
+    feed_url        TEXT NOT NULL DEFAULT '',     -- RSS/Atom feed for the latest news
+    logo            TEXT NOT NULL DEFAULT '',     -- stored copy (never hotlinked)
+    content         TEXT NOT NULL DEFAULT '{}',
+    news_fetched_at TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  // Latest news items read from each Metropolis's feed (titles and links only — no copied images).
+  `CREATE TABLE IF NOT EXISTS metropolis_news (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    metropolis_id  INTEGER NOT NULL REFERENCES metropolises(id) ON DELETE CASCADE,
+    url            TEXT NOT NULL,
+    title          TEXT NOT NULL,
+    summary        TEXT NOT NULL DEFAULT '',
+    published_at   TEXT,
+    UNIQUE (metropolis_id, url)
+  )`,
+  'CREATE INDEX IF NOT EXISTS metropolis_news_recent ON metropolis_news(metropolis_id, published_at)',
   // Site-wide settings edited in the admin, as JSON (e.g. 'points' — lib/points.ts).
   `CREATE TABLE IF NOT EXISTS settings (
     key        TEXT PRIMARY KEY,
@@ -131,4 +155,5 @@ export const ADDED_COLUMNS = [
   ['submissions', 'points', 'INTEGER NOT NULL DEFAULT 0'], // awarded on approval (lib/completeness.ts)
   ['submissions', 'completed', "TEXT NOT NULL DEFAULT '[]'"], // missions and bonuses the approval earned (JSON)
   ['photos', 'historic', 'INTEGER NOT NULL DEFAULT 0'], // old/archive photo (bonus points)
+  ['sites', 'metropolis_id', 'INTEGER REFERENCES metropolises(id) ON DELETE SET NULL'], // the Metropolis it belongs to
 ];

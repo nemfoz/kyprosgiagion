@@ -34,11 +34,12 @@ export const roles = {
 export type Role = keyof typeof roles
 export const ROLES: Role[] = ["user", "admin", "superadmin"]
 
-export const ROLE_LABELS: Record<Role, string> = {
-  user: "Χρήστης",
-  admin: "Διαχειριστής",
-  superadmin: "Υπερδιαχειριστής",
-}
+/** Text keys of the role names (lib/messages/admin.ts): t(ROLE_LABELS[role]). */
+export const ROLE_LABELS = {
+  user: "role.user",
+  admin: "role.admin",
+  superadmin: "role.superadmin",
+} as const satisfies Record<Role, string>
 
 export const isRole = (r: unknown): r is Role => typeof r === "string" && r in roles
 export const isAdmin = (r: unknown) => r === "admin" || r === "superadmin"

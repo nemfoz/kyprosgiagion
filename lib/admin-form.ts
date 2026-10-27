@@ -1,18 +1,15 @@
 import { normaliseContent, type SiteType } from "@/lib/content"
-import { regions } from "@/lib/regions"
 import type { SiteWithPhotos } from "@/lib/sites"
 import type { SiteFormValues } from "@/components/admin/site-form"
 
-export const regionOptions = regions.map((r) => ({ id: r.id, name: r.name.el, active: r.active }))
-
 export const emptySite = (): SiteFormValues => ({
   slug: "", type: "church", region: "karpasia", lat: null, lng: null,
-  published: false, coordsVerified: false, content: normaliseContent({}),
+  published: false, coordsVerified: false, content: normaliseContent({}), metropolisId: null,
 })
 
 export const toFormValues = (s: SiteWithPhotos): SiteFormValues => ({
   slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng,
-  published: s.published, coordsVerified: s.coordsVerified, content: s.content,
+  published: s.published, coordsVerified: s.coordsVerified, content: s.content, metropolisId: s.metropolisId,
 })
 
 export const toFormPhotos = (s: SiteWithPhotos) =>

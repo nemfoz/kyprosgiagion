@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { isAdmin, isSuperadmin } from "@/lib/permissions"
+import type { MessageKey, Vars } from "@/lib/i18n"
 
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() })
@@ -17,17 +18,30 @@ export async function requireUser(next = "/admin") {
   return session.user
 }
 
-export class Forbidden extends Error {}
+/** A message for the user, as a text key (+ placeholders); translated where it reaches the UI. */
+export type ErrorMessage = { key: MessageKey; vars?: Vars }
+
+/** An error meant for the user: one or more text keys, shown in the admin language by the action wrapper. */
+export class UserError extends Error {
+  messages: ErrorMessage[]
+  constructor(key: MessageKey | ErrorMessage[], vars?: Vars) {
+    const messages = Array.isArray(key) ? key : [{ key, vars }]
+    super(messages.map((m) => m.key).join(" "))
+    this.messages = messages
+  }
+}
+
+export class Forbidden extends UserError {}
 
 /** For server actions / route handlers: throws if the role is not enough. */
 export async function assertRole(level: "approved" | "admin" | "superadmin") {
   const session = await getSession()
   const user = session?.user
-  if (!user) throw new Forbidden("Δεν έχετε συνδεθεί.")
-  if (level === "superadmin" && !isSuperadmin(user.role)) throw new Forbidden("Μόνο για υπερδιαχειριστές.")
-  if (level === "admin" && !isAdmin(user.role)) throw new Forbidden("Μόνο για διαχειριστές.")
+  if (!user) throw new Forbidden("error.notSignedIn")
+  if (level === "superadmin" && !isSuperadmin(user.role)) throw new Forbidden("error.superadminOnly")
+  if (level === "admin" && !isAdmin(user.role)) throw new Forbidden("error.adminOnly")
   if (level === "approved" && !isAdmin(user.role) && !user.approved) {
-    throw new Forbidden("Ο λογαριασμός σας δεν έχει δικαίωμα υποβολής προτάσεων. Επικοινωνήστε με έναν διαχειριστή.")
+    throw new Forbidden("error.noProposalRight")
   }
   return user
 }

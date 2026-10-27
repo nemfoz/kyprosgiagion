@@ -3,6 +3,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import crypto from "node:crypto"
 import { del, put } from "@vercel/blob"
+import { UserError } from "@/lib/session"
 
 // Photos live in Vercel Blob in production and in ./uploads (served by app/uploads/[name]) locally.
 // We never hotlink: images from other sites are downloaded and stored here first.
@@ -37,7 +38,7 @@ async function putBlob(pathname: string, data: Buffer, contentType: string) {
 
 export async function storePhoto(baseName: string, data: Buffer, contentType: string) {
   const ext = IMAGE_TYPES[contentType]
-  if (!ext) throw new Error("Μη υποστηριζόμενος τύπος εικόνας")
+  if (!ext) throw new UserError("error.image.unsupported")
   const name = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString("hex")}${ext}`
   if (USE_BLOB) return putBlob(`photos/${name}`, data, contentType)
   await fs.mkdir(UPLOADS, { recursive: true })
@@ -51,9 +52,9 @@ const MAX_BYTES = 15 * 1024 * 1024
 function assertPublicUrl(raw: string) {
   const u = new URL(raw)
   const h = u.hostname.toLowerCase()
-  if (!/^https?:$/.test(u.protocol)) throw new Error("Μόνο διευθύνσεις http/https.")
+  if (!/^https?:$/.test(u.protocol)) throw new UserError("error.image.httpOnly")
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || /^\[|^(0|10|127|169\.254|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(h) || /^\d+$/.test(h)) {
-    throw new Error("Μη επιτρεπτή διεύθυνση.")
+    throw new UserError("error.image.forbiddenAddress")
   }
 }
 
@@ -62,11 +63,11 @@ export async function rehostImage(url: string, baseName: string) {
   assertPublicUrl(url)
   const res = await fetch(url, { headers: { "User-Agent": "kyprosagiongi/1.0 (heritage map)" }, signal: AbortSignal.timeout(20000) })
   assertPublicUrl(res.url || url) // after redirects
-  if (!res.ok) throw new Error(`Λήψη εικόνας απέτυχε (${res.status})`)
+  if (!res.ok) throw new UserError("error.image.downloadFailed", { status: res.status })
   const type = (res.headers.get("content-type") || "").split(";")[0].trim()
-  if (!IMAGE_TYPES[type]) throw new Error(`Δεν είναι εικόνα: ${type || "άγνωστος τύπος"}`)
+  if (!IMAGE_TYPES[type]) throw new UserError("error.image.notImage", { type: type || "?" })
   const data = Buffer.from(await res.arrayBuffer())
-  if (data.length > MAX_BYTES) throw new Error("Η εικόνα είναι πολύ μεγάλη (μέγιστο 15 MB).")
+  if (data.length > MAX_BYTES) throw new UserError("error.image.tooLarge15")
   return storePhoto(baseName, data, type)
 }
 

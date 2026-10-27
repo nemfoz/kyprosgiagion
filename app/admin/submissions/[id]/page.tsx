@@ -14,18 +14,20 @@ import { getSubmission } from "@/lib/submissions"
 import { BONUSES, completeness, mediaBonuses, scoreProposal, type MissionKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
 import { youtubeEmbed } from "@/lib/content"
+import { getAdminT } from "@/lib/i18n-server"
+import type { MessageKey } from "@/lib/i18n"
 
-const FIELD_LABELS: Record<string, string> = {
-  name: "Όνομα", location: "Τοποθεσία", summary: "Σύντομη περιγραφή", body: "Κείμενο", facts: "Στοιχεία", sources: "Πηγές",
+const FIELD_LABELS: Record<string, MessageKey> = {
+  name: "editor.diff.name", location: "editor.diff.location", summary: "editor.diff.summary", body: "editor.diff.body", facts: "editor.diff.facts", sources: "editor.diff.sources",
 }
-const regionName = (id: string) => regions.find((r) => r.id === id)?.name.el ?? id
 
 export default async function SubmissionPage({ params }: PageProps<"/admin/submissions/[id]">) {
   const user = await requireUser()
   const admin = isAdmin(user.role)
   const sub = await getSubmission(Number((await params).id))
   if (!sub || (!admin && sub.authorId !== user.id)) notFound()
-  const [current, cfg] = await Promise.all([sub.siteId ? getSite({ id: sub.siteId }) : null, getPointsConfig()])
+  const [current, cfg, t] = await Promise.all([sub.siteId ? getSite({ id: sub.siteId }) : null, getPointsConfig(), getAdminT()])
+  const regionName = (id: string) => regions.find((r) => r.id === id)?.name[t.lang] ?? id
   const p = sub.payload.site
   const showAll = sub.kind === "create" || !current
   // Points the author would earn (location verification is added by the reviewer's choice).
@@ -41,43 +43,43 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   const add = (label: string, before: string, after: string) => {
     if (showAll ? after : before !== after) rows.push({ label, before, after })
   }
-  add("Τύπος", current ? TYPE_LABELS[current.type as SiteType]?.el ?? current.type : "", TYPE_LABELS[p.type]?.el ?? p.type)
-  add("Περιοχή", current ? regionName(current.region) : "", regionName(p.region))
-  add("Θέση (lat, lng)", current ? `${current.lat}, ${current.lng}` : "", `${p.lat}, ${p.lng}`)
+  add(t("editor.type"), current ? TYPE_LABELS[current.type as SiteType]?.[t.lang] ?? current.type : "", TYPE_LABELS[p.type]?.[t.lang] ?? p.type)
+  add(t("editor.region"), current ? regionName(current.region) : "", regionName(p.region))
+  add(t("editor.diff.position"), current ? `${current.lat}, ${current.lng}` : "", `${p.lat}, ${p.lng}`)
   for (const lang of LANGS) {
-    for (const f of TEXT_FIELDS) add(`${FIELD_LABELS[f]} (${lang.toUpperCase()})`, current?.content[lang][f] ?? "", p.content[lang][f])
+    for (const f of TEXT_FIELDS) add(`${t(FIELD_LABELS[f])} (${lang.toUpperCase()})`, current?.content[lang][f] ?? "", p.content[lang][f])
   }
 
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{p.content.el.name || p.content.en.name}</h1>
+        <h1 className="text-2xl font-bold">{p.content[t.lang].name || p.content.el.name || p.content.en.name}</h1>
         <StatusBadge status={sub.status} />
         {current && (
           <Button variant="outline" size="sm" asChild className="ml-auto">
-            <Link href={`/site/${current.slug}`} target="_blank">Τρέχουσα σελίδα<ExternalLink /></Link>
+            <Link href={`/site/${current.slug}`} target="_blank">{t("editor.sub.currentPage")}<ExternalLink /></Link>
           </Button>
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        {sub.status === "approved" && <b className="text-primary">+{sub.points} πόντοι · </b>}
-        {sub.kind === "create" ? "Πρόταση νέας εκκλησίας" : "Πρόταση διόρθωσης"} από <b>{sub.authorName}</b> ({sub.authorEmail}) · {sub.createdAt.slice(0, 16)}
+        {sub.status === "approved" && <b className="text-primary">{t("editor.sub.points", { n: sub.points })} · </b>}
+        {t(sub.kind === "create" ? "editor.sub.byCreate" : "editor.sub.byUpdate")} <b>{sub.authorName}</b> ({sub.authorEmail}) · {sub.createdAt.slice(0, 16)}
       </p>
 
       {sub.note && (
         <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Σημείωμα χρήστη</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-heading text-lg">{t("editor.sub.userNote")}</CardTitle></CardHeader>
           <CardContent className="whitespace-pre-wrap">{sub.note}</CardContent>
         </Card>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">{showAll ? "Στοιχεία" : "Αλλαγές"}</CardTitle>
-          {!showAll && <CardDescription>Μόνο τα πεδία που διαφέρουν από τη σημερινή σελίδα.</CardDescription>}
+          <CardTitle className="font-heading text-lg">{t(showAll ? "editor.sub.details" : "editor.sub.changes")}</CardTitle>
+          {!showAll && <CardDescription>{t("editor.sub.changesHelp")}</CardDescription>}
         </CardHeader>
         <CardContent className="grid gap-4">
-          {rows.length === 0 && <p className="text-muted-foreground">Καμία αλλαγή στα κείμενα ή στη θέση.</p>}
+          {rows.length === 0 && <p className="text-muted-foreground">{t("editor.sub.noChanges")}</p>}
           {rows.map((r) => (
             <div key={r.label} className="grid gap-1.5">
               <p className="text-sm font-semibold">{r.label}</p>
@@ -92,14 +94,14 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
 
       {sub.payload.photos.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Νέες φωτογραφίες</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-heading text-lg">{t("editor.sub.newPhotos")}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
             {sub.payload.photos.map((ph, i) => (
               <figure key={i} className="text-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ph.src} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
                 <figcaption className="mt-1 text-muted-foreground">
-                  {ph.historic && <span className="mb-0.5 block font-semibold text-gold-deep">{BONUSES.historic_photo.label.el} · +{cfg.bonuses.historic_photo}</span>}
+                  {ph.historic && <span className="mb-0.5 block font-semibold text-gold-deep">{BONUSES.historic_photo.label[t.lang]} · +{cfg.bonuses.historic_photo}</span>}
                   {[ph.captionEl, ph.credit && `© ${ph.credit}`].filter(Boolean).join(" · ")}
                   {ph.sourceUrl && <a href={ph.sourceUrl} target="_blank" rel="noopener" className="block break-all text-primary underline">{ph.sourceUrl}</a>}
                 </figcaption>
@@ -111,7 +113,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
 
       {sub.payload.videos.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Νέα βίντεο</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-heading text-lg">{t("editor.sub.newVideos")}</CardTitle></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             {sub.payload.videos.map((v) => (
               <figure key={v.youtubeId} className="text-xs">
@@ -127,11 +129,11 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
         <ReviewForm id={sub.id} kind={sub.kind} canVerifyLocation={canVerifyLocation} points={estimate} locationPoints={locationPoints} />
       ) : sub.status !== "pending" && (
         <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Απόφαση</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-heading text-lg">{t("editor.sub.decision")}</CardTitle></CardHeader>
           <CardContent className="grid gap-1 text-sm">
-            <p><StatusBadge status={sub.status} /> {sub.reviewerName && <>από {sub.reviewerName}</>} · {sub.reviewedAt?.slice(0, 16)}</p>
+            <p><StatusBadge status={sub.status} /> {sub.reviewerName && t("editor.sub.byReviewer", { name: sub.reviewerName })} · {sub.reviewedAt?.slice(0, 16)}</p>
             {sub.reviewNote && <p className="mt-2 whitespace-pre-wrap">{sub.reviewNote}</p>}
-            {sub.status === "approved" && sub.siteId && <Link href={`/admin/sites/${sub.siteId}`} className="mt-2 text-primary underline">Άνοιγμα καταχώρησης</Link>}
+            {sub.status === "approved" && sub.siteId && <Link href={`/admin/sites/${sub.siteId}`} className="mt-2 text-primary underline">{t("editor.sub.openEntry")}</Link>}
           </CardContent>
         </Card>
       )}

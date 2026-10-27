@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session"
 import { listSites } from "@/lib/sites"
 import type { SiteType } from "@/lib/content"
 import { missionBoard } from "@/lib/contributors"
+import { nameDaysAround } from "@/lib/namedays"
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
@@ -28,6 +29,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       initialRegion={region}
       initialSlug={typeof sp.site === "string" ? sp.site : undefined}
       account={session ? { name: session.user.name } : null}
+      nameDays={{ el: nameDaysAround("el"), en: nameDaysAround("en") }}
     />
   )
 }

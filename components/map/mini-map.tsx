@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import type { Lang } from "@/lib/content"
-import { UI } from "@/lib/i18n"
+import { useT } from "@/components/i18n-provider"
 import { cn } from "@/lib/utils"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 
@@ -10,6 +10,7 @@ import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, s
 export function MiniMap({ lat, lng, type, boundary, lang, className }: {
   lat: number; lng: number; type: string; boundary?: string; lang: Lang; className?: string
 }) {
+  const t = useT()
   const el = useRef<HTMLDivElement>(null)
   const mapRef = useRef<import("maplibre-gl").Map | null>(null)
 
@@ -25,7 +26,7 @@ export function MiniMap({ lat, lng, type, boundary, lang, className }: {
       map.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right")
       let satellite = true
       map.addControl(new ButtonsControl([{
-        label: () => (satellite ? UI.map : UI.satellite)[lang],
+        label: () => t(satellite ? "map" : "satellite", lang),
         onClick: () => { satellite = !satellite; setSatellite(map!, satellite) },
       }]), "top-left")
       map.on("load", () => {
@@ -38,7 +39,7 @@ export function MiniMap({ lat, lng, type, boundary, lang, className }: {
       new ml.Marker({ element: pinElement(type), anchor: "bottom", offset: [0, -6] }).setLngLat([lng, lat]).addTo(map)
     })
     return () => { cancelled = true; map?.remove() }
-  }, [lat, lng, type, boundary, lang])
+  }, [lat, lng, type, boundary, lang, t])
 
   return <div ref={el} className={cn("h-64 overflow-hidden rounded-lg bg-muted", className)} />
 }

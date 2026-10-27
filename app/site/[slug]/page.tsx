@@ -10,10 +10,13 @@ import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
 import { googleMapsUrl, inline, markdown, parseFacts, pick, TYPE_LABELS, youtubeEmbed, type Lang, type SiteType } from "@/lib/content"
-import { langFrom, t } from "@/lib/i18n"
+import { langFrom } from "@/lib/i18n"
+import { getT } from "@/lib/i18n-server"
+import { PublicHeader } from "@/components/public-header"
 import { isAdmin } from "@/lib/permissions"
-import { regions, siteTitle } from "@/lib/regions"
+import { regions } from "@/lib/regions"
 import { getPointsConfig } from "@/lib/points"
+import { getMetropolis } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 
@@ -36,15 +39,17 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   const { slug } = await params
   const lang: Lang = langFrom((await searchParams).lang)
   const other: Lang = lang === "el" ? "en" : "el"
-  const { site, session, admin } = await load(slug)
+  const [{ site, session, admin }, t] = await Promise.all([load(slug), getT()])
+  const metropolis = site.metropolisId ? await getMetropolis({ id: site.metropolisId }) : null
   const c = site.content
   const region = regions.find((r) => r.id === site.region)
   const facts = parseFacts(pick(c, lang, "facts"))
+  // The linked Metropolis replaces a typed "Μητρόπολη: …" line in the facts.
+  const shownFacts = metropolis ? facts.filter(([k]) => !/^(Μητρόπολη|Metropolis)$/i.test(k)) : facts
   const sources = pick(c, lang, "sources").split("\n").map((s) => s.trim()).filter(Boolean)
   const cover = site.photos[0]
   const name = pick(c, lang, "name")
   const altName = c[other].name
-  const q = lang === "en" ? "?lang=en" : ""
   // Completeness is for signed-in contributors only.
   const cfg = session ? await getPointsConfig() : null
   const score = cfg && completeness({ content: c, coordsVerified: site.coordsVerified, photoCount: site.photos.length }, cfg)
@@ -59,20 +64,15 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
   return (
     <div className="min-h-dvh">
-      <header className="flex h-14 items-center gap-3 border-b bg-card px-4">
-        <Link href={`/${q}`} className="flex min-w-0 items-center gap-2 font-heading text-lg font-bold">
-          <span className="text-primary">☦</span><span className="truncate">{siteTitle[lang]}</span>
-        </Link>
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="sm" asChild><Link href={`/contribute${q}`}>{t("contribute", lang)}</Link></Button>
-          {session && (
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/admin/sites/${site.id}`}><Pencil />{admin ? t("edit", lang) : t("propose", lang)}</Link>
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" asChild><Link href={`?lang=${other}`}>{other === "en" ? "EN" : "ΕΛ"}</Link></Button>
-        </div>
-      </header>
+      <PublicHeader lang={lang} otherLangHref={`?lang=${other}`} signedIn={!!session}>
+        {session && (
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/admin/sites/${site.id}`} aria-label={admin ? t("edit", lang) : t("propose", lang)}>
+              <Pencil /><span className="hidden lg:inline">{admin ? t("edit", lang) : t("propose", lang)}</span>
+            </Link>
+          </Button>
+        )}
+      </PublicHeader>
 
       {!site.published && <div className="bg-gold/20 py-2 text-center text-sm font-semibold text-foreground">{t("draft", lang)}</div>}
 
@@ -145,7 +145,12 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <dl className="grid text-[13px] leading-snug">
                 <Fact label={t("type", lang)}>{TYPE_LABELS[site.type as SiteType]?.[lang] ?? site.type}</Fact>
                 {pick(c, lang, "location") && <Fact label={t("location", lang)}>{pick(c, lang, "location")}</Fact>}
-                {facts.map(([k, v], i) => <Fact key={i} label={k}><span dangerouslySetInnerHTML={{ __html: inline(v) }} /></Fact>)}
+                {metropolis && (
+                  <Fact label={t("metropolis", lang)}>
+                    <Link href={`/metropolis/${metropolis.slug}${lang === "en" ? "?lang=en" : ""}`}>{metropolis.content[lang].name || metropolis.content.el.name}</Link>
+                  </Fact>
+                )}
+                {shownFacts.map(([k, v], i) => <Fact key={i} label={k}><span dangerouslySetInnerHTML={{ __html: inline(v) }} /></Fact>)}
               </dl>
               <a href="#map" className="mt-3 flex items-center gap-1.5 text-[13px] text-primary underline underline-offset-2"><MapPin className="size-3.5" />{t("onMap", lang)}</a>
             </CardContent>

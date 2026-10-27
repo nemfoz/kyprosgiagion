@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { addVideoAction, deleteVideoAction, updateVideoAction } from "@/app/admin/actions"
 import { youtubeId } from "@/lib/content"
+import { useAdminT } from "@/components/i18n-provider"
 
 export type VideoFields = { youtubeId: string; titleEl: string; titleEn: string }
 export type StoredVideo = VideoFields & { id: number }
@@ -19,6 +20,7 @@ const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`
 
 /** YouTube links: pasted, shown as a thumbnail with titles, embedded on the church page. */
 export function VideoManager(props: Props) {
+  const t = useAdminT()
   const [url, setUrl] = useState("")
   const [busy, setBusy] = useState(false)
   const direct = props.mode === "direct"
@@ -27,8 +29,8 @@ export function VideoManager(props: Props) {
 
   async function add(text = url) {
     const id = youtubeId(text)
-    if (!id) return void toast.error("Δεν αναγνωρίστηκε σύνδεσμος YouTube.")
-    if ([...videos, ...(direct ? [] : props.existing)].some((v) => v.youtubeId === id)) return void toast.error("Το βίντεο υπάρχει ήδη.")
+    if (!id) return void toast.error(t("editor.video.invalid"))
+    if ([...videos, ...(direct ? [] : props.existing)].some((v) => v.youtubeId === id)) return void toast.error(t("editor.video.duplicate"))
     if (direct) {
       setBusy(true)
       const r = await addVideoAction(props.siteId, text)
@@ -63,12 +65,12 @@ export function VideoManager(props: Props) {
     <div className="grid gap-3">
       {props.mode === "propose" && props.existing.length > 0 && (
         <div className="grid gap-1.5">
-          <p className="text-sm text-muted-foreground">Υπάρχοντα βίντεο</p>
+          <p className="text-sm text-muted-foreground">{t("editor.video.existing")}</p>
           <div className="flex flex-wrap gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {props.existing.map((v) => <img key={v.id} src={thumb(v.youtubeId)} alt="" className="h-16 rounded-md border object-cover" />)}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Νέα βίντεο για την πρόταση</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("editor.video.new")}</p>
         </div>
       )}
 
@@ -79,20 +81,20 @@ export function VideoManager(props: Props) {
             <img src={thumb(v.youtubeId)} alt="" className="aspect-video w-32 rounded-md object-cover" />
           </a>
           <div className="grid gap-1.5">
-            <Input value={v.titleEl} onChange={(e) => edit(i, "titleEl", e.target.value)} onBlur={() => persist(i)} placeholder="Τίτλος (ΕΛ)" className="h-8 text-sm" />
-            <Input value={v.titleEn} onChange={(e) => edit(i, "titleEn", e.target.value)} onBlur={() => persist(i)} placeholder="Title (EN)" className="h-8 text-sm" />
-            <Button type="button" variant="destructive" size="sm" className="justify-self-end" onClick={() => remove(i)}><Trash2 />Αφαίρεση</Button>
+            <Input value={v.titleEl} onChange={(e) => edit(i, "titleEl", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.video.titleEl")} className="h-8 text-sm" />
+            <Input value={v.titleEn} onChange={(e) => edit(i, "titleEn", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.video.titleEn")} className="h-8 text-sm" />
+            <Button type="button" variant="destructive" size="sm" className="justify-self-end" onClick={() => remove(i)}><Trash2 />{t("editor.video.remove")}</Button>
           </div>
         </div>
       ))}
 
       <div className="flex gap-2">
-        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Σύνδεσμος YouTube (https://youtu.be/…)"
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("editor.video.urlPlaceholder")}
           onPaste={(e) => { const text = e.clipboardData.getData("text"); if (youtubeId(text)) { e.preventDefault(); add(text) } }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add() } }} />
-        <Button type="button" variant="outline" onClick={() => add()} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Plus />}Προσθήκη</Button>
+        <Button type="button" variant="outline" onClick={() => add()} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Plus />}{t("editor.video.add")}</Button>
       </div>
-      <p className="text-xs text-muted-foreground">Επικολλήστε έναν σύνδεσμο YouTube· το βίντεο ενσωματώνεται στη σελίδα του ναού. Ένας σύνδεσμος YouTube μόνος του σε μια παράγραφο του κειμένου ενσωματώνεται επίσης.</p>
+      <p className="text-xs text-muted-foreground">{t("editor.video.help")}</p>
     </div>
   )
 }

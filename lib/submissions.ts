@@ -6,6 +6,7 @@ import { addPhoto, addVideo, createSite, getSite, slugTaken, updateSite, type Ph
 import { deleteStored } from "@/lib/storage"
 import { mediaBonuses, missionsDone, scoreProposal, type MissionKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
+import { UserError } from "@/lib/session"
 
 const { submissions, user } = schema
 
@@ -62,7 +63,7 @@ const doneFor = (s: Awaited<ReturnType<typeof getSite>>) =>
  */
 export async function approveSubmission(id: number, reviewerId: string, reviewNote: string, publish: boolean, verifyLocation = false) {
   const sub = await getSubmission(id)
-  if (!sub || sub.status !== "pending") throw new Error("Η πρόταση δεν είναι πλέον σε αναμονή.")
+  if (!sub || sub.status !== "pending") throw new UserError("error.submission.notPending")
   const { site, photos, videos } = sub.payload
   let siteId: number
   let before = new Set<MissionKey>()
@@ -74,7 +75,7 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
     siteId = await createSite({ ...site, slug, published: publish, coordsVerified: verifyLocation })
   } else {
     const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
-    if (!current) throw new Error("Η εκκλησία της πρότασης δεν υπάρχει πλέον.")
+    if (!current) throw new UserError("error.submission.siteGone")
     before = doneFor(current)
     existingPhotos = current.photos.length
     siteId = current.id
@@ -98,7 +99,7 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
 
 export async function rejectSubmission(id: number, reviewerId: string, reviewNote: string) {
   const sub = await getSubmission(id)
-  if (!sub || sub.status !== "pending") throw new Error("Η πρόταση δεν είναι πλέον σε αναμονή.")
+  if (!sub || sub.status !== "pending") throw new UserError("error.submission.notPending")
   await db.update(submissions).set({ status: "rejected", reviewerId, reviewNote, reviewedAt: sql`(datetime('now'))` })
     .where(eq(submissions.id, id))
   await Promise.all(sub.payload.photos.map((p) => deleteStored(p.src))) // uploaded only for this proposal
