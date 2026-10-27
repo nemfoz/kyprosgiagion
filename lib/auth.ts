@@ -3,7 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { nextCookies } from "better-auth/next-js"
 import { admin, captcha } from "better-auth/plugins"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { actionEmail, sendEmail } from "@/lib/email"
 import { HONEYPOT_FIELD, isDisposableEmail, MIN_FORM_SECONDS } from "@/lib/antispam"
@@ -12,6 +12,15 @@ import { ac, roles } from "@/lib/permissions"
 // Accounts with these e-mails become superadmins when they sign up (after confirming the address).
 const superadminEmails = (process.env.SUPERADMIN_EMAILS || "")
   .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
+
+const isSuperadminEmail = (email: unknown) => superadminEmails.includes(String(email ?? "").toLowerCase().trim())
+
+/** Bootstrap: until a confirmed superadmin exists, a SUPERADMIN_EMAILS sign-up is confirmed without an e-mail. */
+async function needsFirstSuperadmin() {
+  const [row] = await db.select({ id: schema.user.id }).from(schema.user)
+    .where(and(eq(schema.user.role, "superadmin"), eq(schema.user.emailVerified, true))).limit(1)
+  return !row
+}
 
 const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
 
@@ -82,8 +91,9 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          if (!superadminEmails.includes(user.email.toLowerCase())) return { data: user }
-          return { data: { ...user, role: "superadmin" } }
+          if (!isSuperadminEmail(user.email)) return { data: user }
+          const first = await needsFirstSuperadmin()
+          return { data: { ...user, role: "superadmin", ...(first ? { emailVerified: true, approved: true } : {}) } }
         },
       },
     },
@@ -94,7 +104,8 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/sign-up/email") return
       // The confirmation e-mail is sent in the background, so check up front that it can be sent at all.
-      if (process.env.VERCEL && !process.env.RESEND_API_KEY) {
+      const firstSuperadmin = isSuperadminEmail(ctx.body?.email) && (await needsFirstSuperadmin())
+      if (process.env.VERCEL && !process.env.RESEND_API_KEY && !firstSuperadmin) {
         throw new APIError("SERVICE_UNAVAILABLE", { message: "Οι εγγραφές δεν είναι ακόμα διαθέσιμες. Δοκιμάστε αργότερα.", code: "EMAIL_NOT_CONFIGURED" })
       }
       const h = ctx.headers

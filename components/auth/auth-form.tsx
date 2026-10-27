@@ -51,13 +51,18 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next: strin
       "x-form-age": String(Math.round((Date.now() - startedAt.current) / 1000)),
       [`x-${HONEYPOT_FIELD}`]: String(f.get(HONEYPOT_FIELD) ?? ""),
     }
-    const { error } = signup
+    const { data, error } = signup
       ? await authClient.signUp.email({ email, password, name: String(f.get("name")).trim(), callbackURL: "/verified" }, { headers })
       : await authClient.signIn.email({ email, password, callbackURL: "/verified" }, { headers })
-    setPending(false)
     setResetKey((k) => k + 1)
-    if (error) return setError(authMessage(error))
-    if (signup) return setSentTo(email)
+    if (error) { setPending(false); return setError(authMessage(error)) }
+    if (signup && !data?.user.emailVerified) { setPending(false); return setSentTo(email) }
+    // Already confirmed (the first superadmin): sign straight in.
+    if (signup) {
+      const r = await authClient.signIn.email({ email, password })
+      if (r.error) { setPending(false); return setError(authMessage(r.error)) }
+    }
+    setPending(false)
     router.push(next)
     router.refresh()
   }
