@@ -2,7 +2,6 @@ import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 import { AdminNav } from "@/components/admin/admin-nav"
 import { UserMenu } from "@/components/admin/user-menu"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { isAdmin, isRole, ROLE_LABELS } from "@/lib/permissions"
 import { requireUser } from "@/lib/session"
@@ -28,14 +27,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <Link href="/" target="_blank" className="hidden items-center gap-1 text-sm text-muted-foreground hover:text-foreground md:flex">
               Δημόσιος χάρτης <ExternalLink className="size-3.5" />
             </Link>
-            <ThemeToggle />
             <UserMenu name={user.name} email={user.email} roleLabel={ROLE_LABELS[role]} />
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">
         {!admin && !user.approved && (
-          <Alert className="mb-6 border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40">
+          <Alert className="mb-6 border-gold/50 bg-accent">
             <AlertTitle>Δεν μπορείτε να στείλετε προτάσεις</AlertTitle>
             <AlertDescription>Το δικαίωμα υποβολής προτάσεων του λογαριασμού σας έχει αφαιρεθεί. Επικοινωνήστε με έναν διαχειριστή.</AlertDescription>
           </Alert>

@@ -18,7 +18,7 @@ Constantia–Ammochostos / the Archbishopric, to be handed over to them free of 
 Next.js 16.3 (App Router, Turbopack) · React 19.3 · Tailwind CSS 4 · shadcn/ui (Radix, "nova" preset,
 `cn` package) · Better Auth 1.7 (email/password + admin plugin + captcha plugin) · Drizzle ORM on
 libSQL (local SQLite file / Turso in production) · Vercel Blob (private store) · MapLibre GL 5.24 with
-3D terrain (Mapterhorn DEM, Esri satellite, Natural Earth coastline, OSM district outlines) · next-themes.
+3D terrain (Mapterhorn DEM, Esri satellite, Natural Earth coastline, OSM district outlines).
 
 Next.js 16 note: **read `node_modules/next/dist/docs/` before writing Next code** (see `AGENTS.md`).
 Request APIs are async-only (`await params`, `await searchParams`, `await headers()`); `middleware` is
@@ -34,9 +34,13 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   sources (links always show their destination domain), 3D mini-map, Google Maps link, completeness card.
 - `/contribute` gamification page: overall map completeness, "missions" (filterable, least complete first),
   leaderboard (first name + last initial), points per mission, titles and badges.
-- Light theme by default; dark theme toggle (sun/moon) in every header, remembered per visitor.
-- Design: "atlas" look from the owner's own commit — green palette (#385846 accent), arched thumbnails,
-  intro panel, map caption. Fonts Noto Serif/Sans (Greek).
+- Light theme only (the dark theme was removed 2026-10-27).
+- Palette: exactly three colours taken from the Orthodox Church sites in `docs/sourcs.md`:
+  crimson `#6b1d1d`, gold `#ad8840`, parchment `#ece8de` (`--crimson/--gold/--parchment` in
+  `app/globals.css`). Every other token (ink text, muted text, cards, borders, pin types, map colours
+  in `components/map/terrain.ts`, e-mail colours) is a `color-mix` shade of these. Use `text-gold-deep`
+  for gold text (plain gold is too faint on parchment). Don't add new hues.
+- Design: "atlas" look, arched thumbnails, intro panel, map caption. Fonts Noto Serif/Sans (Greek).
 
 **Accounts & roles** (Better Auth; `lib/permissions.ts`)
 - **user**: signs up, confirms e-mail → account active (`approved=true` set in `afterEmailVerification`).
@@ -142,14 +146,13 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 - **No hotlinks**: every image is stored in our storage; the original page is kept as a visible source link.
 - Links in texts always show their destination domain.
 - Default map shows no third-party place names or borders (own outlines + labels); rest of Cyprus faded.
-- Light theme default; dark is opt-in.
+- Light theme only; three-colour palette (crimson, gold, parchment) from the church sources.
 - Missing information is shown to everyone as a challenge (gamification), not hidden.
 - Resend/e-mail postponed until moving to the real production environment.
 - Commit messages end with `Co-Authored-By: Claude …`; push to `main` deploys.
 
 ## 7. Known issues / gotchas
 
-- Dev-only warning from next-themes ("Encountered a script tag…") with React 19 — harmless.
 - Pins overlap in Famagusta town (no clustering yet).
 - Local photos for the 31 imported churches live in `./uploads` (gitignored); production has its own in Blob.
 - `scripts/fetch-imconstantias.mjs` depends on the Metropolis site's Elementor markup; re-check if it changes.

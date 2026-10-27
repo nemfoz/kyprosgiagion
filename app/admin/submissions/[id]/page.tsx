@@ -79,8 +79,8 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
             <div key={r.label} className="grid gap-1.5">
               <p className="text-sm font-semibold">{r.label}</p>
               <div className={`grid gap-2 ${showAll ? "" : "md:grid-cols-2"}`}>
-                {!showAll && <pre className="rounded-md border border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/40 p-2.5 font-sans text-sm whitespace-pre-wrap">{r.before || "—"}</pre>}
-                <pre className={`rounded-md border p-2.5 font-sans text-sm whitespace-pre-wrap ${showAll ? "bg-background" : "border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/40"}`}>{r.after || "—"}</pre>
+                {!showAll && <pre className="rounded-md border border-crimson/25 bg-crimson/5 p-2.5 font-sans text-sm whitespace-pre-wrap">{r.before || "—"}</pre>}
+                <pre className={`rounded-md border p-2.5 font-sans text-sm whitespace-pre-wrap ${showAll ? "bg-background" : "border-gold/50 bg-gold/10"}`}>{r.after || "—"}</pre>
               </div>
             </div>
           ))}

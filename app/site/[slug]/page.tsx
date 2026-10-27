@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gallery } from "@/components/site/gallery"
 import { MiniMap } from "@/components/map/mini-map"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
@@ -67,24 +66,23 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <Link href={`/admin/sites/${site.id}`}><Pencil />{admin ? t("edit", lang) : t("propose", lang)}</Link>
             </Button>
           )}
-          <ThemeToggle lang={lang} />
           <Button variant="ghost" size="sm" asChild><Link href={`?lang=${other}`}>{other === "en" ? "EN" : "ΕΛ"}</Link></Button>
         </div>
       </header>
 
-      {!site.published && <div className="bg-amber-100 py-2 text-center text-sm font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">{t("draft", lang)}</div>}
+      {!site.published && <div className="bg-gold/20 py-2 text-center text-sm font-semibold text-foreground">{t("draft", lang)}</div>}
 
-      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-[#293f33] bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%)]"}`}>
+      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)]"}`}>
         {cover && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover.src} alt={photos[0].caption || name} className="absolute inset-0 size-full object-cover opacity-85" />
         )}
         {cover && <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />}
-        <div className="relative mx-auto w-full max-w-6xl px-4 py-8 text-white">
-          <Link href={`/?site=${encodeURIComponent(site.slug)}${lang === "en" ? "&lang=en" : ""}`} className="mb-3 inline-flex items-center gap-1.5 text-sm text-white/85 hover:text-white">
+        <div className="relative mx-auto w-full max-w-6xl px-4 py-8 text-parchment">
+          <Link href={`/?site=${encodeURIComponent(site.slug)}${lang === "en" ? "&lang=en" : ""}`} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment">
             <ArrowLeft className="size-4" />{t("backToMap", lang)}
           </Link>
-          <TypeBadge type={site.type as SiteType} lang={lang} className="block text-amber-200 [&>span]:bg-amber-200" />
+          <TypeBadge type={site.type as SiteType} lang={lang} className="block text-gold [&>span]:bg-gold" />
           <h1 className="mt-2 text-[clamp(28px,5vw,46px)] leading-tight font-bold">{name}</h1>
           {altName && altName !== name && <p className="font-heading text-lg italic opacity-85">{altName}</p>}
           <p className="mt-1.5 opacity-90">{pick(c, lang, "location")}{region ? ` · ${region.name[lang]}` : ""}</p>

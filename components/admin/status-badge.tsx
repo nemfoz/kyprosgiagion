@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge"
 
 export function StatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {
-  if (status === "approved") return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">Εγκρίθηκε</Badge>
-  if (status === "rejected") return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">Απορρίφθηκε</Badge>
-  return <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">Σε αναμονή</Badge>
+  if (status === "approved") return <Badge className="bg-gold/20 text-foreground">Εγκρίθηκε</Badge>
+  if (status === "rejected") return <Badge className="bg-crimson/10 text-crimson">Απορρίφθηκε</Badge>
+  return <Badge className="bg-secondary text-muted-foreground">Σε αναμονή</Badge>
 }

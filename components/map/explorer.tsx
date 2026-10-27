@@ -12,9 +12,7 @@ import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegio
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
-import { applyMapTheme, ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
-import { useTheme } from "next-themes"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 
 export type MapSite = {
   id: number
@@ -57,7 +55,6 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<number | null>(() => sites.find((s) => s.slug === initialSlug)?.id ?? null)
   const [ready, setReady] = useState(false)
-  const { resolvedTheme } = useTheme()
 
   const mapEl = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
@@ -125,11 +122,6 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
     })
     return () => { cancelled = true; map?.remove(); mapRef.current = null }
   }, [])
-
-  // ---- theme ----
-  useEffect(() => {
-    if (ready && mapRef.current) applyMapTheme(mapRef.current, resolvedTheme === "dark")
-  }, [ready, resolvedTheme])
 
   // ---- place labels (language-dependent) ----
   useEffect(() => {
@@ -247,7 +239,6 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`}><Sparkles /><span className="hidden lg:inline">{t("contribute", lang)}</span></Link>
           </Button>
-          <ThemeToggle lang={lang} />
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")} aria-label={lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}>
             {lang === "el" ? "EN" : "ΕΛ"}
           </Button>
@@ -268,7 +259,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                 onClick={() => { setRegionId(r.id); setSelected(null) }}
                 className={cn(
                   "flex-1 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition md:flex-none md:px-4 md:py-2",
-                  r.id === regionId && "bg-card font-semibold text-primary shadow-[0_2px_5px_#293c3310]",
+                  r.id === regionId && "bg-card font-semibold text-primary shadow-sm",
                 )}
               >
                 {r.name[lang]}
@@ -279,7 +270,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
       </header>
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(190px,43%)_minmax(0,1fr)] gap-2.5 p-2.5 md:grid-cols-[330px_minmax(0,1fr)] md:grid-rows-1 md:gap-3 md:p-3 lg:grid-cols-[370px_minmax(0,1fr)] lg:gap-4 lg:p-4 2xl:grid-cols-[400px_minmax(0,1fr)] 2xl:gap-5 2xl:p-5">
-        <aside className="order-2 flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-[0_4px_20px_#293c3305] md:order-1 md:rounded-2xl">
+        <aside className="order-2 flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm md:order-1 md:rounded-2xl">
           {current ? (
             <ScrollArea className="min-h-0 flex-1">
               <div className="pb-5">
@@ -302,7 +293,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                   <p className="text-sm leading-[1.8]">{current.summary[lang] || current.summary.el}</p>
                   {current.percent < 100 && (
                     <Link href={`${siteHref(current)}#contribute`} className="grid gap-1.5 rounded-lg border border-gold/40 bg-accent/40 p-3 text-xs">
-                      <span className="flex justify-between"><span>{t("completeness", lang)}</span><b className="text-gold">{current.percent}%</b></span>
+                      <span className="flex justify-between"><span>{t("completeness", lang)}</span><b className="text-gold-deep">{current.percent}%</b></span>
                       <ProgressBar percent={current.percent} className="h-1.5" />
                       <span className="text-primary underline">{t("helpComplete", lang)}</span>
                     </Link>
@@ -377,8 +368,8 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
           )}
         </aside>
         <div className="relative order-1 min-h-0 min-w-0 overflow-hidden rounded-xl border border-border md:order-2 md:rounded-2xl">
-          <div ref={mapEl} className="map3d size-full bg-[linear-gradient(#bcd6e6,#f4efe4)] dark:bg-[linear-gradient(#1c2a2c,#1b221e)]" />
-          <div className="pointer-events-none absolute bottom-6 left-2.5 flex max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-[9px] text-foreground/80 shadow-[0_3px_15px_#293c3310] md:bottom-7 md:left-5 md:px-4 md:py-3 md:text-[10px]">
+          <div ref={mapEl} className="map3d size-full bg-[linear-gradient(var(--secondary),var(--parchment))]" />
+          <div className="pointer-events-none absolute bottom-6 left-2.5 flex max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-[9px] text-foreground/80 shadow-sm md:bottom-7 md:left-5 md:px-4 md:py-3 md:text-[10px]">
             <span className="size-1.5 flex-none rounded-full bg-primary" />
             <span className="font-semibold">{region.name[lang]}</span>
             <span className="hidden h-3 w-px bg-border lg:block" />

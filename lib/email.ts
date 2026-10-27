@@ -27,17 +27,17 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 
 /** Simple, readable message with one button (Greek first, English below). */
 export function actionEmail(o: { name: string; intro: [string, string]; button: [string, string]; url: string; outro: [string, string] }) {
-  const html = `<!doctype html><html><body style="margin:0;background:#f4f2eb;font-family:Arial,Helvetica,sans-serif;color:#293c33">
+  const html = `<!doctype html><html><body style="margin:0;background:#ece8de;font-family:Arial,Helvetica,sans-serif;color:#2a0b0b">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px">
     <p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;margin:0 0 24px">☦ Κύπρος – Αγίων Γη</p>
-    <div style="background:#fffef9;border:1px solid #e4dccb;border-radius:12px;padding:24px">
+    <div style="background:#f6f3ec;border:1px solid #dcd0b6;border-radius:12px;padding:24px">
       <p style="margin:0 0 12px">Γεια σας ${esc(o.name)},</p>
       <p style="margin:0 0 20px;line-height:1.6">${o.intro[0]}</p>
-      <p style="margin:0 0 20px"><a href="${o.url}" style="display:inline-block;background:#385846;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold">${o.button[0]}</a></p>
-      <p style="margin:0 0 20px;font-size:13px;color:#71766b;line-height:1.6">${o.outro[0]}</p>
-      <hr style="border:0;border-top:1px solid #e4dccb;margin:20px 0">
-      <p style="margin:0 0 8px;font-size:13px;color:#71766b;line-height:1.6">${o.intro[1]} <a href="${o.url}" style="color:#385846">${o.button[1]}</a>. ${o.outro[1]}</p>
-      <p style="margin:12px 0 0;font-size:12px;color:#71766b;word-break:break-all">${esc(o.url)}</p>
+      <p style="margin:0 0 20px"><a href="${o.url}" style="display:inline-block;background:#6b1d1d;color:#f6f3ec;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:bold">${o.button[0]}</a></p>
+      <p style="margin:0 0 20px;font-size:13px;color:#685250;line-height:1.6">${o.outro[0]}</p>
+      <hr style="border:0;border-top:1px solid #dcd0b6;margin:20px 0">
+      <p style="margin:0 0 8px;font-size:13px;color:#685250;line-height:1.6">${o.intro[1]} <a href="${o.url}" style="color:#6b1d1d">${o.button[1]}</a>. ${o.outro[1]}</p>
+      <p style="margin:12px 0 0;font-size:12px;color:#685250;word-break:break-all">${esc(o.url)}</p>
     </div>
   </div></body></html>`
   const text = `${o.intro[0]}\n${o.url}\n\n${o.outro[0]}\n\n${o.intro[1]} ${o.url}`

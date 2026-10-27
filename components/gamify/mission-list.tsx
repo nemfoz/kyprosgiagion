@@ -48,7 +48,7 @@ export function MissionList({ sites, lang, signedIn }: { sites: MissionSite[]; l
                 <span className="truncate text-xs text-muted-foreground">{s.location[lang] || s.location.el}</span>
                 <span className="flex items-center gap-2">
                   <ProgressBar percent={s.percent} className="h-1.5 flex-1" />
-                  <span className="text-xs font-semibold text-gold">{s.percent}%</span>
+                  <span className="text-xs font-semibold text-gold-deep">{s.percent}%</span>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {lang === "el" ? "Έως" : "Up to"} <b className="text-primary">+{s.missingPoints}</b> {lang === "el" ? "πόντοι" : "points"}

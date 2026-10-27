@@ -1,7 +1,12 @@
 // 3D map style (MapLibre GL) shared by the main map, the site pages and the admin location picker.
 import type { GeoJSONSource, IControl, Map as MlMap, StyleSpecification } from "maplibre-gl"
 
-const COLORS = { sea: "#c4d9dc", island: "#e6e0d2", land: "#f6eedd", mask: "#dfe8e7", accent: "#7b1e2b" }
+// Map colours, mixed from the site palette (crimson #6b1d1d, gold #ad8840, parchment #ece8de; see globals.css):
+// an old-atlas look with parchment land, a gold-tinted sea and the selected region outlined in crimson.
+const COLORS = {
+  sea: "#d9cfba", island: "#e6e0d2", land: "#f6f3ec", mask: "#ece8de", accent: "#6b1d1d",
+  shadow: "#3b1f19", highlight: "#fbf9f4", hillAccent: "#8a6d38",
+}
 const EMPTY = { type: "FeatureCollection" as const, features: [] }
 const WORLD = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]
 
@@ -39,9 +44,9 @@ export function mapStyle(): StyleSpecification {
         id: "hillshade", type: "hillshade", source: "hillshade",
         paint: {
           "hillshade-exaggeration": 0.55,
-          "hillshade-shadow-color": "#4e3b2c",
-          "hillshade-highlight-color": "#fffaf0",
-          "hillshade-accent-color": "#8c6f52",
+          "hillshade-shadow-color": COLORS.shadow,
+          "hillshade-highlight-color": COLORS.highlight,
+          "hillshade-accent-color": COLORS.hillAccent,
           "hillshade-illumination-direction": 315,
         },
       },
@@ -50,9 +55,9 @@ export function mapStyle(): StyleSpecification {
       { id: "region-line", type: "line", source: "region", paint: { "line-color": COLORS.accent, "line-width": 1.6, "line-opacity": 0.8 } },
     ],
     sky: {
-      "sky-color": "#bcd6e6",
-      "horizon-color": "#f4efe4",
-      "fog-color": "#f1ece1",
+      "sky-color": "#e2dac8",
+      "horizon-color": COLORS.mask,
+      "fog-color": COLORS.mask,
       "sky-horizon-blend": 0.6,
       "horizon-fog-blend": 0.7,
       "fog-ground-blend": 0.8,
@@ -77,38 +82,6 @@ export async function setRegion(map: MlMap, boundaryId?: string) {
     type: "Feature", properties: {},
     geometry: { type: "Polygon", coordinates: [WORLD, ...polys.map((p) => p[0])] },
   })
-}
-
-// Map colours per theme (the style is built with the light values).
-const THEMES = {
-  light: {
-    sea: COLORS.sea, island: COLORS.island, land: COLORS.land, mask: COLORS.mask, maskOpacity: 0.86, line: COLORS.accent,
-    shadow: "#4e3b2c", highlight: "#fffaf0", accent: "#8c6f52", satelliteBrightness: 1,
-    sky: { "sky-color": "#bcd6e6", "horizon-color": "#f4efe4", "fog-color": "#f1ece1" },
-  },
-  dark: {
-    sea: "#1b2729", island: "#252b27", land: "#3a3b2f", mask: "#151d1f", maskOpacity: 0.82, line: "#c9a46a",
-    shadow: "#000000", highlight: "#77745c", accent: "#26261d", satelliteBrightness: 0.8,
-    sky: { "sky-color": "#18242c", "horizon-color": "#28302a", "fog-color": "#1e251f" },
-  },
-}
-
-/** Recolours an already loaded map for the light or dark theme. */
-export function applyMapTheme(map: MlMap, dark: boolean) {
-  if (!map.getLayer("sea")) return
-  const t = THEMES[dark ? "dark" : "light"]
-  map.setPaintProperty("sea", "background-color", t.sea)
-  map.setPaintProperty("island", "fill-color", t.island)
-  map.setPaintProperty("land", "fill-color", t.land)
-  map.setPaintProperty("mask", "fill-color", t.mask)
-  map.setPaintProperty("mask", "fill-opacity", t.maskOpacity)
-  map.setPaintProperty("region-line", "line-color", t.line)
-  map.setPaintProperty("region-glow", "line-color", t.line)
-  map.setPaintProperty("hillshade", "hillshade-shadow-color", t.shadow)
-  map.setPaintProperty("hillshade", "hillshade-highlight-color", t.highlight)
-  map.setPaintProperty("hillshade", "hillshade-accent-color", t.accent)
-  map.setPaintProperty("satellite", "raster-brightness-max", t.satelliteBrightness)
-  map.setSky({ ...mapStyle().sky, ...t.sky })
 }
 
 export function setTerrain(map: MlMap, on: boolean, exaggeration = 1.8) {

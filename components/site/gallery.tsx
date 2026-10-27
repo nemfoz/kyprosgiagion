@@ -12,7 +12,7 @@ const domain = (url: string) => { try { return new URL(url).hostname.replace(/^w
 function Credit({ p, sourceLabel, dark = false }: { p: Photo; sourceLabel: string; dark?: boolean }) {
   if (!p.credit && !p.sourceUrl) return null
   return (
-    <span className={dark ? "text-white/75" : "text-muted-foreground"}>
+    <span className={dark ? "text-parchment/75" : "text-muted-foreground"}>
       {p.credit && <>© {p.credit}</>}
       {p.credit && p.sourceUrl && " · "}
       {p.sourceUrl && (
@@ -50,7 +50,7 @@ export function Gallery({ photos, alt, sourceLabel }: { photos: Photo[]; alt: st
 
       <Dialog open={open !== null} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent
-          className="max-w-[min(96vw,1400px)] border-0 bg-black/95 p-4 text-white sm:max-w-[min(96vw,1400px)]"
+          className="max-w-[min(96vw,1400px)] border-0 bg-foreground/95 p-4 text-parchment sm:max-w-[min(96vw,1400px)]"
           onKeyDown={(e) => { if (e.key === "ArrowLeft") go(-1); if (e.key === "ArrowRight") go(1) }}
         >
           <DialogTitle className="sr-only">{alt}</DialogTitle>
@@ -60,14 +60,14 @@ export function Gallery({ photos, alt, sourceLabel }: { photos: Photo[]; alt: st
               <img src={p.src} alt={p.caption || alt} className="mx-auto max-h-[80vh] object-contain" />
               <figcaption className="text-center text-sm">
                 {p.caption && <span className="block">{p.caption}</span>}
-                <Credit p={p} sourceLabel={sourceLabel} dark /> <span className="text-white/50">· {open! + 1} / {photos.length}</span>
+                <Credit p={p} sourceLabel={sourceLabel} dark /> <span className="text-parchment/50">· {open! + 1} / {photos.length}</span>
               </figcaption>
             </figure>
           )}
           {photos.length > 1 && (
             <>
-              <button type="button" onClick={() => go(-1)} aria-label="Previous" className="absolute top-1/2 left-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 hover:bg-white/20"><ChevronLeft /></button>
-              <button type="button" onClick={() => go(1)} aria-label="Next" className="absolute top-1/2 right-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 hover:bg-white/20"><ChevronRight /></button>
+              <button type="button" onClick={() => go(-1)} aria-label="Previous" className="absolute top-1/2 left-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-parchment/10 hover:bg-parchment/20"><ChevronLeft /></button>
+              <button type="button" onClick={() => go(1)} aria-label="Next" className="absolute top-1/2 right-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-parchment/10 hover:bg-parchment/20"><ChevronRight /></button>
             </>
           )}
         </DialogContent>

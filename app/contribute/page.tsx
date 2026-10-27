@@ -4,7 +4,6 @@ import { ImagePlus, MapPin, PenLine, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProgressBar } from "@/components/gamify/completeness-card"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { MissionList } from "@/components/gamify/mission-list"
 import { Leaderboard } from "@/components/gamify/leaderboard"
 import { BADGES, LEVELS, MISSIONS, PROPOSAL_POINTS } from "@/lib/completeness"
@@ -27,27 +26,26 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
         <Link href={`/${q}`} className="flex items-center gap-2 font-heading text-lg font-bold"><span className="text-primary">☦</span>{siteTitle[lang]}</Link>
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild><Link href={`/${q}`}>{t("map", lang)}</Link></Button>
-          <ThemeToggle lang={lang} />
           <Button variant="ghost" size="sm" asChild><Link href={el ? "?lang=en" : "?"}>{el ? "EN" : "ΕΛ"}</Link></Button>
           <Button size="sm" asChild><Link href={session ? "/admin" : "/signup"}>{session ? t("dashboard", lang) : el ? "Εγγραφή" : "Sign up"}</Link></Button>
         </div>
       </header>
 
-      <section className="border-b bg-[#293f33] bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%)] text-white">
+      <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-[1fr_340px] md:items-end">
           <div>
-            <p className="mb-3 text-[11px] font-semibold tracking-[.14em] text-amber-200">{el ? "ΣΥΛΛΟΓΙΚΗ ΜΝΗΜΗ" : "COLLECTIVE MEMORY"}</p>
+            <p className="mb-3 text-[11px] font-semibold tracking-[.14em] text-gold">{el ? "ΣΥΛΛΟΓΙΚΗ ΜΝΗΜΗ" : "COLLECTIVE MEMORY"}</p>
             <h1 className="text-[clamp(28px,4.5vw,42px)] leading-tight font-bold">{el ? "Βοηθήστε να ζωντανέψει η ιστορία κάθε ναού" : "Help bring every church's story to life"}</h1>
-            <p className="mt-3 max-w-2xl leading-relaxed text-white/85">
+            <p className="mt-3 max-w-2xl leading-relaxed text-parchment/85">
               {el
                 ? "Πολλές σελίδες είναι ακόμα ελλιπείς: λείπουν ιστορικά, φωτογραφίες, πηγές ή η ακριβής θέση. Κάθε προσθήκη ελέγχεται από διαχειριστή και κερδίζει πόντους, τίτλους και διακρίσεις."
                 : "Many pages are still incomplete: histories, photos, sources or exact locations are missing. Every addition is reviewed by an admin and earns points, titles and badges."}
             </p>
           </div>
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
-            <p className="flex items-baseline justify-between"><span className="text-sm text-white/80">{el ? "Πληρότητα του χάρτη" : "Map completeness"}</span><span className="font-heading text-3xl font-bold">{board.overall}%</span></p>
-            <ProgressBar percent={board.overall} className="mt-2 bg-white/20" />
-            <p className="mt-2 text-xs text-white/75">{board.complete} / {board.sites.length} {el ? "σελίδες πλήρεις" : "pages complete"}</p>
+          <div className="rounded-xl bg-parchment/10 p-4 backdrop-blur">
+            <p className="flex items-baseline justify-between"><span className="text-sm text-parchment/80">{el ? "Πληρότητα του χάρτη" : "Map completeness"}</span><span className="font-heading text-3xl font-bold">{board.overall}%</span></p>
+            <ProgressBar percent={board.overall} className="mt-2 bg-parchment/20" />
+            <p className="mt-2 text-xs text-parchment/75">{board.complete} / {board.sites.length} {el ? "σελίδες πλήρεις" : "pages complete"}</p>
           </div>
         </div>
       </section>

@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import type { Map as MlMap, Marker } from "maplibre-gl"
-import { applyMapTheme, ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite } from "@/components/map/terrain"
-import { useTheme } from "next-themes"
+import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite } from "@/components/map/terrain"
 
 /** Satellite map for placing a church precisely: click or drag the pin. */
 export function LocationPicker({ lat, lng, type, onChange }: {
@@ -13,8 +12,6 @@ export function LocationPicker({ lat, lng, type, onChange }: {
   const map = useRef<MlMap | null>(null)
   const marker = useRef<Marker | null>(null)
   const ml = useRef<typeof import("maplibre-gl") | null>(null)
-  const [loaded, setLoaded] = useState(false)
-  const { resolvedTheme } = useTheme()
   const changeRef = useRef(onChange)
   useEffect(() => { changeRef.current = onChange })
 
@@ -33,16 +30,12 @@ export function LocationPicker({ lat, lng, type, onChange }: {
       let satellite = true
       m.addControl(new ButtonsControl([{ label: () => (satellite ? "Χάρτης" : "Δορυφόρος"), onClick: () => { satellite = !satellite; setSatellite(m, satellite) } }]), "top-left")
       m.getCanvas().style.cursor = "crosshair"
-      m.on("load", () => { collapseAttribution(m); setSatellite(m, true); setRegion(m, "famagusta"); setLoaded(true) })
+      m.on("load", () => { collapseAttribution(m); setSatellite(m, true); setRegion(m, "famagusta") })
       m.on("click", (e) => changeRef.current(+e.lngLat.lat.toFixed(6), +e.lngLat.lng.toFixed(6)))
     })
     return () => { cancelled = true; map.current?.remove(); map.current = null; marker.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- create once; position updates below
   }, [])
-
-  useEffect(() => {
-    if (loaded && map.current) applyMapTheme(map.current, resolvedTheme === "dark")
-  }, [loaded, resolvedTheme])
 
   // Keep the pin in sync with the form fields.
   useEffect(() => {
