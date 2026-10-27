@@ -11,6 +11,7 @@ import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { getMetropolis, metropolisPage, refreshStaleNews } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
 
@@ -75,7 +76,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
                   <Link href={`/site/${s.slug}${q}`} className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
                     {s.cover ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.cover} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />
+                      <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />
                     ) : (
                       <span className="grid h-16 w-16 place-items-center rounded-t-[30px] rounded-b-lg bg-muted text-2xl text-muted-foreground">✝</span>
                     )}

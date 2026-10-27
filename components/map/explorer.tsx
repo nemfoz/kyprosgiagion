@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 export type MapSite = {
   id: number
@@ -311,7 +312,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                 {current.cover && (
                   <Link href={siteHref(current)}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- photos come from Blob/uploads at any size */}
-                    <img src={current.cover} alt="" className="aspect-[16/10] w-full object-cover" />
+                    <img src={sized(current.cover, "md")} alt="" className="aspect-[16/10] w-full object-cover" />
                   </Link>
                 )}
                 <div className="grid gap-5 px-6 pt-5">
@@ -397,7 +398,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                       >
                         {s.cover ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.cover} alt="" loading="lazy" className="h-14 w-[58px] rounded-t-[30px] rounded-b-lg border border-border object-cover md:h-[68px]" />
+                          <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-14 w-[58px] rounded-t-[30px] rounded-b-lg border border-border object-cover md:h-[68px]" />
                         ) : (
                           <span className={cn("grid h-14 w-[58px] place-items-center rounded-t-[30px] rounded-b-lg border border-border bg-muted text-[25px] md:h-[68px]", typeText[s.type])}>✝</span>
                         )}

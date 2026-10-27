@@ -16,6 +16,7 @@ import { getPointsConfig } from "@/lib/points"
 import { youtubeEmbed } from "@/lib/content"
 import { getAdminT } from "@/lib/i18n-server"
 import type { MessageKey } from "@/lib/i18n"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 const FIELD_LABELS: Record<string, MessageKey> = {
   name: "editor.diff.name", location: "editor.diff.location", summary: "editor.diff.summary", body: "editor.diff.body", facts: "editor.diff.facts", sources: "editor.diff.sources",
@@ -99,7 +100,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
             {sub.payload.photos.map((ph, i) => (
               <figure key={i} className="text-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={ph.src} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
+                <img src={sized(ph.src, "md")} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
                 <figcaption className="mt-1 text-muted-foreground">
                   {ph.historic && <span className="mb-0.5 block font-semibold text-gold-deep">{BONUSES.historic_photo.label[t.lang]} · +{cfg.bonuses.historic_photo}</span>}
                   {[ph.captionEl, ph.credit && `© ${ph.credit}`].filter(Boolean).join(" · ")}

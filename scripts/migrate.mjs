@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
 import { importChurches, slugify } from './import-core.mjs';
 import { rehostPhotos } from './rehost-core.mjs';
-import { hasBlobStorage, rehost } from './lib.mjs';
+import { hasBlobStorage, readStored, rehost, storeVariants } from './lib.mjs';
 
 // Reviewed content files applied once per database (tracked in data_imports), in order.
 const IMPORTS = [{ file: 'data/imports/imconstantias-occupied.json', published: true }];
@@ -136,3 +136,14 @@ if (canStorePhotos) {
   if (r.external) console.log(`migrate: copied ${r.done} of ${r.external} hotlinked photos into storage`);
 }
 
+
+// Smaller copies of the photos stored before uploads made them (once; retried while any fail).
+if (canStorePhotos && !applied.has('variants:photos')) {
+  const photos = (await db.execute('SELECT src FROM photos')).rows.map((r) => String(r.src)).filter((src) => /^\/(uploads|media)\/|\.blob\.vercel-storage\.com\//.test(src));
+  let done = 0, failed = 0;
+  for (const src of photos) {
+    try { await storeVariants(src, await readStored(src)); done++ } catch (e) { failed++; console.log(`migrate:   copies ${src}: ${e.message}`) }
+  }
+  if (!failed) await db.execute({ sql: "INSERT INTO data_imports (name, summary) VALUES ('variants:photos', ?)", args: [`${done} photos`] });
+  console.log(`migrate: made smaller copies of ${done} photos${failed ? `, ${failed} failed — will retry on the next deploy` : ''}`);
+}

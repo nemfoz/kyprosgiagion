@@ -16,6 +16,7 @@ import { BONUSES } from "@/lib/completeness"
 import { useAdminT } from "@/components/i18n-provider"
 import { uploadPhoto } from "@/lib/image-client"
 import { cn } from "@/lib/utils"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 export type PhotoFields = { src: string; captionEl: string; captionEn: string; credit: string; sourceUrl: string; historic: boolean }
 export type StoredPhoto = PhotoFields & { id: number }
@@ -106,7 +107,7 @@ export function PhotoManager(props: Props) {
           <div className="flex flex-wrap gap-2">
             {props.existing.map((p) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={p.id} src={p.src} alt="" className="size-16 rounded-md border object-cover" />
+              <img key={p.id} src={sized(p.src, "sm")} alt="" className="size-16 rounded-md border object-cover" />
             ))}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{t("editor.photo.new")}</p>
@@ -116,7 +117,7 @@ export function PhotoManager(props: Props) {
       {photos.map((p, i) => (
         <div key={(p.id ?? p.src) + String(i)} className="grid grid-cols-[96px_1fr] gap-3 rounded-lg border bg-background p-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.src} alt="" className="size-24 rounded-md object-cover" />
+          <img src={sized(p.src, "sm")} alt="" className="size-24 rounded-md object-cover" />
           <div className="grid gap-1.5">
             <Input value={p.captionEl} onChange={(e) => edit(i, "captionEl", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.captionEl")} className="h-8 text-sm" />
             <Input value={p.captionEn} onChange={(e) => edit(i, "captionEn", e.target.value)} onBlur={() => persist(i)} placeholder={t("editor.photo.captionEn")} className="h-8 text-sm" />

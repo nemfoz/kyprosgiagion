@@ -4,7 +4,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@libsql/client';
-import { put } from '@vercel/blob';
+import { get, put } from '@vercel/blob';
+import { sized } from '../lib/photo-sizes.mjs';
+import { makeVariants } from '../lib/photo-variants.mjs';
 
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -38,15 +40,38 @@ async function putBlob(pathname, data, contentType) {
   }
 }
 
-/** Stores an image in Vercel Blob (if BLOB_READ_WRITE_TOKEN is set) or in ./uploads. Returns its URL. */
-export async function storePhoto(baseName, data, contentType) {
-  const ext = TYPES[contentType];
-  if (!ext) throw new Error(`unsupported image type ${contentType}`);
-  const name = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}${ext}`;
+function storeFile(name, data, contentType) {
   if (hasBlobStorage()) return putBlob(`photos/${name}`, data, contentType);
   fs.mkdirSync(path.join(ROOT, 'uploads'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'uploads', name), data);
   return `/uploads/${name}`;
+}
+
+/** Stores an image and its smaller copies in Vercel Blob (if configured) or in ./uploads. Returns its URL. */
+export async function storePhoto(baseName, data, contentType) {
+  const ext = TYPES[contentType];
+  if (!ext) throw new Error(`unsupported image type ${contentType}`);
+  const src = await storeFile(`${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}${ext}`, data, contentType);
+  await storeVariants(src, data).catch((e) => console.warn(`photo copies failed: ${e.message}`));
+  return src;
+}
+
+/** Makes and stores the smaller copies (lib/photo-sizes.mjs) of a stored photo. */
+export async function storeVariants(src, data) {
+  for (const v of await makeVariants(data)) await storeFile(path.basename(sized(src, v.size)), v.data, 'image/webp');
+}
+
+/** Reads a stored photo's bytes (./uploads, a private Blob store, or a public Blob URL). */
+export async function readStored(src) {
+  if (src.startsWith('/uploads/')) return fs.readFileSync(path.join(ROOT, 'uploads', path.basename(src)));
+  if (src.startsWith('/media/')) {
+    const b = await get(src.slice('/media/'.length), { access: 'private' });
+    if (!b?.stream) throw new Error(`not found: ${src}`);
+    return Buffer.from(await new Response(b.stream).arrayBuffer());
+  }
+  const res = await fetch(src, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error(`${res.status} ${src}`);
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /** Downloads an image from another site and stores our own copy (no hotlinking). */
@@ -64,5 +89,8 @@ export async function uploadLocal(src) {
   if (!hasBlobStorage()) throw new Error('Blob credentials (BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID) are needed to upload local photos.');
   const file = path.join(ROOT, 'uploads', path.basename(src));
   const type = Object.entries(TYPES).find(([, ext]) => file.toLowerCase().endsWith(ext) || (ext === '.jpg' && file.toLowerCase().endsWith('.jpeg')))?.[0];
-  return putBlob(`photos/${path.basename(file)}`, fs.readFileSync(file), type);
+  const data = fs.readFileSync(file);
+  const url = await putBlob(`photos/${path.basename(file)}`, data, type);
+  await storeVariants(url, data).catch((e) => console.warn(`photo copies failed: ${e.message}`));
+  return url;
 }

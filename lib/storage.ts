@@ -4,6 +4,8 @@ import path from "node:path"
 import crypto from "node:crypto"
 import { del, put } from "@vercel/blob"
 import { UserError } from "@/lib/session"
+import { sized } from "@/lib/photo-sizes.mjs"
+import { makeVariants } from "@/lib/photo-variants.mjs"
 
 // Photos live in Vercel Blob in production and in ./uploads (served by app/uploads/[name]) locally.
 // We never hotlink: images from other sites are downloaded and stored here first.
@@ -36,14 +38,24 @@ async function putBlob(pathname: string, data: Buffer, contentType: string) {
   }
 }
 
-export async function storePhoto(baseName: string, data: Buffer, contentType: string) {
-  const ext = IMAGE_TYPES[contentType]
-  if (!ext) throw new UserError("error.image.unsupported")
-  const name = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString("hex")}${ext}`
+async function storeFile(name: string, data: Buffer, contentType: string) {
   if (USE_BLOB) return putBlob(`photos/${name}`, data, contentType)
   await fs.mkdir(UPLOADS, { recursive: true })
   await fs.writeFile(path.join(UPLOADS, name), data)
   return `/uploads/${name}`
+}
+
+/** Stores a photo and its smaller copies (lib/photo-sizes.mjs). Returns the original's URL. */
+export async function storePhoto(baseName: string, data: Buffer, contentType: string) {
+  const ext = IMAGE_TYPES[contentType]
+  if (!ext) throw new UserError("error.image.unsupported")
+  const stem = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`
+  const src = await storeFile(stem + ext, data, contentType)
+  // A failed copy isn't fatal: the original is served in its place.
+  await makeVariants(data)
+    .then((list) => Promise.all(list.map((v) => storeFile(`${stem}.${v.size}.webp`, v.data, "image/webp"))))
+    .catch((e) => console.warn("photo copies failed:", (e as Error).message))
+  return src
 }
 
 const MAX_BYTES = 15 * 1024 * 1024
@@ -72,6 +84,10 @@ export async function rehostImage(url: string, baseName: string) {
 }
 
 export async function deleteStored(src: string) {
+  await Promise.all([src, sized(src, "sm"), sized(src, "md")].filter((u, i, all) => all.indexOf(u) === i).map(deleteOne))
+}
+
+async function deleteOne(src: string) {
   if (src.startsWith("/uploads/")) {
     await fs.rm(path.join(UPLOADS, path.basename(src)), { force: true })
   } else if (USE_BLOB && (src.startsWith("/media/") || /\.blob\.vercel-storage\.com\//.test(src))) {

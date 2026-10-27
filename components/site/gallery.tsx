@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 type Photo = { src: string; caption: string; credit: string; sourceUrl: string; historic: boolean }
 
@@ -36,7 +37,7 @@ export function Gallery({ photos, alt, sourceLabel, historicLabel }: { photos: P
           <figure key={i}>
             <button type="button" onClick={() => setOpen(i)} className="group block w-full cursor-zoom-in overflow-hidden rounded-lg bg-muted">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ph.src} alt={ph.caption || alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
+              <img src={sized(ph.src, "md")} alt={ph.caption || alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
             </button>
             {(ph.caption || ph.credit || ph.sourceUrl || ph.historic) && (
               <figcaption className="mt-1.5 text-[13px] leading-snug">

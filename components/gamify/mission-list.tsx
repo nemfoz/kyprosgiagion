@@ -7,6 +7,7 @@ import { ProgressBar } from "@/components/gamify/completeness-card"
 import { MISSIONS, SECTIONS, type MissionKey, type SectionKey } from "@/lib/completeness"
 import type { Lang } from "@/lib/content"
 import { cn } from "@/lib/utils"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 export type MissionSite = {
   id: number; slug: string; cover: string | null; percent: number; missing: MissionKey[]; missingPoints: number
@@ -42,7 +43,7 @@ export function MissionList({ sites, lang, signedIn }: { sites: MissionSite[]; l
             <Link href={href(s)} className="group grid grid-cols-[64px_1fr_16px] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
               {s.cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.cover} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />
+                <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />
               ) : (
                 <span className="grid h-16 w-16 place-items-center rounded-t-[30px] rounded-b-lg bg-muted text-2xl text-muted-foreground">✝</span>
               )}

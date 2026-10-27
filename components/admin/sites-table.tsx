@@ -11,6 +11,7 @@ import { TypeBadge, typeText } from "@/components/type-badge"
 import type { SiteType } from "@/lib/content"
 import { cn } from "@/lib/utils"
 import { useAdminT } from "@/components/i18n-provider"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 type Row = {
   id: number; slug: string; type: SiteType; cover: string | null; published: boolean; coordsVerified: boolean
@@ -62,7 +63,7 @@ export function SitesTable({ rows, admin }: { rows: Row[]; admin: boolean }) {
               <TableCell>
                 {r.cover
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={r.cover} alt="" className="size-11 rounded-md border object-cover" />
+                  ? <img src={sized(r.cover, "sm")} alt="" className="size-11 rounded-md border object-cover" />
                   : <span className={cn("grid size-11 place-items-center rounded-md border bg-muted", typeText[r.type])}>✝</span>}
               </TableCell>
               <TableCell className="whitespace-normal">

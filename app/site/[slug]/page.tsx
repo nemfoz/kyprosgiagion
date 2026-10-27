@@ -19,6 +19,7 @@ import { getPointsConfig } from "@/lib/points"
 import { getMetropolis } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { getSite } from "@/lib/sites"
+import { sized } from "@/lib/photo-sizes.mjs"
 
 async function load(slug: string) {
   const [site, session] = await Promise.all([getSite({ slug }), getSession()])
@@ -79,7 +80,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
       <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)]"}`}>
         {cover && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.src} alt={photos[0].caption || name} className="absolute inset-0 size-full object-cover opacity-85" />
+          <img src={cover.src} srcSet={`${sized(cover.src, "md")} 960w, ${cover.src} 2400w`} sizes="100vw" alt={photos[0].caption || name} className="absolute inset-0 size-full object-cover opacity-85" />
         )}
         {cover && <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />}
         <div className="relative mx-auto w-full max-w-6xl px-4 py-8 text-parchment">
