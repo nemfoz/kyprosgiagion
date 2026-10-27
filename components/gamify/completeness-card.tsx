@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
   return (
     <div className={cn("h-2 overflow-hidden rounded-full bg-muted", className)} role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-      <div className={cn("h-full rounded-full transition-all", percent === 100 ? "bg-emerald-600" : "bg-gold")} style={{ width: `${percent}%` }} />
+      <div className={cn("h-full rounded-full transition-all", percent === 100 ? "bg-emerald-600 dark:bg-emerald-500" : "bg-gold")} style={{ width: `${percent}%` }} />
     </div>
   )
 }
@@ -31,7 +31,7 @@ export function CompletenessCard({ percent, done, siteId, lang, signedIn }: {
       </CardHeader>
       <CardContent className="grid gap-3 text-sm">
         {percent === 100 ? (
-          <p className="flex gap-2 text-muted-foreground"><Check className="size-4 shrink-0 text-emerald-600" />{t("completeAll", lang)}</p>
+          <p className="flex gap-2 text-muted-foreground"><Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />{t("completeAll", lang)}</p>
         ) : (
           <>
             <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("missingTitle", lang)}</p>

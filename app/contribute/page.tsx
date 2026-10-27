@@ -4,6 +4,7 @@ import { ImagePlus, MapPin, PenLine, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProgressBar } from "@/components/gamify/completeness-card"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { MissionList } from "@/components/gamify/mission-list"
 import { Leaderboard } from "@/components/gamify/leaderboard"
 import { BADGES, LEVELS, MISSIONS, PROPOSAL_POINTS } from "@/lib/completeness"
@@ -26,6 +27,7 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
         <Link href={`/${q}`} className="flex items-center gap-2 font-heading text-lg font-bold"><span className="text-primary">☦</span>{siteTitle[lang]}</Link>
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild><Link href={`/${q}`}>{t("map", lang)}</Link></Button>
+          <ThemeToggle lang={lang} />
           <Button variant="ghost" size="sm" asChild><Link href={el ? "?lang=en" : "?"}>{el ? "EN" : "ΕΛ"}</Link></Button>
           <Button size="sm" asChild><Link href={session ? "/admin" : "/signup"}>{session ? t("dashboard", lang) : el ? "Εγγραφή" : "Sign up"}</Link></Button>
         </div>

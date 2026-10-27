@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gallery } from "@/components/site/gallery"
 import { MiniMap } from "@/components/map/mini-map"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
@@ -66,11 +67,12 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <Link href={`/admin/sites/${site.id}`}><Pencil />{admin ? t("edit", lang) : t("propose", lang)}</Link>
             </Button>
           )}
+          <ThemeToggle lang={lang} />
           <Button variant="ghost" size="sm" asChild><Link href={`?lang=${other}`}>{other === "en" ? "EN" : "ΕΛ"}</Link></Button>
         </div>
       </header>
 
-      {!site.published && <div className="bg-amber-100 py-2 text-center text-sm font-semibold text-amber-900">{t("draft", lang)}</div>}
+      {!site.published && <div className="bg-amber-100 py-2 text-center text-sm font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">{t("draft", lang)}</div>}
 
       <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-[#293f33] bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%)]"}`}>
         {cover && (

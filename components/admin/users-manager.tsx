@@ -79,9 +79,9 @@ export function UsersManager({ users, meId, superadmin }: { users: U[]; meId: st
                     )}
                   </TableCell>
                   <TableCell>
-                    {u.banned ? <Badge className="bg-red-100 text-red-800">Απενεργοποιημένος</Badge>
-                      : !u.emailVerified ? <Badge className="bg-amber-100 text-amber-900">Δεν επιβεβαίωσε e-mail</Badge>
-                      : role !== "user" || u.approved ? <Badge className="bg-emerald-100 text-emerald-800">Ενεργός</Badge>
+                    {u.banned ? <Badge className="bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">Απενεργοποιημένος</Badge>
+                      : !u.emailVerified ? <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">Δεν επιβεβαίωσε e-mail</Badge>
+                      : role !== "user" || u.approved ? <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">Ενεργός</Badge>
                       : <Badge variant="secondary">Χωρίς δικαίωμα προτάσεων</Badge>}
                   </TableCell>
                   <TableCell>

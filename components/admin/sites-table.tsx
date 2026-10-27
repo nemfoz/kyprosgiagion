@@ -72,7 +72,7 @@ export function SitesTable({ rows, admin }: { rows: Row[]; admin: boolean }) {
               {admin && (
                 <TableCell>
                   <div className="flex flex-col items-start gap-1">
-                    {r.published ? <Badge className="bg-emerald-100 text-emerald-800">Δημοσιευμένο</Badge> : <Badge variant="secondary">Πρόχειρο</Badge>}
+                    {r.published ? <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">Δημοσιευμένο</Badge> : <Badge variant="secondary">Πρόχειρο</Badge>}
                     {!r.coordsVerified && <span className="flex items-center gap-1 text-xs text-muted-foreground"><TriangleAlert className="size-3 text-gold" />θέση κατά προσέγγιση</span>}
                   </div>
                 </TableCell>
