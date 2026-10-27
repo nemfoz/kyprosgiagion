@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gallery } from "@/components/site/gallery"
 import { MiniMap } from "@/components/map/mini-map"
+import { CompletenessCard } from "@/components/gamify/completeness-card"
+import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
 import { googleMapsUrl, inline, markdown, parseFacts, pick, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
 import { langFrom, t } from "@/lib/i18n"
@@ -42,6 +44,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   const name = pick(c, lang, "name")
   const altName = c[other].name
   const q = lang === "en" ? "?lang=en" : ""
+  const score = completeness({ content: c, coordsVerified: site.coordsVerified, photoCount: site.photos.length })
 
   const photos = site.photos.map((p) => ({
     src: p.src,
@@ -57,6 +60,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
           <span className="text-primary">☦</span>{siteTitle[lang]}
         </Link>
         <div className="ml-auto flex items-center gap-1">
+          <Button variant="ghost" size="sm" asChild><Link href={`/contribute${q}`}>{t("contribute", lang)}</Link></Button>
           {session && (
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/admin/sites/${site.id}`}><Pencil />{admin ? t("edit", lang) : t("propose", lang)}</Link>
@@ -68,7 +72,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
       {!site.published && <div className="bg-amber-100 py-2 text-center text-sm font-semibold text-amber-900">{t("draft", lang)}</div>}
 
-      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%),#293f33]"}`}>
+      <section className={`relative flex items-end overflow-hidden ${cover ? "h-[min(56vh,520px)] bg-foreground" : "bg-[#293f33] bg-[radial-gradient(ellipse_at_top_right,#63765a,transparent_70%)]"}`}>
         {cover && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover.src} alt={photos[0].caption || name} className="absolute inset-0 size-full object-cover opacity-85" />
@@ -109,7 +113,8 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
           )}
         </article>
 
-        <aside className="grid content-start gap-4 lg:sticky lg:top-4">
+        <aside className="grid content-start gap-4">
+          <CompletenessCard percent={score.percent} done={[...score.done]} siteId={site.id} lang={lang} signedIn={!!session} />
           <Card>
             <CardHeader><CardTitle className="font-heading text-lg">{t("details", lang)}</CardTitle></CardHeader>
             <CardContent>

@@ -6,14 +6,18 @@ import { isAdmin } from "@/lib/permissions"
 import { requireUser } from "@/lib/session"
 import { listSites } from "@/lib/sites"
 import { countPending, listSubmissions } from "@/lib/submissions"
+import { contributorStats, missionBoard } from "@/lib/contributors"
+import { MyProgress } from "@/components/gamify/my-progress"
 
 export default async function Overview() {
   const user = await requireUser()
   const admin = isAdmin(user.role)
-  const [sites, pending, mine] = await Promise.all([
+  const [sites, pending, mine, stats, board] = await Promise.all([
     listSites({ publishedOnly: false }),
     admin ? countPending() : 0,
     admin ? [] : listSubmissions({ authorId: user.id }),
+    contributorStats(user.id),
+    missionBoard(),
   ])
   const published = sites.filter((s) => s.published).length
 
@@ -38,6 +42,8 @@ export default async function Overview() {
             detail={`${mine.filter((s) => s.status === "pending").length} σε αναμονή`} href="/admin/submissions" />
         )}
       </div>
+
+      <MyProgress stats={stats} suggestions={board.sites.filter((s) => s.percent < 100).slice(0, 5)} overall={board.overall} />
 
       {!admin && (
         <Card>

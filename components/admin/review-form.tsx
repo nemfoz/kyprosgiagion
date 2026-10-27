@@ -11,14 +11,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { reviewSubmissionAction } from "@/app/admin/actions"
 
-export function ReviewForm({ id, kind }: { id: number; kind: "create" | "update" }) {
+export function ReviewForm({ id, kind, canVerifyLocation, points }: { id: number; kind: "create" | "update"; canVerifyLocation: boolean; points: number }) {
   const router = useRouter()
   const [note, setNote] = useState("")
   const [publish, setPublish] = useState(false)
+  const [verify, setVerify] = useState(false)
   const [pending, start] = useTransition()
 
   const decide = (decision: "approve" | "reject") => start(async () => {
-    const r = await reviewSubmissionAction(id, decision, note, publish)
+    const r = await reviewSubmissionAction(id, decision, note, publish, verify)
     if (!r.ok) return void toast.error(r.error)
     toast.success(decision === "approve" ? "Η πρόταση εγκρίθηκε" : "Η πρόταση απορρίφθηκε")
     router.push("/admin/submissions")
@@ -36,6 +37,13 @@ export function ReviewForm({ id, kind }: { id: number; kind: "create" | "update"
           <Checkbox checked={publish} onCheckedChange={(c) => setPublish(!!c)} />
           {kind === "create" ? "Δημοσίευση αμέσως μετά την έγκριση" : "Δημοσίευση της σελίδας, αν είναι ακόμα πρόχειρη"}
         </label>
+        {canVerifyLocation && (
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={verify} onCheckedChange={(c) => setVerify(!!c)} />
+            Επαλήθευσα ότι η προτεινόμενη θέση είναι σωστή (δορυφορική εικόνα)
+          </label>
+        )}
+        <p className="text-sm">Ο χρήστης θα κερδίσει <b className="text-primary">{points + (verify ? 15 : 0)}</b> πόντους με την έγκριση.</p>
         <p className="text-xs text-muted-foreground">Μετά την έγκριση μπορείτε να επεξεργαστείτε την καταχώρηση κανονικά.</p>
         <div className="flex gap-2">
           <Button onClick={() => decide("approve")} disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Check />}Έγκριση</Button>

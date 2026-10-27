@@ -40,6 +40,8 @@ export const submissions = sqliteTable("submissions", {
   authorId: text("author_id").notNull(),
   reviewerId: text("reviewer_id"),
   reviewNote: text("review_note").notNull().default(""),
+  points: integer("points").notNull().default(0),
+  completed: text("completed").notNull().default("[]"),
   createdAt: text("created_at").notNull().default(now),
   reviewedAt: text("reviewed_at"),
 })

@@ -11,6 +11,7 @@ import { regions } from "@/lib/regions"
 import { requireUser } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 import { getSubmission } from "@/lib/submissions"
+import { completeness, MISSIONS, PROPOSAL_POINTS, type MissionKey } from "@/lib/completeness"
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Όνομα", location: "Τοποθεσία", summary: "Σύντομη περιγραφή", body: "Κείμενο", facts: "Στοιχεία", sources: "Πηγές",
@@ -25,6 +26,12 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
   const p = sub.payload.site
   const showAll = sub.kind === "create" || !current
+  // Points the author would earn (location verification is added by the reviewer's choice).
+  const before = current ? completeness({ content: current.content, coordsVerified: current.coordsVerified, photoCount: current.photos.length }).done : new Set<MissionKey>()
+  const after = completeness({ content: p.content, coordsVerified: current?.coordsVerified ?? false, photoCount: (current?.photos.length ?? 0) + sub.payload.photos.length })
+  const estimate = PROPOSAL_POINTS + MISSIONS.filter((m) => after.done.has(m.key) && !before.has(m.key)).reduce((n, m) => n + m.points, 0)
+  const pinMoved = !current || current.lat !== p.lat || current.lng !== p.lng
+  const canVerifyLocation = pinMoved && !current?.coordsVerified
 
   // Field-by-field comparison with the church as it is now.
   const rows: { label: string; before: string; after: string }[] = []
@@ -50,6 +57,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
         )}
       </div>
       <p className="text-sm text-muted-foreground">
+        {sub.status === "approved" && <b className="text-primary">+{sub.points} πόντοι · </b>}
         {sub.kind === "create" ? "Πρόταση νέας εκκλησίας" : "Πρόταση διόρθωσης"} από <b>{sub.authorName}</b> ({sub.authorEmail}) · {sub.createdAt.slice(0, 16)}
       </p>
 
@@ -98,7 +106,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
       )}
 
       {sub.status === "pending" && admin ? (
-        <ReviewForm id={sub.id} kind={sub.kind} />
+        <ReviewForm id={sub.id} kind={sub.kind} canVerifyLocation={canVerifyLocation} points={estimate} />
       ) : sub.status !== "pending" && (
         <Card>
           <CardHeader><CardTitle className="font-heading text-lg">Απόφαση</CardTitle></CardHeader>

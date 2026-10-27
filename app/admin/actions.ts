@@ -83,11 +83,11 @@ export async function proposeAction(siteId: number | null, raw: Record<string, u
   })
 }
 
-export async function reviewSubmissionAction(id: number, decision: "approve" | "reject", reviewNote: string, publish: boolean) {
+export async function reviewSubmissionAction(id: number, decision: "approve" | "reject", reviewNote: string, publish: boolean, verifyLocation = false) {
   return run(async () => {
     const user = await assertRole("admin")
     if (decision === "approve") {
-      const siteId = await approveSubmission(id, user.id, reviewNote, publish)
+      const siteId = await approveSubmission(id, user.id, reviewNote, publish, verifyLocation)
       const site = await getSite({ id: siteId })
       refresh(site?.slug)
       return { siteId }

@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db"
 import { normaliseContent, type SiteContent } from "@/lib/content"
 import { addPhoto, createSite, getSite, slugTaken, updateSite, type PhotoInput, type SiteInput } from "@/lib/sites"
 import { deleteStored } from "@/lib/storage"
+import { missionsDone, MISSIONS, PROPOSAL_POINTS, type MissionKey } from "@/lib/completeness"
 
 const { submissions, user } = schema
 
@@ -51,30 +52,43 @@ export async function countPending() {
   return Number(n)
 }
 
-/** Applies a pending proposal. Returns the id of the created/updated church. */
-export async function approveSubmission(id: number, reviewerId: string, reviewNote: string, publish: boolean) {
+const doneFor = (s: Awaited<ReturnType<typeof getSite>>) =>
+  s ? missionsDone({ content: s.content, coordsVerified: s.coordsVerified, photoCount: s.photos.length }) : new Set<MissionKey>()
+
+/**
+ * Applies a pending proposal and awards points for the missions it completed.
+ * `verifyLocation`: the reviewer confirms the proposed pin is right. Returns the church id.
+ */
+export async function approveSubmission(id: number, reviewerId: string, reviewNote: string, publish: boolean, verifyLocation = false) {
   const sub = await getSubmission(id)
   if (!sub || sub.status !== "pending") throw new Error("Η πρόταση δεν είναι πλέον σε αναμονή.")
   const { site, photos } = sub.payload
   let siteId: number
+  let before = new Set<MissionKey>()
 
   if (sub.kind === "create") {
     let slug = site.slug
     for (let i = 2; await slugTaken(slug); i++) slug = `${site.slug}-${i}`
-    siteId = await createSite({ ...site, slug, published: publish })
+    siteId = await createSite({ ...site, slug, published: publish, coordsVerified: verifyLocation })
   } else {
     const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
     if (!current) throw new Error("Η εκκλησία της πρότασης δεν υπάρχει πλέον.")
+    before = doneFor(current)
     siteId = current.id
     // Users cannot change the address, publication or "verified location" flags.
     const { slug: _slug, published: _published, coordsVerified: _verified, ...changes } = site
     void _slug; void _published; void _verified
-    await updateSite(siteId, { ...changes, ...(publish ? { published: true } : {}) })
+    await updateSite(siteId, { ...changes, ...(publish ? { published: true } : {}), ...(verifyLocation ? { coordsVerified: true } : {}) })
   }
   for (const p of photos) await addPhoto(siteId, p)
 
+  const after = doneFor(await getSite({ id: siteId }))
+  const completed = MISSIONS.filter((m) => after.has(m.key) && !before.has(m.key))
+  const points = PROPOSAL_POINTS + completed.reduce((n, m) => n + m.points, 0)
+
   await db.update(submissions).set({
     status: "approved", reviewerId, reviewNote, reviewedAt: sql`(datetime('now'))`, siteId,
+    points, completed: JSON.stringify(completed.map((m) => m.key)),
   }).where(eq(submissions.id, id))
   return siteId
 }

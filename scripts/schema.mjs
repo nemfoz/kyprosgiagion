@@ -111,4 +111,6 @@ export const SCHEMA = [
 // Columns added after the first release, for databases created earlier: [table, column, definition].
 export const ADDED_COLUMNS = [
   ['photos', 'source_url', "TEXT NOT NULL DEFAULT ''"], // original page/image the photo came from
+  ['submissions', 'points', 'INTEGER NOT NULL DEFAULT 0'], // awarded on approval (lib/completeness.ts)
+  ['submissions', 'completed', "TEXT NOT NULL DEFAULT '[]'"], // missions the approval completed (JSON)
 ];

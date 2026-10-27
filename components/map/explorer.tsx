@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
-import { ArrowLeft, ArrowRight, LayoutDashboard, LogIn, MapPin, Search, TriangleAlert } from "lucide-react"
+import { ArrowLeft, ArrowRight, LayoutDashboard, LogIn, MapPin, Search, Sparkles, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SITE_TYPES, TYPE_LABELS, type Lang, type SiteType } from "@/lib/content"
@@ -11,6 +11,7 @@ import { UI, t } from "@/lib/i18n"
 import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegion, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
+import { ProgressBar } from "@/components/gamify/completeness-card"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 
 export type MapSite = {
@@ -22,6 +23,7 @@ export type MapSite = {
   lng: number
   coordsVerified: boolean
   cover: string | null
+  percent: number
   name: Record<Lang, string>
   location: Record<Lang, string>
   summary: Record<Lang, string>
@@ -234,6 +236,9 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
           </span>
         </Link>
         <div className="ml-auto flex shrink-0 items-center gap-1 md:order-last md:ml-0">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/contribute${lang === "en" ? "?lang=en" : ""}`}><Sparkles /><span className="hidden lg:inline">{t("contribute", lang)}</span></Link>
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "el" ? "en" : "el")} aria-label={lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}>
             {lang === "el" ? "EN" : "ΕΛ"}
           </Button>
@@ -286,6 +291,13 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                 )}
                 <div className="grid gap-5 px-6 pt-5">
                   <p className="text-sm leading-[1.8]">{current.summary[lang] || current.summary.el}</p>
+                  {current.percent < 100 && (
+                    <Link href={`${siteHref(current)}#contribute`} className="grid gap-1.5 rounded-lg border border-gold/40 bg-accent/40 p-3 text-xs">
+                      <span className="flex justify-between"><span>{t("completeness", lang)}</span><b className="text-gold">{current.percent}%</b></span>
+                      <ProgressBar percent={current.percent} className="h-1.5" />
+                      <span className="text-primary underline">{t("helpComplete", lang)}</span>
+                    </Link>
+                  )}
                   <Button asChild size="lg" className="h-11"><Link href={siteHref(current)}>{t("more", lang)}<ArrowRight /></Link></Button>
                 </div>
               </div>
