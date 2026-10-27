@@ -26,6 +26,16 @@ export const SCHEMA = [
     sort       INTEGER NOT NULL DEFAULT 0
   )`,
   'CREATE INDEX IF NOT EXISTS photos_site ON photos(site_id, sort)',
+  // YouTube videos embedded on a church page (only the video id is stored).
+  `CREATE TABLE IF NOT EXISTS videos (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    site_id    INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    youtube_id TEXT NOT NULL,
+    title_el   TEXT NOT NULL DEFAULT '',
+    title_en   TEXT NOT NULL DEFAULT '',
+    sort       INTEGER NOT NULL DEFAULT 0
+  )`,
+  'CREATE INDEX IF NOT EXISTS videos_site ON videos(site_id, sort)',
   // Proposals from users, waiting for an admin.
   `CREATE TABLE IF NOT EXISTS submissions (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +110,13 @@ export const SCHEMA = [
     summary    TEXT NOT NULL DEFAULT '',
     applied_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Site-wide settings edited in the admin, as JSON (e.g. 'points' — lib/points.ts).
+  `CREATE TABLE IF NOT EXISTS settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_by TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
   `CREATE TABLE IF NOT EXISTS rate_limit (
     id           TEXT PRIMARY KEY,
     key          TEXT NOT NULL UNIQUE,
@@ -112,5 +129,6 @@ export const SCHEMA = [
 export const ADDED_COLUMNS = [
   ['photos', 'source_url', "TEXT NOT NULL DEFAULT ''"], // original page/image the photo came from
   ['submissions', 'points', 'INTEGER NOT NULL DEFAULT 0'], // awarded on approval (lib/completeness.ts)
-  ['submissions', 'completed', "TEXT NOT NULL DEFAULT '[]'"], // missions the approval completed (JSON)
+  ['submissions', 'completed', "TEXT NOT NULL DEFAULT '[]'"], // missions and bonuses the approval earned (JSON)
+  ['photos', 'historic', 'INTEGER NOT NULL DEFAULT 0'], // old/archive photo (bonus points)
 ];

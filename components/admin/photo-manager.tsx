@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { ArrowDown, ArrowUp, ImagePlus, Link2, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -11,15 +12,16 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { deletePhotoAction, importPhotoAction, reorderPhotosAction, updatePhotoAction } from "@/app/admin/actions"
+import { BONUSES } from "@/lib/completeness"
 import { uploadPhoto } from "@/lib/image-client"
 import { cn } from "@/lib/utils"
 
-export type PhotoFields = { src: string; captionEl: string; captionEn: string; credit: string; sourceUrl: string }
+export type PhotoFields = { src: string; captionEl: string; captionEn: string; credit: string; sourceUrl: string; historic: boolean }
 export type StoredPhoto = PhotoFields & { id: number }
 
 type Props =
   | { mode: "direct"; siteId: number; photos: StoredPhoto[]; onChange: (p: StoredPhoto[]) => void }
-  | { mode: "propose"; existing: StoredPhoto[]; photos: PhotoFields[]; onChange: (p: PhotoFields[]) => void }
+  | { mode: "propose"; existing: StoredPhoto[]; photos: PhotoFields[]; onChange: (p: PhotoFields[]) => void; historicPoints: number }
 
 /**
  * Admins (direct): changes are saved immediately.
@@ -62,15 +64,16 @@ export function PhotoManager(props: Props) {
     toast.success("Η φωτογραφία αντιγράφηκε στον χώρο αποθήκευσης")
   }
 
-  async function edit(i: number, field: keyof PhotoFields, value: string) {
+  function edit(i: number, field: keyof PhotoFields, value: string | boolean) {
     const list = photos.map((p, n) => (n === i ? { ...p, [field]: value } : p))
     set(list)
+    return list
   }
 
-  async function persist(i: number) {
-    const p = photos[i]
+  async function persist(i: number, list = photos) {
+    const p = list[i]
     if (!direct || p.id == null) return
-    const r = await updatePhotoAction(p.id, { captionEl: p.captionEl, captionEn: p.captionEn, credit: p.credit, sourceUrl: p.sourceUrl })
+    const r = await updatePhotoAction(p.id, { captionEl: p.captionEl, captionEn: p.captionEn, credit: p.credit, sourceUrl: p.sourceUrl, historic: !!p.historic })
     if (!r.ok) toast.error(r.error)
   }
 
@@ -117,6 +120,10 @@ export function PhotoManager(props: Props) {
             <Input value={p.captionEn} onChange={(e) => edit(i, "captionEn", e.target.value)} onBlur={() => persist(i)} placeholder="Caption (EN)" className="h-8 text-sm" />
             <Input value={p.credit} onChange={(e) => edit(i, "credit", e.target.value)} onBlur={() => persist(i)} placeholder="Φωτογράφος / ©" className="h-8 text-sm" />
             <Input value={p.sourceUrl} onChange={(e) => edit(i, "sourceUrl", e.target.value)} onBlur={() => persist(i)} placeholder="Σύνδεσμος πηγής (https://…)" className="h-8 text-sm" />
+            <label className="flex items-center gap-2 text-xs" title={BONUSES.historic_photo.hint.el}>
+              <Checkbox checked={!!p.historic} onCheckedChange={(c) => persist(i, edit(i, "historic", !!c))} />
+              Παλιά / αρχειακή φωτογραφία{props.mode === "propose" && <span className="font-semibold text-primary">+{props.historicPoints}</span>}
+            </label>
             <div className="flex items-center gap-1">
               <Button type="button" variant="outline" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Πάνω"><ArrowUp /></Button>
               <Button type="button" variant="outline" size="icon-sm" disabled={i === photos.length - 1} onClick={() => move(i, 1)} aria-label="Κάτω"><ArrowDown /></Button>

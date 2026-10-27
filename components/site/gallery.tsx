@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
-type Photo = { src: string; caption: string; credit: string; sourceUrl: string }
+type Photo = { src: string; caption: string; credit: string; sourceUrl: string; historic: boolean }
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
 
@@ -24,7 +24,7 @@ function Credit({ p, sourceLabel, dark = false }: { p: Photo; sourceLabel: strin
   )
 }
 
-export function Gallery({ photos, alt, sourceLabel }: { photos: Photo[]; alt: string; sourceLabel: string }) {
+export function Gallery({ photos, alt, sourceLabel, historicLabel }: { photos: Photo[]; alt: string; sourceLabel: string; historicLabel: string }) {
   const [open, setOpen] = useState<number | null>(null)
   const go = (d: number) => setOpen((i) => (i === null ? i : (i + d + photos.length) % photos.length))
   const p = open !== null ? photos[open] : null
@@ -38,8 +38,9 @@ export function Gallery({ photos, alt, sourceLabel }: { photos: Photo[]; alt: st
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ph.src} alt={ph.caption || alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
             </button>
-            {(ph.caption || ph.credit || ph.sourceUrl) && (
+            {(ph.caption || ph.credit || ph.sourceUrl || ph.historic) && (
               <figcaption className="mt-1.5 text-[13px] leading-snug">
+                {ph.historic && <span className="block text-xs font-semibold tracking-wide text-gold-deep uppercase">{historicLabel}</span>}
                 {ph.caption && <span className="block">{ph.caption}</span>}
                 <Credit p={ph} sourceLabel={sourceLabel} />
               </figcaption>

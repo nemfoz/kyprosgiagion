@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ photo: await addPhoto(site.id, { src, credit }) })
     }
     const src = await storePhoto("proposal", data, type)
-    return NextResponse.json({ pending: { src, credit, captionEl: "", captionEn: "", sourceUrl: "" } })
+    return NextResponse.json({ pending: { src, credit, captionEl: "", captionEn: "", sourceUrl: "", historic: false } })
   } catch (e) {
     if (e instanceof Forbidden) return NextResponse.json({ error: e.message }, { status: 403 })
     console.error(e)

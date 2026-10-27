@@ -11,7 +11,9 @@ import { regions } from "@/lib/regions"
 import { requireUser } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 import { getSubmission } from "@/lib/submissions"
-import { completeness, MISSIONS, PROPOSAL_POINTS, type MissionKey } from "@/lib/completeness"
+import { BONUSES, completeness, mediaBonuses, scoreProposal, type MissionKey } from "@/lib/completeness"
+import { getPointsConfig } from "@/lib/points"
+import { youtubeEmbed } from "@/lib/content"
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Όνομα", location: "Τοποθεσία", summary: "Σύντομη περιγραφή", body: "Κείμενο", facts: "Στοιχεία", sources: "Πηγές",
@@ -23,13 +25,14 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   const admin = isAdmin(user.role)
   const sub = await getSubmission(Number((await params).id))
   if (!sub || (!admin && sub.authorId !== user.id)) notFound()
-  const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
+  const [current, cfg] = await Promise.all([sub.siteId ? getSite({ id: sub.siteId }) : null, getPointsConfig()])
   const p = sub.payload.site
   const showAll = sub.kind === "create" || !current
   // Points the author would earn (location verification is added by the reviewer's choice).
-  const before = current ? completeness({ content: current.content, coordsVerified: current.coordsVerified, photoCount: current.photos.length }).done : new Set<MissionKey>()
-  const after = completeness({ content: p.content, coordsVerified: current?.coordsVerified ?? false, photoCount: (current?.photos.length ?? 0) + sub.payload.photos.length })
-  const estimate = PROPOSAL_POINTS + MISSIONS.filter((m) => after.done.has(m.key) && !before.has(m.key)).reduce((n, m) => n + m.points, 0)
+  const before = current ? completeness({ content: current.content, coordsVerified: current.coordsVerified, photoCount: current.photos.length }, cfg).done : new Set<MissionKey>()
+  const after = completeness({ content: p.content, coordsVerified: current?.coordsVerified ?? false, photoCount: (current?.photos.length ?? 0) + sub.payload.photos.length }, cfg)
+  const estimate = scoreProposal(cfg, before, after.done, mediaBonuses(current?.photos.length ?? 0, sub.payload.photos, sub.payload.videos)).points
+  const locationPoints = cfg.sections.location * 2
   const pinMoved = !current || current.lat !== p.lat || current.lng !== p.lng
   const canVerifyLocation = pinMoved && !current?.coordsVerified
 
@@ -96,6 +99,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ph.src} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
                 <figcaption className="mt-1 text-muted-foreground">
+                  {ph.historic && <span className="mb-0.5 block font-semibold text-gold-deep">{BONUSES.historic_photo.label.el} · +{cfg.bonuses.historic_photo}</span>}
                   {[ph.captionEl, ph.credit && `© ${ph.credit}`].filter(Boolean).join(" · ")}
                   {ph.sourceUrl && <a href={ph.sourceUrl} target="_blank" rel="noopener" className="block break-all text-primary underline">{ph.sourceUrl}</a>}
                 </figcaption>
@@ -105,8 +109,22 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
         </Card>
       )}
 
+      {sub.payload.videos.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="font-heading text-lg">Νέα βίντεο</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            {sub.payload.videos.map((v) => (
+              <figure key={v.youtubeId} className="text-xs">
+                <div className="video-embed !mb-1"><iframe src={youtubeEmbed(v.youtubeId)} title={v.titleEl || "YouTube"} loading="lazy" allowFullScreen /></div>
+                <figcaption className="text-muted-foreground">{[v.titleEl, v.titleEn].filter(Boolean).join(" · ")}</figcaption>
+              </figure>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {sub.status === "pending" && admin ? (
-        <ReviewForm id={sub.id} kind={sub.kind} canVerifyLocation={canVerifyLocation} points={estimate} />
+        <ReviewForm id={sub.id} kind={sub.kind} canVerifyLocation={canVerifyLocation} points={estimate} locationPoints={locationPoints} />
       ) : sub.status !== "pending" && (
         <Card>
           <CardHeader><CardTitle className="font-heading text-lg">Απόφαση</CardTitle></CardHeader>

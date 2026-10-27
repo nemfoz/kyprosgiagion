@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { ProgressBar } from "@/components/gamify/completeness-card"
-import { MISSIONS, type MissionKey } from "@/lib/completeness"
+import { MISSIONS, SECTIONS, type MissionKey, type SectionKey } from "@/lib/completeness"
 import type { Lang } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
@@ -13,22 +13,25 @@ export type MissionSite = {
   name: Record<Lang, string>; location: Record<Lang, string>
 }
 
-/** Churches that need work, filterable by the kind of contribution someone wants to make. */
+const sectionOf = (k: MissionKey) => k.split(".")[0] as SectionKey
+
+/** Churches that need work, filterable by the section someone wants to contribute to. */
 export function MissionList({ sites, lang, signedIn }: { sites: MissionSite[]; lang: Lang; signedIn: boolean }) {
-  const [filter, setFilter] = useState<MissionKey | "all">("all")
+  const [filter, setFilter] = useState<SectionKey | "all">("all")
   const [limit, setLimit] = useState(12)
   const open = sites.filter((s) => s.percent < 100)
-  const shown = useMemo(() => open.filter((s) => filter === "all" || s.missing.includes(filter)), [open, filter])
-  const count = (k: MissionKey) => open.filter((s) => s.missing.includes(k)).length
-  const href = (s: MissionSite) => (signedIn ? `/admin/sites/${s.id}` : `/site/${s.slug}${lang === "en" ? "?lang=en" : ""}#contribute`)
+  const needs = (s: MissionSite, k: SectionKey) => s.missing.some((m) => sectionOf(m) === k)
+  const shown = useMemo(() => open.filter((s) => filter === "all" || needs(s, filter)), [open, filter])
+  const count = (k: SectionKey) => open.filter((s) => needs(s, k)).length
+  const href = (s: MissionSite) => (signedIn ? `/admin/sites/${s.id}` : `/login?next=${encodeURIComponent(`/admin/sites/${s.id}`)}`)
 
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-1.5">
         <Chip active={filter === "all"} onClick={() => { setFilter("all"); setLimit(12) }}>{lang === "el" ? "Όλες" : "All"} · {open.length}</Chip>
-        {MISSIONS.filter((m) => count(m.key) > 0).map((m) => (
-          <Chip key={m.key} active={filter === m.key} onClick={() => { setFilter(m.key); setLimit(12) }}>
-            {m.label[lang]} · {count(m.key)} <span className="text-primary">+{m.points}</span>
+        {SECTIONS.filter((s) => count(s.key) > 0).map((s) => (
+          <Chip key={s.key} active={filter === s.key} onClick={() => { setFilter(s.key); setLimit(12) }}>
+            {s.label[lang]} · {count(s.key)}
           </Chip>
         ))}
       </div>

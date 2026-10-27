@@ -8,11 +8,13 @@ import { missionBoard } from "@/lib/contributors"
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
-  const [rows, session, board] = await Promise.all([listSites({ publishedOnly: true }), getSession(), missionBoard()])
-  const percent = new Map(board.sites.map((s) => [s.id, s.percent]))
+  const [rows, session] = await Promise.all([listSites({ publishedOnly: true }), getSession()])
+  // Completeness is for contributors only; visitors browsing the map don't see it.
+  const board = session ? await missionBoard() : null
+  const percent = new Map(board?.sites.map((s) => [s.id, s.percent]))
   const sites: MapSite[] = rows.map((s) => ({
     id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng,
-    coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? 0,
+    coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? null,
     name: { el: s.content.el.name, en: s.content.en.name },
     location: { el: s.content.el.location, en: s.content.en.location },
     summary: { el: s.content.el.summary, en: s.content.en.summary },

@@ -14,6 +14,7 @@ export function AdminNav({ role, pending }: { role: Role; pending: number }) {
     { href: "/admin/sites", label: "Μνημεία" },
     { href: "/admin/submissions", label: admin ? "Προτάσεις" : "Οι προτάσεις μου", count: admin ? pending : 0 },
     ...(admin ? [{ href: "/admin/users", label: "Χρήστες", count: 0 }] : []),
+    ...(role === "superadmin" ? [{ href: "/admin/points", label: "Πόντοι", count: 0 }] : []),
   ]
   return (
     <nav className="flex min-w-0 gap-1 overflow-x-auto">

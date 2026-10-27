@@ -2,14 +2,15 @@ import "server-only"
 import { and, desc, eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { normaliseContent, type SiteContent } from "@/lib/content"
-import { addPhoto, createSite, getSite, slugTaken, updateSite, type PhotoInput, type SiteInput } from "@/lib/sites"
+import { addPhoto, addVideo, createSite, getSite, slugTaken, updateSite, type PhotoInput, type SiteInput, type VideoInput } from "@/lib/sites"
 import { deleteStored } from "@/lib/storage"
-import { missionsDone, MISSIONS, PROPOSAL_POINTS, type MissionKey } from "@/lib/completeness"
+import { mediaBonuses, missionsDone, scoreProposal, type MissionKey } from "@/lib/completeness"
+import { getPointsConfig } from "@/lib/points"
 
 const { submissions, user } = schema
 
-/** What a user proposes: the full church data as they want it, plus photos to add. */
-export type ProposalPayload = { site: SiteInput; photos: PhotoInput[] }
+/** What a user proposes: the full church data as they want it, plus photos and videos to add. */
+export type ProposalPayload = { site: SiteInput; photos: PhotoInput[]; videos: VideoInput[] }
 
 export async function createSubmission(input: {
   kind: "create" | "update"; siteId: number | null; payload: ProposalPayload; note: string; authorId: string
@@ -22,7 +23,7 @@ export async function createSubmission(input: {
 
 const parsePayload = (s: string): ProposalPayload => {
   const p = JSON.parse(s)
-  return { site: { ...p.site, content: normaliseContent(p.site?.content) as SiteContent }, photos: p.photos ?? [] }
+  return { site: { ...p.site, content: normaliseContent(p.site?.content) as SiteContent }, photos: p.photos ?? [], videos: p.videos ?? [] }
 }
 
 export async function listSubmissions(filter: { status?: "pending" | "approved" | "rejected"; authorId?: string } = {}) {
@@ -56,15 +57,16 @@ const doneFor = (s: Awaited<ReturnType<typeof getSite>>) =>
   s ? missionsDone({ content: s.content, coordsVerified: s.coordsVerified, photoCount: s.photos.length }) : new Set<MissionKey>()
 
 /**
- * Applies a pending proposal and awards points for the missions it completed.
+ * Applies a pending proposal and awards points for the missions it completed and the photos it added.
  * `verifyLocation`: the reviewer confirms the proposed pin is right. Returns the church id.
  */
 export async function approveSubmission(id: number, reviewerId: string, reviewNote: string, publish: boolean, verifyLocation = false) {
   const sub = await getSubmission(id)
   if (!sub || sub.status !== "pending") throw new Error("Η πρόταση δεν είναι πλέον σε αναμονή.")
-  const { site, photos } = sub.payload
+  const { site, photos, videos } = sub.payload
   let siteId: number
   let before = new Set<MissionKey>()
+  let existingPhotos = 0
 
   if (sub.kind === "create") {
     let slug = site.slug
@@ -74,6 +76,7 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
     const current = sub.siteId ? await getSite({ id: sub.siteId }) : null
     if (!current) throw new Error("Η εκκλησία της πρότασης δεν υπάρχει πλέον.")
     before = doneFor(current)
+    existingPhotos = current.photos.length
     siteId = current.id
     // Users cannot change the address, publication or "verified location" flags.
     const { slug: _slug, published: _published, coordsVerified: _verified, ...changes } = site
@@ -81,14 +84,14 @@ export async function approveSubmission(id: number, reviewerId: string, reviewNo
     await updateSite(siteId, { ...changes, ...(publish ? { published: true } : {}), ...(verifyLocation ? { coordsVerified: true } : {}) })
   }
   for (const p of photos) await addPhoto(siteId, p)
+  for (const v of videos) await addVideo(siteId, v)
 
   const after = doneFor(await getSite({ id: siteId }))
-  const completed = MISSIONS.filter((m) => after.has(m.key) && !before.has(m.key))
-  const points = PROPOSAL_POINTS + completed.reduce((n, m) => n + m.points, 0)
+  const { completed, points } = scoreProposal(await getPointsConfig(), before, after, mediaBonuses(existingPhotos, photos, videos))
 
   await db.update(submissions).set({
     status: "approved", reviewerId, reviewNote, reviewedAt: sql`(datetime('now'))`, siteId,
-    points, completed: JSON.stringify(completed.map((m) => m.key)),
+    points, completed: JSON.stringify(completed),
   }).where(eq(submissions.id, id))
   return siteId
 }

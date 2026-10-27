@@ -20,8 +20,9 @@ import {
 import { deleteSiteAction, proposeAction, saveSiteAction } from "@/app/admin/actions"
 import { LocationPicker } from "@/components/admin/location-picker"
 import { PhotoManager, type PhotoFields, type StoredPhoto } from "@/components/admin/photo-manager"
+import { VideoManager, type StoredVideo, type VideoFields } from "@/components/admin/video-manager"
 import { LANGS, SITE_TYPES, slugify, TYPE_LABELS, type Lang, type SiteContent, type SiteType } from "@/lib/content"
-import { completeness, MISSIONS, PROPOSAL_POINTS, type MissionKey } from "@/lib/completeness"
+import { completeness, mediaBonuses, PAGE_POINTS, scoreProposal, scoredMissions, SECTIONS, type MissionKey, type PointsConfig, type SectionKey } from "@/lib/completeness"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 
 export type SiteFormValues = {
@@ -38,16 +39,18 @@ const FIELDS: { key: keyof SiteContent["el"]; label: string; rows?: number; help
   { key: "sources", label: "Πηγές (μία ανά γραμμή)", rows: 4, help: "Σύνδεσμοι ως [κείμενο](https://…) — στη σελίδα φαίνεται πάντα και ο ιστότοπος προορισμού." },
 ]
 
-// Which mission each text field counts towards (for the "missing" hints).
-const FIELD_MISSION: Partial<Record<`${Lang}.${keyof SiteContent["el"]}`, MissionKey>> = {
-  "el.body": "history_el", "en.body": "history_en", "el.summary": "summary", "en.summary": "summary",
-  "el.facts": "facts", "en.facts": "facts", "el.sources": "sources", "en.sources": "sources",
-  "en.name": "english", "en.location": "english",
+// Which page section each text field counts towards (for the "missing" hints).
+const FIELD_SECTION: Record<keyof SiteContent["el"], SectionKey> = {
+  name: "identity", location: "identity", summary: "summary", body: "history", facts: "facts", sources: "sources",
+}
+const fieldMission = (lang: Lang, field: keyof SiteContent["el"]): MissionKey => {
+  const s = SECTIONS.find((x) => x.key === FIELD_SECTION[field])!
+  return s.shared ? s.key : `${s.key}.${lang}`
 }
 
-function MissingTag({ mission, done }: { mission?: MissionKey; done: Set<MissionKey> }) {
+function MissingTag({ mission, done, points }: { mission?: MissionKey; done: Set<MissionKey>; points: PointsConfig }) {
   if (!mission || done.has(mission)) return null
-  const m = MISSIONS.find((x) => x.key === mission)!
+  const m = scoredMissions(points).find((x) => x.key === mission)!
   return <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-primary" title={m.hint.el}>λείπει · +{m.points}</span>
 }
 
@@ -62,6 +65,8 @@ export function SiteForm(props: {
   siteId: number | null
   initial: SiteFormValues
   photos: StoredPhoto[]
+  videos: StoredVideo[]
+  points: PointsConfig
   regions: { id: string; name: string; active: boolean }[]
 }) {
   const { mode, siteId } = props
@@ -70,6 +75,9 @@ export function SiteForm(props: {
   const [slugTouched, setSlugTouched] = useState(!!props.initial.slug)
   const [photos, setPhotos] = useState<StoredPhoto[]>(props.photos)
   const [newPhotos, setNewPhotos] = useState<PhotoFields[]>([])
+  const [videos, setVideos] = useState<StoredVideo[]>(props.videos)
+  const [newVideos, setNewVideos] = useState<VideoFields[]>([])
+  const cfg = props.points
   const [note, setNote] = useState("")
   const [pending, start] = useTransition()
   const direct = mode === "direct"
@@ -77,11 +85,13 @@ export function SiteForm(props: {
   const set = <K extends keyof SiteFormValues>(k: K, val: SiteFormValues[K]) => setV((s) => ({ ...s, [k]: val }))
 
   // Live completeness: as the page is now, and with these edits.
-  const base = completeness({ content: props.initial.content, coordsVerified: props.initial.coordsVerified, photoCount: siteId ? props.photos.length : 0 })
-  const now = completeness({ content: v.content, coordsVerified: v.coordsVerified, photoCount: photos.length + newPhotos.length })
-  const gained = MISSIONS.filter((m) => now.done.has(m.key) && !base.done.has(m.key))
+  const base = completeness({ content: props.initial.content, coordsVerified: props.initial.coordsVerified, photoCount: siteId ? props.photos.length : 0 }, cfg)
+  const now = completeness({ content: v.content, coordsVerified: v.coordsVerified, photoCount: photos.length + newPhotos.length }, cfg)
   const movedPin = v.lat !== props.initial.lat || v.lng !== props.initial.lng
-  const earn = PROPOSAL_POINTS + gained.reduce((n, m) => n + m.points, 0) + (!direct && movedPin && !v.coordsVerified ? 15 : 0)
+  // A moved pin earns the location points if the reviewer verifies it.
+  const after = !direct && movedPin && !v.coordsVerified ? new Set([...now.done, "location" as const]) : now.done
+  const earn = scoreProposal(cfg, base.done, after, mediaBonuses(siteId ? props.photos.length : 0, newPhotos, newVideos)).points
+  const locationPoints = cfg.sections.location * 2
   const setText = (lang: Lang, key: keyof SiteContent["el"], val: string) => setV((s) => {
     const content = { ...s.content, [lang]: { ...s.content[lang], [key]: val } }
     const slug = !slugTouched && lang === "en" && key === "name" && direct ? slugify(val) : s.slug
@@ -98,7 +108,7 @@ export function SiteForm(props: {
         if (!siteId) router.push(`/admin/sites/${r.id}`)
         else router.refresh()
       } else {
-        const r = await proposeAction(siteId, v, newPhotos, note)
+        const r = await proposeAction(siteId, v, newPhotos, newVideos, note)
         if (!r.ok) return void toast.error(r.error)
         toast.success("Η πρόταση στάλθηκε για έγκριση")
         router.push(`/admin/submissions/${r.id}`)
@@ -114,6 +124,7 @@ export function SiteForm(props: {
             <p className="text-sm">
               Πληρότητα σελίδας: <b>{base.percent}%</b>
               {now.percent !== base.percent && <> → <b className="text-primary">{now.percent}%</b></>}
+              <span className="text-muted-foreground"> · ελληνικά {now.byLang.el}/{PAGE_POINTS} · αγγλικά {now.byLang.en}/{PAGE_POINTS}</span>
               {now.missing.length > 0 && <span className="text-muted-foreground"> · λείπουν: {now.missing.map((m) => m.label.el).join(", ")}</span>}
             </p>
             <ProgressBar percent={now.percent} />
@@ -170,7 +181,7 @@ export function SiteForm(props: {
                 <TabsContent key={lang} value={lang} className="mt-4 grid gap-4">
                   {FIELDS.map((f) => (
                     <div key={f.key} className="grid gap-1.5">
-                      <Label htmlFor={`${lang}-${f.key}`}>{f.label}<MissingTag mission={FIELD_MISSION[`${lang}.${f.key}`]} done={now.done} /></Label>
+                      <Label htmlFor={`${lang}-${f.key}`}>{f.label}<MissingTag mission={fieldMission(lang, f.key)} done={now.done} points={cfg} /></Label>
                       {f.rows ? (
                         <Textarea id={`${lang}-${f.key}`} rows={f.rows} value={v.content[lang][f.key]} onChange={(e) => setText(lang, f.key, e.target.value)}
                           className={f.key === "body" ? "max-h-[60vh] min-h-64 overflow-y-auto leading-relaxed" : "max-h-72 overflow-y-auto"} />
@@ -200,8 +211,8 @@ export function SiteForm(props: {
       <div className="grid content-start gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Θέση στον χάρτη<MissingTag mission="location" done={now.done} /></CardTitle>
-            {!direct && !v.coordsVerified && <p className="text-xs text-muted-foreground">Μετακινήστε το σημάδι ακριβώς πάνω στον ναό· ο διαχειριστής θα επαληθεύσει τη θέση (+15).</p>}
+            <CardTitle className="font-heading text-lg">Θέση στον χάρτη<MissingTag mission="location" done={now.done} points={cfg} /></CardTitle>
+            {!direct && !v.coordsVerified && <p className="text-xs text-muted-foreground">Μετακινήστε το σημάδι ακριβώς πάνω στον ναό· ο διαχειριστής θα επαληθεύσει τη θέση (+{locationPoints}).</p>}
           </CardHeader>
           <CardContent className="grid gap-3">
             <LocationPicker lat={v.lat} lng={v.lng} type={v.type} onChange={(lat, lng) => setV((s) => ({ ...s, lat, lng }))} />
@@ -222,14 +233,36 @@ export function SiteForm(props: {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Φωτογραφίες<MissingTag mission={now.done.has("photo") ? "photos3" : "photo"} done={now.done} /></CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">Φωτογραφίες<MissingTag mission="photo" done={now.done} points={cfg} /></CardTitle>
+            {!direct && (
+              <p className="text-xs text-muted-foreground">
+                Μπόνους: +{cfg.bonuses.extra_photo} για κάθε επιπλέον φωτογραφία, +{cfg.bonuses.historic_photo} για κάθε παλιά / αρχειακή.
+              </p>
+            )}
+          </CardHeader>
           <CardContent>
             {direct && !siteId ? (
               <p className="text-sm text-muted-foreground">Αποθηκεύστε πρώτα την καταχώρηση για να προσθέσετε φωτογραφίες.</p>
             ) : direct ? (
               <PhotoManager mode="direct" siteId={siteId!} photos={photos} onChange={setPhotos} />
             ) : (
-              <PhotoManager mode="propose" existing={photos} photos={newPhotos} onChange={setNewPhotos} />
+              <PhotoManager mode="propose" existing={photos} photos={newPhotos} onChange={setNewPhotos} historicPoints={cfg.bonuses.historic_photo} />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">Βίντεο</CardTitle>
+            {!direct && <p className="text-xs text-muted-foreground">Μπόνους: +{cfg.bonuses.video} για κάθε βίντεο.</p>}
+          </CardHeader>
+          <CardContent>
+            {direct && !siteId ? (
+              <p className="text-sm text-muted-foreground">Αποθηκεύστε πρώτα την καταχώρηση για να προσθέσετε βίντεο.</p>
+            ) : direct ? (
+              <VideoManager mode="direct" siteId={siteId!} videos={videos} onChange={setVideos} />
+            ) : (
+              <VideoManager mode="propose" existing={videos} videos={newVideos} onChange={setNewVideos} />
             )}
           </CardContent>
         </Card>

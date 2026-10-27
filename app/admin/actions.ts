@@ -6,9 +6,11 @@ import { db, schema } from "@/lib/db"
 import { assertRole, Forbidden } from "@/lib/session"
 import { isAdmin } from "@/lib/permissions"
 import {
-  addPhoto, createSite, deletePhoto, deleteSite, getSite, reorderPhotos, slugTaken, updatePhoto, updateSite, validateSite,
-  type PhotoInput,
+  addPhoto, addVideo, createSite, deletePhoto, deleteSite, deleteVideo, getSite, reorderPhotos, slugTaken, updatePhoto,
+  updateSite, updateVideo, validateSite, type PhotoInput, type VideoInput,
 } from "@/lib/sites"
+import { youtubeId } from "@/lib/content"
+import { savePointsConfig } from "@/lib/points"
 import { approveSubmission, createSubmission, rejectSubmission } from "@/lib/submissions"
 import { rehostImage, isStored } from "@/lib/storage"
 
@@ -58,7 +60,11 @@ export async function deleteSiteAction(id: number) {
 
 // ---- proposals (approved users) ----
 
-export async function proposeAction(siteId: number | null, raw: Record<string, unknown>, photos: PhotoInput[], note: string) {
+const cleanVideos = (videos: VideoInput[]) => videos.filter((v) => youtubeId(v.youtubeId) === v.youtubeId).slice(0, 20).map((v) => ({
+  youtubeId: v.youtubeId, titleEl: String(v.titleEl ?? "").slice(0, 200), titleEn: String(v.titleEn ?? "").slice(0, 200),
+}))
+
+export async function proposeAction(siteId: number | null, raw: Record<string, unknown>, photos: PhotoInput[], videos: VideoInput[], note: string) {
   return run(async () => {
     const user = await assertRole("approved")
     const current = siteId ? await getSite({ id: siteId }) : null
@@ -72,11 +78,11 @@ export async function proposeAction(siteId: number | null, raw: Record<string, u
     })
     if (errors.length) throw new Error(errors.join(" "))
     const cleanPhotos = photos.filter((p) => isStored(p.src)).map((p) => ({
-      src: p.src, captionEl: p.captionEl ?? "", captionEn: p.captionEn ?? "", credit: p.credit ?? "", sourceUrl: p.sourceUrl ?? "",
+      src: p.src, captionEl: p.captionEl ?? "", captionEn: p.captionEn ?? "", credit: p.credit ?? "", sourceUrl: p.sourceUrl ?? "", historic: !!p.historic,
     }))
     const id = await createSubmission({
       kind: current ? "update" : "create", siteId: current?.id ?? null,
-      payload: { site: data, photos: cleanPhotos }, note: note.slice(0, 2000), authorId: user.id,
+      payload: { site: data, photos: cleanPhotos, videos: cleanVideos(videos) }, note: note.slice(0, 2000), authorId: user.id,
     })
     revalidatePath("/admin", "layout")
     return { id }
@@ -100,7 +106,7 @@ export async function reviewSubmissionAction(id: number, decision: "approve" | "
 
 // ---- photos ----
 
-export async function updatePhotoAction(id: number, fields: { captionEl: string; captionEn: string; credit: string; sourceUrl: string }) {
+export async function updatePhotoAction(id: number, fields: { captionEl: string; captionEn: string; credit: string; sourceUrl: string; historic: boolean }) {
   return run(async () => {
     await assertRole("admin")
     await updatePhoto(id, fields)
@@ -162,5 +168,48 @@ export async function setApprovedAction(userId: string, approved: boolean) {
     await db.update(schema.user).set({ approved, updatedAt: new Date() }).where(eq(schema.user.id, userId))
     revalidatePath("/admin", "layout")
     return {}
+  })
+}
+
+// ---- videos (YouTube links, admins attach directly; users add them to proposals) ----
+
+export async function addVideoAction(siteId: number, url: string) {
+  return run(async () => {
+    await assertRole("admin")
+    const id = youtubeId(url)
+    if (!id) throw new Error("Δεν αναγνωρίστηκε σύνδεσμος YouTube.")
+    const video = await addVideo(siteId, { youtubeId: id })
+    refresh((await getSite({ id: siteId }))?.slug)
+    return { video }
+  })
+}
+
+export async function updateVideoAction(id: number, fields: { titleEl: string; titleEn: string }) {
+  return run(async () => {
+    await assertRole("admin")
+    await updateVideo(id, { titleEl: fields.titleEl.slice(0, 200), titleEn: fields.titleEn.slice(0, 200) })
+    refresh()
+    return {}
+  })
+}
+
+export async function deleteVideoAction(id: number) {
+  return run(async () => {
+    await assertRole("admin")
+    await deleteVideo(id)
+    refresh()
+    return {}
+  })
+}
+
+// ---- points (superadmins) ----
+
+/** Saves the point values and recalculates everyone's points with them. */
+export async function savePointsAction(raw: unknown) {
+  return run(async () => {
+    const user = await assertRole("superadmin")
+    const recalculated = await savePointsConfig(raw, user.id)
+    revalidatePath("/", "layout")
+    return { recalculated }
   })
 }

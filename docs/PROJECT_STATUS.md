@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27. Read this first when continuing work in a new session._
+_Last updated: 2026-10-27 (per-language scoring). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -29,11 +29,14 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 **Public**
 - `/` 3D map (MapLibre): region tabs (Famagusta District / Karpasia), list with search and type filters,
   fly-to on select, 3D/2D and Map/Satellite toggles, district mask (rest of Cyprus faded),
-  Greek/English toggle (`?lang=en`), completeness bar per church in the side panel.
-- `/site/[slug]` church page: hero photo, history (simple Markdown), details, gallery with lightbox,
-  sources (links always show their destination domain), 3D mini-map, Google Maps link, completeness card.
-- `/contribute` gamification page: overall map completeness, "missions" (filterable, least complete first),
-  leaderboard (first name + last initial), points per mission, titles and badges.
+  Greek/English toggle (`?lang=en`), completeness bar per church in the side panel (signed-in users only).
+- `/site/[slug]` church page: hero photo; compact sticky sidebar on the left (details + completeness card for
+  signed-in users only — visitors never see completeness); history (simple Markdown — a YouTube link alone in
+  a paragraph is embedded), YouTube videos, gallery with lightbox ("old photograph" label on archive photos),
+  sources (links always show their destination domain); the 3D map closes the page edge to edge with a
+  name/coords/Google Maps card on top.
+- `/contribute` gamification page: overall map completeness, pages that need help (filterable by section,
+  least complete first), leaderboard (first name + last initial), how points work, titles and badges.
 - Light theme only (the dark theme was removed 2026-10-27).
 - Palette: exactly three colours taken from the Orthodox Church sites in `docs/sourcs.md`:
   crimson `#6b1d1d`, gold `#ad8840`, parchment `#ece8de` (`--crimson/--gold/--parchment` in
@@ -62,22 +65,33 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 - `/admin/sites` list + editor (`components/admin/site-form.tsx`): bilingual tabs, satellite location
   picker, photo manager (upload with browser-side resize to ≤2400px; import by URL = copied, never
   hotlinked; captions, credit, source link, order), live completeness bar and points estimate.
-  Users get the same form in "propose" mode.
+  Users get the same form in "propose" mode. Videos: paste a YouTube link (`videos` table stores only the
+  video id; embedded via youtube-nocookie.com).
 - `/admin/submissions` queue + review page (diff, points estimate, verify location, publish).
 - `/admin/users` (admins: proposal rights; superadmin: roles/ban/delete/create/confirm e-mail).
+- `/admin/points` (superadmin): every point value — sections (must sum to 100 per language), bonuses,
+  per-proposal points, title thresholds. Stored as JSON in `settings` (key `points`, `lib/points.ts`); saving
+  recalculates `submissions.points` for every approved proposal from its `completed` list.
 
 **Gamification** (`lib/completeness.ts`, `lib/contributors.ts`)
-- 9 missions per church: history EL (30), history EN (20), summary both langs (10), photo (15),
-  3+ photos (10), verified location (15), facts ≥3 (10), sources ≥2 (10), English name/location (5).
-  Placeholder text ("θα συμπληρωθεί", "will be added", "Δείγμα κειμένου") doesn't count.
-- Approved proposal = 5 points + points of missions it newly completed (stored in `submissions.points`,
-  `submissions.completed`). Admin direct edits earn nothing.
-- Titles: Προσκυνητής 0 → Αναγνώστης 50 → Χρονογράφος 150 → Λόγιος 400 → Φύλακας της μνήμης 1000.
-  Badges: first, historian, photographer, explorer, scholar, translator (3 missions each), devoted (10).
+- Values below are the defaults; superadmins change them at `/admin/points`.
+- Each language version of a page is worth **100 points** (Greek 100 + English 100 = 200), split by section:
+  history 35, short description 10, key facts ≥3 lines 10, name+place 5 (per language); photo 15, verified
+  location 15, sources ≥2 10 (shared — one answer counts in both languages, so worth 30/30/20).
+  Page % = points / 200. Placeholder text ("θα συμπληρωθεί", "will be added", "Δείγμα κειμένου") doesn't count.
+- **Bonus points** (don't change the page %): +5 per additional photo beyond the first, +10 per old/archive photo
+  (`photos.historic`, a checkbox in the photo manager), +10 per YouTube video.
+- Approved proposal = 5 points + sections it newly completed + bonuses (stored in `submissions.points`,
+  `submissions.completed` — mission keys like `history.el`, `photo`, plus bonus keys). Admin direct edits earn nothing.
+  Old keys from before the per-language scoring are mapped (`LEGACY`) and rewritten on the next recalculation.
+- Titles (deliberately lay, not clerical): Νέος συνεργάτης 0 → Συνεργάτης 75 → Καταγραφέας μνημείων 250 →
+  Χρονικογράφος 600 → Θεματοφύλακας της μνήμης 1500. Badges (3 each): Συντάκτης (Greek texts), Μεταφραστής
+  (English texts), Ερευνητής πηγών (facts/sources), Φωτογράφος, Αρχειονόμος (old photos), Χαρτογράφος (locations);
+  plus Πρώτη συνεισφορά (1) and Σταθερός συνεργάτης (10 approvals).
 
 ## 3. Data & content
 
-- Tables: `sites`, `photos` (with `source_url`), `submissions`, Better Auth `user`/`session`/`account`/
+- Tables: `sites`, `photos` (with `source_url`, `historic`), `videos`, `settings`, `submissions`, Better Auth `user`/`session`/`account`/
   `verification`, `rate_limit`, `data_imports`. Defined twice — keep in sync:
   `scripts/schema.mjs` (SQL, created by migrate) and `lib/db/schema.ts` (Drizzle). snake_case columns.
 - Content per site is a JSON blob `{el:{name,location,summary,body,facts,sources}, en:{…}}`.
@@ -87,7 +101,7 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   27 exact Google-Maps pins, 4 approximate: Arnadi, Pigi, Syngrasis, Kato Deryneia; Ayios Georgios
   Salaminos skipped — no location). Photos permitted by the Metropolis; credit + source link shown.
   Committee member names/phones on their pages were deliberately NOT imported.
-- Map completeness is ~31%; the 31 imported churches have placeholder history.
+- The 31 imported churches have placeholder history (map completeness is low).
 
 ## 4. Deployment & infrastructure (important)
 
@@ -147,7 +161,8 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 - Links in texts always show their destination domain.
 - Default map shows no third-party place names or borders (own outlines + labels); rest of Cyprus faded.
 - Light theme only; three-colour palette (crimson, gold, parchment) from the church sources.
-- Missing information is shown to everyone as a challenge (gamification), not hidden.
+- Missing information is shown as a challenge (gamification) — but only to signed-in users; visitors browsing
+  the map and church pages don't see completeness bars (/contribute stays public).
 - Resend/e-mail postponed until moving to the real production environment.
 - Commit messages end with `Co-Authored-By: Claude …`; push to `main` deploys.
 
@@ -156,6 +171,7 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 - Pins overlap in Famagusta town (no clustering yet).
 - Local photos for the 31 imported churches live in `./uploads` (gitignored); production has its own in Blob.
 - `scripts/fetch-imconstantias.mjs` depends on the Metropolis site's Elementor markup; re-check if it changes.
+- `scripts/sync.mjs` copies churches and photos only — not videos.
 - Drizzle renders `${sites.id}` unqualified inside raw `sql` subqueries — write `"sites"."id"` explicitly.
 
 ## 8. Next steps (agreed list, in suggested order)

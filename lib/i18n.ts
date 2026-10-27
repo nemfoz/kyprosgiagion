@@ -35,8 +35,10 @@ export const UI = {
   missingTitle: { el: "Τι λείπει", en: "What's missing" },
   helpComplete: { el: "Βοηθήστε να συμπληρωθεί", en: "Help complete it" },
   completeAll: { el: "Η σελίδα είναι πλήρης. Ευχαριστούμε όλους όσοι βοήθησαν!", en: "This page is complete. Thank you to everyone who helped!" },
+  videos: { el: "Βίντεο", en: "Videos" },
+  onMap: { el: "Στον χάρτη", en: "On the map" },
+  historicPhoto: { el: "Παλιά φωτογραφία", en: "Old photograph" },
   pointsShort: { el: "πόντοι", en: "points" },
-  signInToHelp: { el: "Συνδεθείτε ή κάντε εγγραφή για να προτείνετε προσθήκες. Κάθε εγκεκριμένη συνεισφορά κερδίζει πόντους.", en: "Sign in or sign up to suggest additions. Every approved contribution earns points." },
 } as const
 
 type TextKey = { [K in keyof typeof UI]: (typeof UI)[K]["el"] extends string ? K : never }[keyof typeof UI]

@@ -27,7 +27,24 @@ export const photos = sqliteTable("photos", {
   captionEn: text("caption_en").notNull().default(""),
   credit: text("credit").notNull().default(""),
   sourceUrl: text("source_url").notNull().default(""),
+  historic: integer("historic", { mode: "boolean" }).notNull().default(false),
   sort: integer("sort").notNull().default(0),
+})
+
+export const videos = sqliteTable("videos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  siteId: integer("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  youtubeId: text("youtube_id").notNull(),
+  titleEl: text("title_el").notNull().default(""),
+  titleEn: text("title_en").notNull().default(""),
+  sort: integer("sort").notNull().default(0),
+})
+
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: text("updated_at").notNull().default(now),
 })
 
 export const submissions = sqliteTable("submissions", {

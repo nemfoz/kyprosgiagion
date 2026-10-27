@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { reviewSubmissionAction } from "@/app/admin/actions"
 
-export function ReviewForm({ id, kind, canVerifyLocation, points }: { id: number; kind: "create" | "update"; canVerifyLocation: boolean; points: number }) {
+export function ReviewForm({ id, kind, canVerifyLocation, points, locationPoints }: {
+  id: number; kind: "create" | "update"; canVerifyLocation: boolean; points: number; locationPoints: number
+}) {
   const router = useRouter()
   const [note, setNote] = useState("")
   const [publish, setPublish] = useState(false)
@@ -43,7 +45,7 @@ export function ReviewForm({ id, kind, canVerifyLocation, points }: { id: number
             Επαλήθευσα ότι η προτεινόμενη θέση είναι σωστή (δορυφορική εικόνα)
           </label>
         )}
-        <p className="text-sm">Ο χρήστης θα κερδίσει <b className="text-primary">{points + (verify ? 15 : 0)}</b> πόντους με την έγκριση.</p>
+        <p className="text-sm">Ο χρήστης θα κερδίσει <b className="text-primary">{points + (verify ? locationPoints : 0)}</b> πόντους με την έγκριση.</p>
         <p className="text-xs text-muted-foreground">Μετά την έγκριση μπορείτε να επεξεργαστείτε την καταχώρηση κανονικά.</p>
         <div className="flex gap-2">
           <Button onClick={() => decide("approve")} disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Check />}Έγκριση</Button>

@@ -23,7 +23,8 @@ export type MapSite = {
   lng: number
   coordsVerified: boolean
   cover: string | null
-  percent: number
+  /** Page completeness; null for visitors who aren't signed in. */
+  percent: number | null
   name: Record<Lang, string>
   location: Record<Lang, string>
   summary: Record<Lang, string>
@@ -291,7 +292,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialSlug, accou
                 )}
                 <div className="grid gap-5 px-6 pt-5">
                   <p className="text-sm leading-[1.8]">{current.summary[lang] || current.summary.el}</p>
-                  {current.percent < 100 && (
+                  {current.percent !== null && current.percent < 100 && (
                     <Link href={`${siteHref(current)}#contribute`} className="grid gap-1.5 rounded-lg border border-gold/40 bg-accent/40 p-3 text-xs">
                       <span className="flex justify-between"><span>{t("completeness", lang)}</span><b className="text-gold-deep">{current.percent}%</b></span>
                       <ProgressBar percent={current.percent} className="h-1.5" />

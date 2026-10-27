@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 import { MissionList } from "@/components/gamify/mission-list"
 import { Leaderboard } from "@/components/gamify/leaderboard"
-import { BADGES, LEVELS, MISSIONS, PROPOSAL_POINTS } from "@/lib/completeness"
+import { BADGES, BONUSES, levelsFor, PAGE_POINTS, SECTIONS, type BonusKey } from "@/lib/completeness"
+import { getPointsConfig } from "@/lib/points"
 import { leaderboard, missionBoard } from "@/lib/contributors"
 import { langFrom, t } from "@/lib/i18n"
 import { siteTitle } from "@/lib/regions"
@@ -17,7 +18,7 @@ export const metadata: Metadata = { title: "Συνεισφέρετε", descripti
 export default async function ContributePage({ searchParams }: PageProps<"/contribute">) {
   const lang = langFrom((await searchParams).lang)
   const el = lang === "el"
-  const [board, top, session] = await Promise.all([missionBoard(), leaderboard(10), getSession()])
+  const [board, top, session, cfg] = await Promise.all([missionBoard(), leaderboard(10), getSession(), getPointsConfig()])
   const q = el ? "" : "?lang=en"
 
   return (
@@ -54,9 +55,9 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
         <div className="grid content-start gap-8">
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { icon: <PenLine />, title: el ? "Επιλέξτε ναό" : "Pick a church", text: el ? "Διαλέξτε μια αποστολή παρακάτω — ό,τι γνωρίζετε ή μπορείτε να βρείτε." : "Choose a mission below — whatever you know or can find out." },
+              { icon: <PenLine />, title: el ? "Επιλέξτε ναό" : "Pick a church", text: el ? "Διαλέξτε μια σελίδα παρακάτω — ό,τι γνωρίζετε ή μπορείτε να βρείτε." : "Choose a page below — whatever you know or can find out." },
               { icon: <ImagePlus />, title: el ? "Προτείνετε προσθήκες" : "Suggest additions", text: el ? "Κείμενα, φωτογραφίες, πηγές ή διόρθωση της θέσης στον χάρτη." : "Texts, photos, sources or a corrected location on the map." },
-              { icon: <Trophy />, title: el ? "Κερδίστε πόντους" : "Earn points", text: el ? `Με την έγκριση: ${PROPOSAL_POINTS} πόντοι + οι πόντοι κάθε αποστολής που ολοκληρώσατε.` : `On approval: ${PROPOSAL_POINTS} points + the points of each mission you completed.` },
+              { icon: <Trophy />, title: el ? "Κερδίστε πόντους" : "Earn points", text: el ? `Με την έγκριση: ${cfg.proposal} πόντοι + οι πόντοι κάθε ενότητας που συμπληρώσατε + μπόνους.` : `On approval: ${cfg.proposal} points + the points of each section you completed + bonuses.` },
             ].map((s, i) => (
               <Card key={i} className="gap-2 py-4">
                 <CardContent className="grid gap-1.5 px-4">
@@ -69,7 +70,7 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
           </div>
 
           <section className="grid gap-3">
-            <h2 className="text-2xl font-bold">{el ? "Αποστολές" : "Missions"}</h2>
+            <h2 className="text-2xl font-bold">{el ? "Σελίδες που χρειάζονται βοήθεια" : "Pages that need help"}</h2>
             <p className="text-sm text-muted-foreground">{el ? "Οι λιγότερο ολοκληρωμένες σελίδες πρώτες. Φιλτράρετε ανάλογα με το τι θέλετε να προσφέρετε." : "Least complete pages first. Filter by what you'd like to contribute."}</p>
             <MissionList sites={board.sites} lang={lang} signedIn={!!session} />
           </section>
@@ -81,21 +82,45 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
             <CardContent><Leaderboard rows={top} lang={lang} highlight={session?.user.id} /></CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="font-heading text-lg">{el ? "Πόντοι ανά αποστολή" : "Points per mission"}</CardTitle></CardHeader>
-            <CardContent>
-              <ul className="grid gap-1.5 text-sm">
-                {MISSIONS.map((m) => <li key={m.key} className="flex justify-between gap-3"><span>{m.label[lang]}</span><b className="text-primary">+{m.points}</b></li>)}
-              </ul>
+            <CardHeader><CardTitle className="font-heading text-lg">{el ? "Πώς μετρούν οι πόντοι" : "How points work"}</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 text-sm">
+              <p className="text-muted-foreground">
+                {el
+                  ? `Κάθε σελίδα αξίζει ${PAGE_POINTS} πόντους στα ελληνικά και ${PAGE_POINTS} στα αγγλικά. Φωτογραφία, θέση και πηγές ισχύουν και για τις δύο γλώσσες, άρα μετρούν διπλά.`
+                  : `Every page is worth ${PAGE_POINTS} points in Greek and ${PAGE_POINTS} in English. Photo, location and sources serve both languages, so they count twice.`}
+              </p>
+              <table className="w-full">
+                <thead className="text-xs text-muted-foreground">
+                  <tr><th className="pb-1 text-left font-normal">{el ? "Ενότητα" : "Section"}</th><th className="pb-1 text-right font-normal">{el ? "ανά γλώσσα" : "per language"}</th></tr>
+                </thead>
+                <tbody>
+                  {SECTIONS.map((s) => (
+                    <tr key={s.key} title={s.hint[lang]}>
+                      <td className="py-0.5">{s.label[lang]}{s.shared && <span className="text-xs text-muted-foreground"> · {el ? "και οι δύο" : "both"}</span>}</td>
+                      <td className="py-0.5 text-right font-semibold text-primary">{cfg.sections[s.key]}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t"><td className="pt-1">{el ? "Σύνολο" : "Total"}</td><td className="pt-1 text-right font-semibold">{PAGE_POINTS}</td></tr>
+                </tbody>
+              </table>
+              <div className="grid gap-1.5">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{el ? "Μπόνους" : "Bonus points"}</p>
+                {Object.entries(BONUSES).map(([k, b]) => (
+                  <p key={k} className="flex justify-between gap-3" title={b.hint[lang]}><span>{b.label[lang]}</span><b className="text-primary">+{cfg.bonuses[k as BonusKey]}</b></p>
+                ))}
+                <p className="flex justify-between gap-3"><span>{el ? "Κάθε εγκεκριμένη πρόταση" : "Every approved proposal"}</span><b className="text-primary">+{cfg.proposal}</b></p>
+                <p className="text-xs text-muted-foreground">{el ? "Τα μπόνους δεν αλλάζουν το ποσοστό πληρότητας της σελίδας." : "Bonuses don't change a page's completeness percentage."}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle className="font-heading text-lg">{el ? "Τίτλοι & διακρίσεις" : "Titles & badges"}</CardTitle></CardHeader>
             <CardContent className="grid gap-4 text-sm">
               <ul className="grid gap-1">
-                {LEVELS.map((l) => <li key={l.min} className="flex justify-between"><span>{l[lang]}</span><span className="text-muted-foreground">{l.min}+</span></li>)}
+                {levelsFor(cfg).map((l) => <li key={l.min} className="flex justify-between"><span>{l[lang]}</span><span className="text-muted-foreground">{l.min}+</span></li>)}
               </ul>
               <ul className="grid gap-1.5">
-                {Object.values(BADGES).map((b) => <li key={b.en}><span className="mr-2">{b.icon}</span>{b[lang]}</li>)}
+                {Object.values(BADGES).map((b) => <li key={b.en}><span className="mr-2">{b.icon}</span>{b[lang]} <span className="text-xs text-muted-foreground">— {b.hint[lang]}</span></li>)}
               </ul>
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin className="mt-0.5 size-3.5 shrink-0" />{el ? "Στον πίνακα εμφανίζεται μόνο το όνομα και το αρχικό του επωνύμου σας." : "Only your first name and last initial appear on the board."}</p>
             </CardContent>

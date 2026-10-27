@@ -5,7 +5,7 @@ import { normaliseContent, SITE_TYPES, slugify, type SiteContent, type SiteType 
 import { regions } from "@/lib/regions"
 import { deleteStored } from "@/lib/storage"
 
-const { sites, photos } = schema
+const { sites, photos, videos } = schema
 
 export type SiteInput = {
   slug: string
@@ -18,11 +18,14 @@ export type SiteInput = {
   content: SiteContent
 }
 
-export type PhotoInput = { src: string; captionEl?: string; captionEn?: string; credit?: string; sourceUrl?: string }
+export type PhotoInput = { src: string; captionEl?: string; captionEn?: string; credit?: string; sourceUrl?: string; historic?: boolean }
+
+export type VideoInput = { youtubeId: string; titleEl?: string; titleEn?: string }
 
 export type SiteWithPhotos = Omit<typeof sites.$inferSelect, "content"> & {
   content: SiteContent
   photos: (typeof photos.$inferSelect)[]
+  videos: (typeof videos.$inferSelect)[]
 }
 
 const withContent = <T extends { content: string }>(s: T) => ({ ...s, content: normaliseContent(s.content) })
@@ -41,8 +44,11 @@ export async function getSite(where: { id: number } | { slug: string }): Promise
   const [row] = await db.select().from(sites)
     .where("id" in where ? eq(sites.id, where.id) : eq(sites.slug, where.slug))
   if (!row) return null
-  const list = await db.select().from(photos).where(eq(photos.siteId, row.id)).orderBy(asc(photos.sort), asc(photos.id))
-  return { ...withContent(row), photos: list }
+  const [list, videoList] = await Promise.all([
+    db.select().from(photos).where(eq(photos.siteId, row.id)).orderBy(asc(photos.sort), asc(photos.id)),
+    db.select().from(videos).where(eq(videos.siteId, row.id)).orderBy(asc(videos.sort), asc(videos.id)),
+  ])
+  return { ...withContent(row), photos: list, videos: videoList }
 }
 
 /** Checks and cleans form input. Returns error messages in Greek. */
@@ -88,6 +94,7 @@ export async function updateSite(id: number, input: Partial<SiteInput>) {
 export async function deleteSite(id: number) {
   const list = await db.select().from(photos).where(eq(photos.siteId, id))
   await db.delete(photos).where(eq(photos.siteId, id))
+  await db.delete(videos).where(eq(videos.siteId, id))
   await db.delete(sites).where(eq(sites.id, id))
   await Promise.all(list.map((p) => deleteStored(p.src)))
 }
@@ -96,7 +103,7 @@ export async function addPhoto(siteId: number, p: PhotoInput) {
   const [{ next }] = await db.select({ next: sql<number>`COALESCE(MAX(${photos.sort}), -1) + 1` }).from(photos).where(eq(photos.siteId, siteId))
   const [row] = await db.insert(photos).values({
     siteId, src: p.src, captionEl: p.captionEl ?? "", captionEn: p.captionEn ?? "",
-    credit: p.credit ?? "", sourceUrl: p.sourceUrl ?? "", sort: next,
+    credit: p.credit ?? "", sourceUrl: p.sourceUrl ?? "", historic: !!p.historic, sort: next,
   }).returning()
   await touch(siteId)
   return row
@@ -119,6 +126,25 @@ export async function deletePhoto(id: number) {
 export async function reorderPhotos(siteId: number, ids: number[]) {
   await Promise.all(ids.map((id, sort) => db.update(photos).set({ sort }).where(and(eq(photos.id, id), eq(photos.siteId, siteId)))))
   await touch(siteId)
+}
+
+export async function addVideo(siteId: number, v: VideoInput) {
+  const [{ next }] = await db.select({ next: sql<number>`COALESCE(MAX(${videos.sort}), -1) + 1` }).from(videos).where(eq(videos.siteId, siteId))
+  const [row] = await db.insert(videos).values({
+    siteId, youtubeId: v.youtubeId, titleEl: v.titleEl ?? "", titleEn: v.titleEn ?? "", sort: next,
+  }).returning()
+  await touch(siteId)
+  return row
+}
+
+export async function updateVideo(id: number, v: { titleEl: string; titleEn: string }) {
+  const [row] = await db.update(videos).set(v).where(eq(videos.id, id)).returning()
+  if (row) await touch(row.siteId)
+}
+
+export async function deleteVideo(id: number) {
+  const [row] = await db.delete(videos).where(eq(videos.id, id)).returning()
+  if (row) await touch(row.siteId)
 }
 
 const touch = (siteId: number) => db.update(sites).set({ updatedAt: sql`(datetime('now'))` }).where(eq(sites.id, siteId))

@@ -49,7 +49,7 @@ async function snapshot(db) {
 }
 
 const SITE_COLS = ['slug', 'type', 'region', 'lat', 'lng', 'coords_verified', 'published', 'content', 'created_at', 'updated_at'];
-const PHOTO_COLS = ['src', 'caption_el', 'caption_en', 'credit', 'source_url', 'sort'];
+const PHOTO_COLS = ['src', 'caption_el', 'caption_en', 'credit', 'source_url', 'historic', 'sort'];
 const signature = (s) => JSON.stringify([
   SITE_COLS.filter((c) => !c.endsWith('_at')).map((c) => s[c]),
   s.photos.map((p) => PHOTO_COLS.map((c) => p[c])),
@@ -77,7 +77,7 @@ async function pull() {
     for (const p of s.photos) {
       stmts.push({
         sql: `INSERT INTO photos (id, site_id, ${PHOTO_COLS.join(', ')}) VALUES (?, ?${', ?'.repeat(PHOTO_COLS.length)})`,
-        args: [p.id, s.id, ...PHOTO_COLS.map((c) => p[c])],
+        args: [p.id, s.id, ...PHOTO_COLS.map((c) => p[c] ?? 0)],
       });
     }
   }
@@ -141,7 +141,7 @@ async function push() {
     for (const p of s.photos) {
       stmts.push({
         sql: `INSERT INTO photos (site_id, ${PHOTO_COLS.join(', ')}) VALUES (?${', ?'.repeat(PHOTO_COLS.length)})`,
-        args: [siteId, ...PHOTO_COLS.map((c) => p[c])],
+        args: [siteId, ...PHOTO_COLS.map((c) => p[c] ?? 0)],
       });
     }
     await remote.batch(stmts, 'write');

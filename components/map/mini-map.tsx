@@ -3,10 +3,13 @@
 import { useEffect, useRef } from "react"
 import type { Lang } from "@/lib/content"
 import { UI } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 
-/** Small 3D satellite map of one site, for its dedicated page. */
-export function MiniMap({ lat, lng, type, boundary, lang }: { lat: number; lng: number; type: string; boundary?: string; lang: Lang }) {
+/** 3D satellite map of one site, for its dedicated page. */
+export function MiniMap({ lat, lng, type, boundary, lang, className }: {
+  lat: number; lng: number; type: string; boundary?: string; lang: Lang; className?: string
+}) {
   const el = useRef<HTMLDivElement>(null)
   const mapRef = useRef<import("maplibre-gl").Map | null>(null)
 
@@ -37,5 +40,5 @@ export function MiniMap({ lat, lng, type, boundary, lang }: { lat: number; lng: 
     return () => { cancelled = true; map?.remove() }
   }, [lat, lng, type, boundary, lang])
 
-  return <div ref={el} className="h-64 overflow-hidden rounded-lg bg-muted" />
+  return <div ref={el} className={cn("h-64 overflow-hidden rounded-lg bg-muted", className)} />
 }

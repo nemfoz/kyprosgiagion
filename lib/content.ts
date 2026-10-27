@@ -57,7 +57,24 @@ export function inline(text: string) {
     .replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<em>$2</em>")
 }
 
-/** Minimal Markdown: ## / ### headings, "- " lists, paragraphs, **bold**, *italic*, [links](url). HTML is escaped. */
+/** The video id of a YouTube link (watch, youtu.be, shorts, embed, live), or null. */
+export function youtubeId(url: string): string | null {
+  const m = String(url ?? "").trim().match(
+    /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/|youtube-nocookie\.com\/embed\/)([\w-]{11})(?:[?&#/].*)?$/i,
+  )
+  return m ? m[1] : null
+}
+
+/** Privacy-friendly embed address (no cookies until the visitor presses play). */
+export const youtubeEmbed = (id: string) => `https://www.youtube-nocookie.com/embed/${id}`
+
+const videoFrame = (id: string) =>
+  `<div class="video-embed"><iframe src="${youtubeEmbed(id)}" title="YouTube" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
+
+/**
+ * Minimal Markdown: ## / ### headings, "- " lists, paragraphs, **bold**, *italic*, [links](url).
+ * A YouTube link alone in its paragraph becomes an embedded video. HTML is escaped.
+ */
 export function markdown(src: string) {
   return String(src ?? "")
     .replace(/\r\n/g, "\n")
@@ -67,6 +84,8 @@ export function markdown(src: string) {
     .map((block) => {
       const h = block.match(/^(#{2,3})\s+([\s\S]*)$/)
       if (h) return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`
+      const video = youtubeId(block)
+      if (video) return videoFrame(video)
       const lines = block.split("\n")
       if (lines.every((l) => /^-\s+/.test(l))) return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^-\s+/, ""))}</li>`).join("")}</ul>`
       return `<p>${lines.map(inline).join("<br>")}</p>`

@@ -31,7 +31,7 @@ export function MyProgress({ stats, suggestions, overall }: { stats: Stats; sugg
             {(Object.keys(BADGES) as BadgeKey[]).map((b) => {
               const has = stats.badges.includes(b)
               return (
-                <span key={b} title={has ? BADGES[b].el : `${BADGES[b].el} (δεν έχει κερδηθεί ακόμα)`}
+                <span key={b} title={has ? `${BADGES[b].el}: ${BADGES[b].hint.el}` : `${BADGES[b].el}: ${BADGES[b].hint.el} (δεν έχει κερδηθεί ακόμα)`}
                   className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${has ? "border-gold/50 bg-accent" : "opacity-40 grayscale"}`}>
                   {BADGES[b].icon} {BADGES[b].el}
                 </span>
@@ -44,8 +44,8 @@ export function MyProgress({ stats, suggestions, overall }: { stats: Stats; sugg
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Προτεινόμενες αποστολές</CardTitle>
-          <CardDescription>Ο χάρτης είναι {overall}% πλήρης. Αυτές οι σελίδες χρειάζονται περισσότερη βοήθεια:</CardDescription>
+          <CardTitle className="font-heading text-lg">Σελίδες που χρειάζονται βοήθεια</CardTitle>
+          <CardDescription>Ο χάρτης είναι {overall}% πλήρης. Αυτές οι σελίδες είναι οι λιγότερο ολοκληρωμένες:</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-2">
           {suggestions.map((s) => (
@@ -58,7 +58,7 @@ export function MyProgress({ stats, suggestions, overall }: { stats: Stats; sugg
               <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" />
             </Link>
           ))}
-          <Link href="/contribute" className="mt-1 text-sm text-primary underline">Όλες οι αποστολές</Link>
+          <Link href="/contribute" className="mt-1 text-sm text-primary underline">Όλες οι σελίδες</Link>
         </CardContent>
       </Card>
     </div>

@@ -16,4 +16,7 @@ export const toFormValues = (s: SiteWithPhotos): SiteFormValues => ({
 })
 
 export const toFormPhotos = (s: SiteWithPhotos) =>
-  s.photos.map((p) => ({ id: p.id, src: p.src, captionEl: p.captionEl, captionEn: p.captionEn, credit: p.credit, sourceUrl: p.sourceUrl }))
+  s.photos.map((p) => ({ id: p.id, src: p.src, captionEl: p.captionEl, captionEn: p.captionEn, credit: p.credit, sourceUrl: p.sourceUrl, historic: p.historic }))
+
+export const toFormVideos = (s: SiteWithPhotos) =>
+  s.videos.map((v) => ({ id: v.id, youtubeId: v.youtubeId, titleEl: v.titleEl, titleEn: v.titleEn }))
