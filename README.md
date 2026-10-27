@@ -50,6 +50,8 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 | `lib/db/schema.ts` | Drizzle tables — created by `scripts/migrate.mjs` from `scripts/schema.mjs` (keep both in sync) |
 | `lib/sites.ts`, `lib/submissions.ts` | Church and proposal data |
 | `lib/storage.ts` | Photo storage (Blob / `./uploads`) and copying images from other websites |
+| `lib/photo-sizes.mjs`, `lib/photo-variants.mjs` | Smaller WebP copies of every photo (`sized(src, "sm" \| "md")`) |
+| `lib/seo.ts`, `app/sitemap.ts`, `app/robots.ts`, `**/opengraph-image.tsx` | SEO, hreflang and share previews |
 | `data/regions.json`, `public/data/*.geojson` | Regions, map labels, outlines |
 | `scripts/` | migrate, sync, import, rehost-photos |
 

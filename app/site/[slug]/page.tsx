@@ -18,7 +18,7 @@ import { regions } from "@/lib/regions"
 import { getPointsConfig } from "@/lib/points"
 import { getMetropolis } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
-import { getSite } from "@/lib/sites"
+import { getSite, nearbySites } from "@/lib/sites"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { alternates, jsonLd, langUrl, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
 
@@ -51,7 +51,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   const lang: Lang = langFrom((await searchParams).lang)
   const other: Lang = lang === "el" ? "en" : "el"
   const [{ site, session, admin }, t] = await Promise.all([load(slug), getT()])
-  const metropolis = site.metropolisId ? await getMetropolis({ id: site.metropolisId }) : null
+  const [metropolis, nearby] = await Promise.all([site.metropolisId ? getMetropolis({ id: site.metropolisId }) : null, nearbySites(site)])
   const c = site.content
   const region = regions.find((r) => r.id === site.region)
   const facts = parseFacts(pick(c, lang, "facts"))
@@ -183,6 +183,25 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <a href="#map" className="mt-3 flex items-center gap-1.5 text-[13px] text-primary underline underline-offset-2"><MapPin className="size-3.5" />{t("onMap", lang)}</a>
             </CardContent>
           </Card>
+          {nearby.length > 0 && (
+            <Card className="gap-2 py-4">
+              <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("nearby", lang)}</CardTitle></CardHeader>
+              <CardContent className="grid gap-1 px-2">
+                {nearby.map((s) => (
+                  <Link key={s.id} href={`/site/${s.slug}${lang === "en" ? "?lang=en" : ""}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted">
+                    {s.cover
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-12 w-11 shrink-0 rounded-t-[22px] rounded-b-md object-cover" />
+                      : <span className="grid h-12 w-11 shrink-0 place-items-center rounded-t-[22px] rounded-b-md bg-muted text-gold-deep">✝</span>}
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-[13px] leading-snug font-medium">{pick(s.content, lang, "name")}</span>
+                      <span className="block text-xs text-muted-foreground">{distance(s.km, lang)}</span>
+                    </span>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
           {score && cfg && <CompletenessCard score={score} bonuses={cfg.bonuses} siteId={site.id} lang={lang} />}
         </aside>
       </main>
@@ -206,6 +225,13 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
       </section>
     </div>
   )
+}
+
+function distance(km: number, lang: Lang) {
+  const locale = lang === "el" ? "el-GR" : "en-GB"
+  return km < 1
+    ? new Intl.NumberFormat(locale, { style: "unit", unit: "meter", maximumFractionDigits: 0 }).format(Math.round(km * 100) * 10)
+    : new Intl.NumberFormat(locale, { style: "unit", unit: "kilometer", maximumFractionDigits: km < 10 ? 1 : 0 }).format(km)
 }
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {

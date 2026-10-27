@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27 (bilingual admin, name days, Metropolises, map filters; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-27 (photo copies, SEO/sharing, pin clustering, nearby churches; roadmap in §8). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -29,15 +29,16 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 **Public**
 - `/` 3D map (MapLibre): list panel with search, Region and Metropolis dropdowns (`?region=`, `?metropolis=`;
   a Metropolis frames its churches) and type filters,
-  fly-to on select, 3D/2D and Map/Satellite toggles, district mask (rest of Cyprus faded),
+  fly-to on select, pins grouped into numbered clusters while zoomed out (supercluster, up to zoom 13; click zooms in),
+  3D/2D and Map/Satellite toggles, district mask (rest of Cyprus faded),
   Greek/English toggle (`?lang=en`), completeness bar per church in the side panel (signed-in users only).
 - Content sidebars (church, name days, Metropolis, contribute pages) are on the right and sticky on wide screens.
 - `/site/[slug]` church page: hero photo; compact sticky sidebar on the right (details + completeness card for
-  signed-in users only — visitors never see completeness); history (simple Markdown — a YouTube link alone in
+  signed-in users only — visitors never see completeness — and the 5 nearest churches with distance); history (simple Markdown — a YouTube link alone in
   a paragraph is embedded), YouTube videos, gallery with lightbox ("old photograph" label on archive photos),
   sources (links always show their destination domain); the 3D map closes the page edge to edge with a
   name/coords/Google Maps card on top.
-- **Name-day bar** above every header (public and admin): yesterday, today (+ movable feast), tomorrow → `/eortologio`.
+- **Name-day bar** above every header (public and admin), titled «Ονομαστικές εορτές»: yesterday, today (+ movable feast), tomorrow → `/eortologio`.
 - `/eortologio` name-day calendar: today, this year's (or next) Easter date, month view (?y=&m=), name search (?q=), the year's
   movable feasts. Fixed days: `data/namedays.json` (built by `scripts/fetch-namedays.mjs` from newsbeast.gr, years
   2024–2026 compared); Easter-dependent days computed in `lib/namedays.ts` (Orthodox Easter, Lazarus, Palm Sunday,
@@ -50,6 +51,15 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 - `/contribute` gamification page: overall map completeness, pages that need help (filterable by section,
   least complete first), leaderboard (first name + last initial), how points work, titles and badges.
 - Light theme only (the dark theme was removed 2026-10-27).
+- `/contribute` is labelled «Πάρτε μέρος» in Greek (owner's choice; «Συνεισφέρετε» sounded like a donation request).
+- **Photo copies**: every stored photo has `name.sm.webp` (320px, lists/thumbnails) and `name.md.webp` (960px, cards,
+  gallery, hero on phones) next to the original (`lib/photo-sizes.mjs` naming + `sized()`, `lib/photo-variants.mjs`
+  sharp). Made on upload and once for older photos by migrate (`variants:photos`); `/media` and `/uploads` serve the
+  original while a copy is missing. The lightbox and desktop hero use the original.
+- **SEO/sharing** (`lib/seo.ts`): per-church OG image `app/site/[slug]/opengraph-image.tsx` (first photo + Greek and
+  English name; fonts in `assets/fonts`), default `app/opengraph-image.tsx`; canonical + hreflang (Greek = plain URL,
+  English = `?lang=en`); `sitemap.xml` (both languages, revalidated hourly) and `robots.txt`; schema.org
+  Church/PlaceOfWorship JSON-LD on church pages. Absolute URLs use `SITE_URL`, else `VERCEL_PROJECT_PRODUCTION_URL`.
 - Palette: exactly three colours taken from the Orthodox Church sites in `docs/sourcs.md`:
   crimson `#6b1d1d`, gold `#ad8840`, parchment `#ece8de` (`--crimson/--gold/--parchment` in
   `app/globals.css`). Every other token (ink text, muted text, cards, borders, pin types, map colours
@@ -155,6 +165,7 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 | `SUPERADMIN_EMAILS` | set: `nmf@hnf.sh` (Production + Preview) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | **not set — deliberately postponed** until the "real" production environment |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | **not set yet** (CAPTCHA disabled until then) |
+| `SITE_URL` | optional — set to the custom domain when there is one (sitemap, canonical and OG URLs) |
 | `ADMIN_PASSWORD` | leftover from the old Express app, unused |
 
 Local dev: `.env.local` has `BETTER_AUTH_SECRET`, `SUPERADMIN_EMAILS=super@example.test`, and a
@@ -188,7 +199,6 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 
 ## 7. Known issues / gotchas
 
-- Pins overlap in Famagusta town (no clustering yet).
 - Local photos for the 31 imported churches live in `./uploads` (gitignored); production has its own in Blob.
 - `scripts/fetch-imconstantias.mjs` depends on the Metropolis site's Elementor markup; re-check if it changes.
 - `scripts/sync.mjs` copies churches and photos only — not videos, Metropolises or Metropolis assignments.
@@ -205,20 +215,18 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 
 ## 8. Next steps (roadmap agreed 2026-10-27)
 
-**Next session — start here (owner's choice): items 2, 4 and 5 below.**
+**Done 2026-10-27:** items 2 (photo copies), 4 (SEO/sharing) and 5 (clustering + nearby churches).
+Suggested next: 1 (backups) — production still has none — then 3 (feast days).
 
 1. **Backups**: nightly export of the DB (+ Blob inventory) and a tested restore. Production has no backups yet —
    do this before contributors grow.
-2. **Image performance** ← next: resized variants on upload (thumbnail / medium / full) + a one-off migrate step that
-   creates them for existing photos; use the thumbnails in the map list, gallery and cards (they currently load
-   full images, ~400 KB each).
+2. ~~Image performance~~ — done (see §2 "Photo copies").
 3. **Feast days / panigyria**: patron saint + feast day per church (+ century, current state: in use / ruined /
    occupied) as structured fields and map filters. Tie into name days: "Πανηγυρίζουν σήμερα" in the name-day bar
    and `/eortologio`, "celebrating this week" map filter, feast-day countdown on church pages, new mission for points.
-4. **SEO / sharing** ← next: per-church OG images (photo + name, for Facebook/WhatsApp previews), sitemap,
-   proper EL/EN URLs with hreflang, schema.org markup (Church / Place).
-5. **Pin clustering + "nearby churches"** ← next: cluster pins when zoomed out (Famagusta town overlaps), list the
-   closest churches on each church page.
+4. ~~SEO / sharing~~ — done (see §2). Possible later: separate `/en/…` paths instead of `?lang=en`; submit the
+   sitemap in Google Search Console once the custom domain is set (then set `SITE_URL`).
+5. ~~Pin clustering + "nearby churches"~~ — done.
 6. **More content**: more regions + region management in the admin; importers from the Metropolis parish lists
    (Constantia ~89, Paphos ~114, Tamassos ~50, Kition 46, Limassol/Amathus, Morphou, Trimythous) or the Church's
    2024 PDF (strip clergy/committee names and phones). The 31 imported churches still have placeholder history.

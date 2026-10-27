@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
+import Supercluster from "supercluster"
 import { ArrowLeft, ArrowRight, CalendarDays, Landmark, LayoutDashboard, LogIn, MapPin, Search, Sparkles, TriangleAlert } from "lucide-react"
 import { NameDayBar, type NameDays } from "@/components/namedays/nameday-bar"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,7 @@ import { places, regionAncestors, regions as allRegions, siteTitle, defaultRegio
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
-import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
+import { ButtonsControl, clusterElement, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
 import { sized } from "@/lib/photo-sizes.mjs"
 
 export type MapSite = {
@@ -55,6 +56,9 @@ const regions = [
   ...(tops.length > 1 ? [ALL] : []),
   ...tops.flatMap((r) => [r, ...active.filter((c) => c.parent === r.id)]),
 ]
+// Pins closer than this (in pixels) are drawn as one numbered circle, up to zoom 13.
+const clusterer = () => new Supercluster<{ id: number }>({ radius: 42, maxZoom: 13 })
+const WORLD: [number, number, number, number] = [-180, -85, 180, 85]
 const fold = (s: string) => s.toLocaleLowerCase("el").normalize("NFD").replace(/[̀-ͯ]/g, "")
 
 /** Camera for a region; `fit` frames a set of pins exactly (no extra zoom, more padding). */
@@ -82,6 +86,8 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null)
   const markers = useRef(new Map<number, Marker>())
   const labels = useRef<Marker[]>([])
+  const clusterMarkers = useRef<Marker[]>([])
+  const [zoom, setZoom] = useState(7)
   const tip = useRef<Popup | null>(null)
   const view = useRef({ is3d: true, satellite: false })
   const langRef = useRef(lang)
@@ -131,7 +137,10 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
         },
       ])
       map.addControl(controls.current, "top-right")
-      const zoomClass = () => map!.getContainer().classList.toggle("show-minor", map!.getZoom() >= 10.3)
+      const zoomClass = () => {
+        map!.getContainer().classList.toggle("show-minor", map!.getZoom() >= 10.3)
+        setZoom(Math.floor(map!.getZoom()))
+      }
       map.on("zoom", zoomClass)
       map.on("load", () => {
         collapseAttribution(map!)
@@ -159,10 +168,33 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   }, [lang, ready])
 
   // ---- markers ----
+  // Nearby pins are grouped while zoomed out (the selected church always keeps its own pin).
+  const index = useMemo(() => clusterer().load(visible.filter((s) => s.id !== selected).map((s) => ({
+    type: "Feature", properties: { id: s.id }, geometry: { type: "Point", coordinates: [s.lng, s.lat] },
+  }))), [visible, selected])
+  const clusters = useMemo(() => index.getClusters(WORLD, zoom), [index, zoom])
+
   useEffect(() => {
     const map = mapRef.current, ml = mlRef.current
     if (!ready || !map || !ml) return
-    const show = new Set(visible.map((s) => s.id))
+    const show = new Set(clusters.flatMap((c) => ("cluster" in c.properties ? [] : [c.properties.id])))
+    if (selected && visible.some((s) => s.id === selected)) show.add(selected)
+    clusterMarkers.current.splice(0).forEach((m) => m.remove())
+    for (const c of clusters) {
+      if (!("cluster" in c.properties)) continue
+      const { cluster_id: id, point_count: count } = c.properties
+      const [lng, lat] = c.geometry.coordinates
+      const el = clusterElement(count)
+      const names = () => index.getLeaves(id, 5).map((p) => name(sites.find((s) => s.id === p.properties.id)!))
+      el.addEventListener("click", (e) => {
+        e.stopPropagation()
+        tip.current?.remove()
+        map.flyTo({ center: [lng, lat], zoom: Math.min(index.getClusterExpansionZoom(id) + 0.2, 15), duration: 1200, essential: true })
+      })
+      el.addEventListener("mouseenter", () => showTipAt(lng, lat, names().join(" · ") + (count > 5 ? " …" : "")))
+      el.addEventListener("mouseleave", () => tip.current?.remove())
+      clusterMarkers.current.push(new ml.Marker({ element: el }).setLngLat([lng, lat]).addTo(map))
+    }
     for (const s of sites) {
       let m = markers.current.get(s.id)
       if (!m) {
@@ -178,14 +210,19 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
       if (show.has(s.id)) m.addTo(map)
       else m.remove()
     }
-  }, [visible, selected, ready, sites])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- name() only reads the language
+  }, [clusters, visible, selected, ready, sites, lang])
 
   function showTip(s: MapSite) {
+    showTipAt(s.lng, s.lat, s.name[langRef.current] || s.name.el, 36)
+  }
+
+  function showTipAt(lng: number, lat: number, text: string, offset = 24) {
     const map = mapRef.current, ml = mlRef.current
     if (!map || !ml) return
     tip.current?.remove()
-    tip.current = new ml.Popup({ closeButton: false, closeOnClick: false, offset: 36, className: "site-tip" })
-      .setLngLat([s.lng, s.lat]).setText(s.name[langRef.current] || s.name.el).addTo(map)
+    tip.current = new ml.Popup({ closeButton: false, closeOnClick: false, offset, className: "site-tip" })
+      .setLngLat([lng, lat]).setText(text).addTo(map)
   }
 
   // ---- camera ----

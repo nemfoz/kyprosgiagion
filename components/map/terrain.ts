@@ -100,6 +100,15 @@ export function pinElement(type: string, { approx = false } = {}) {
   return el
 }
 
+/** A numbered circle standing for several pins close together. */
+export function clusterElement(count: number) {
+  const el = document.createElement("button")
+  el.type = "button"
+  el.className = `pin-cluster${count >= 10 ? " large" : ""}`
+  el.textContent = String(count)
+  return el
+}
+
 export const collapseAttribution = (map: MlMap) =>
   map.getContainer().querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show")
 

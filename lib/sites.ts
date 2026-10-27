@@ -1,5 +1,5 @@
 import "server-only"
-import { and, asc, desc, eq, sql } from "drizzle-orm"
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { normaliseContent, SITE_TYPES, slugify, type SiteContent, type SiteType } from "@/lib/content"
 import { regions } from "@/lib/regions"
@@ -41,6 +41,20 @@ export async function listSites({ publishedOnly }: { publishedOnly: boolean }) {
     .where(publishedOnly ? eq(sites.published, true) : undefined)
     .orderBy(desc(sites.updatedAt))
   return rows.map(({ site, cover }) => ({ ...withContent(site), cover }))
+}
+
+/** Distance in km between two points (haversine). */
+export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const rad = Math.PI / 180
+  const h = Math.sin(((b.lat - a.lat) * rad) / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - a.lng) * rad) / 2) ** 2
+  return 12742 * Math.asin(Math.sqrt(h))
+}
+
+/** The published churches closest to a point, nearest first. */
+export async function nearbySites(from: { id: number; lat: number; lng: number }, limit = 5) {
+  const rows = await db.select({ id: sites.id, slug: sites.slug, type: sites.type, lat: sites.lat, lng: sites.lng, content: sites.content, cover: coverSql })
+    .from(sites).where(and(eq(sites.published, true), ne(sites.id, from.id)))
+  return rows.map((r) => ({ ...withContent(r), km: distanceKm(from, r) })).sort((a, b) => a.km - b.km).slice(0, limit)
 }
 
 export async function getSite(where: { id: number } | { slug: string }): Promise<SiteWithPhotos | null> {
