@@ -57,7 +57,7 @@ export async function MyProgress({ stats, suggestions, overall }: { stats: Stats
           {suggestions.map((s) => (
             <Link key={s.id} href={`/admin/sites/${s.id}`} className="group grid grid-cols-[1fr_auto_16px] items-center gap-3 rounded-lg border bg-background p-3 hover:border-primary/40">
               <span className="min-w-0">
-                <span className="block truncate font-medium">{s.name[lang] || s.name.el}</span>
+                <span className="line-clamp-2 font-medium">{s.name[lang] || s.name.el}</span>
                 <span className="block truncate text-xs text-muted-foreground">{s.missing.slice(0, 3).map((k) => MISSIONS.find((m) => m.key === k)!.label[lang]).join(" · ")}</span>
               </span>
               <span className="text-right text-xs"><b className="text-primary">+{s.missingPoints}</b><span className="block text-muted-foreground">{s.percent}%</span></span>

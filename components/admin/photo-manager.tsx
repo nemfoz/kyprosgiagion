@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { ArrowDown, ArrowUp, ImagePlus, Link2, Loader2, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Camera, ImagePlus, Link2, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -36,6 +36,7 @@ export function PhotoManager(props: Props) {
   const [url, setUrl] = useState("")
   const [over, setOver] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const cameraInput = useRef<HTMLInputElement>(null)
   const photos = props.photos as (PhotoFields & { id?: number })[]
   const direct = props.mode === "direct"
 
@@ -167,6 +168,11 @@ export function PhotoManager(props: Props) {
         {t("editor.photo.drop")} <span className="text-primary underline">{t("editor.photo.choose")}</span>
       </button>
       <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => upload([...(e.target.files ?? [])])} />
+      {/* Phones and tablets: straight to the camera. */}
+      <Button type="button" variant="outline" className="h-11 pointer-fine:hidden" disabled={busy} onClick={() => cameraInput.current?.click()}>
+        <Camera />{t("editor.photo.camera")}
+      </Button>
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={(e) => upload([...(e.target.files ?? [])])} />
       <div className="flex gap-2">
         <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("editor.photo.urlPlaceholder")} />
         <Button type="button" variant="outline" onClick={importUrl} disabled={busy}><Link2 />{t("editor.photo.copy")}</Button>

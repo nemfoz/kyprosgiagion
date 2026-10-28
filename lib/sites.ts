@@ -3,6 +3,7 @@ import { and, asc, desc, eq, ne, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { normaliseContent, SITE_TYPES, slugify, type SiteContent, type SiteType } from "@/lib/content"
 import { regions } from "@/lib/regions"
+import { distanceKm } from "@/lib/geo"
 import { deleteStored } from "@/lib/storage"
 import type { ErrorMessage } from "@/lib/session"
 
@@ -41,13 +42,6 @@ export async function listSites({ publishedOnly }: { publishedOnly: boolean }) {
     .where(publishedOnly ? eq(sites.published, true) : undefined)
     .orderBy(desc(sites.updatedAt))
   return rows.map(({ site, cover }) => ({ ...withContent(site), cover }))
-}
-
-/** Distance in km between two points (haversine). */
-export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const rad = Math.PI / 180
-  const h = Math.sin(((b.lat - a.lat) * rad) / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - a.lng) * rad) / 2) ** 2
-  return 12742 * Math.asin(Math.sqrt(h))
 }
 
 /** The published churches closest to a point, nearest first. */

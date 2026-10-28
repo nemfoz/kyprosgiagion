@@ -54,7 +54,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
       <PublicHeader lang={lang} path={`/eortologio?${new URLSearchParams({ y: String(y), m: String(m), ...(q ? { q } : {}) })}`} signedIn={!!session} />
 
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-[1fr_300px] md:items-end">
+        <div className="mx-auto grid max-w-6xl gap-5 px-4 py-7 md:grid-cols-[1fr_300px] md:items-end md:gap-6 md:py-10">
           <div>
             <p className="mb-3 text-[11px] font-semibold tracking-[.14em] text-gold uppercase">{t("ndTitle", lang)}</p>
             <h1 className="text-[clamp(26px,4vw,40px)] leading-tight font-bold">
@@ -79,9 +79,9 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
             <input type="hidden" name="m" value={m} />
             <div className="relative flex-1">
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input name="q" defaultValue={q} placeholder={t("ndSearch", lang)} className="h-10 pl-9" />
+              <Input name="q" type="search" defaultValue={q} placeholder={t("ndSearch", lang)} className="h-11 pl-9 md:h-10" />
             </div>
-            <Button type="submit" className="h-10">{t("ndSearchButton", lang)}</Button>
+            <Button type="submit" className="h-11 md:h-10">{t("ndSearchButton", lang)}</Button>
           </form>
           {q && (
             <Card className="gap-3 py-4">
@@ -106,18 +106,21 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
           )}
 
           <section className="grid gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="mr-auto text-2xl font-bold">{monthName(m, lang)} {y}</h2>
-              <Button variant="outline" size="icon-sm" asChild><Link href={href(prev)} aria-label={t("ndPrev", lang)}><ChevronLeft /></Link></Button>
-              {(y !== now.y || m !== now.m) && <Button variant="outline" size="sm" asChild><Link href={href({ y: now.y, m: now.m })}>{t("ndThisMonth", lang)}</Link></Button>}
-              <Button variant="outline" size="icon-sm" asChild><Link href={href(next)} aria-label={t("ndNext", lang)}><ChevronRight /></Link></Button>
+            {/* Stays at the top while scrolling through the month. */}
+            <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background/95 px-4 py-2 backdrop-blur md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <h2 className="mr-auto text-xl font-bold md:text-2xl">{monthName(m, lang)} {y}</h2>
+              <Button variant="outline" size="icon" className="max-md:size-10" asChild><Link href={href(prev)} aria-label={t("ndPrev", lang)}><ChevronLeft /></Link></Button>
+              {y !== now.y || m !== now.m
+                ? <Button variant="outline" className="max-md:h-10" asChild><Link href={href({ y: now.y, m: now.m }) + `#d${now.d}`}>{t("ndThisMonth", lang)}</Link></Button>
+                : <Button variant="outline" className="max-md:h-10" asChild><a href={`#d${now.d}`}>{t("ndToday", lang)}</a></Button>}
+              <Button variant="outline" size="icon" className="max-md:size-10" asChild><Link href={href(next)} aria-label={t("ndNext", lang)}><ChevronRight /></Link></Button>
             </div>
-            <ol className="grid gap-1.5">
+            <ol className="divide-y overflow-hidden rounded-xl border bg-card">
               {month.map((d) => {
                 const info = nameDay(d)
                 const isToday = same(d, now)
                 return (
-                  <li key={d.d} id={`d${d.d}`} className={cn("grid scroll-mt-4 grid-cols-[56px_1fr] gap-3 rounded-lg border bg-card px-3 py-2", isToday && "border-primary bg-accent")}>
+                  <li key={d.d} id={`d${d.d}`} className={cn("grid scroll-mt-16 grid-cols-[48px_1fr] gap-3 px-3 py-2 md:grid-cols-[56px_1fr] md:scroll-mt-4", isToday && "bg-accent shadow-[inset_3px_0_0_var(--primary)]")}>
                     <span className="grid text-center leading-tight">
                       <span className="font-heading text-xl font-bold text-primary">{d.d}</span>
                       <span className="text-[11px] text-muted-foreground">{weekday(d, lang).slice(0, 3)}</span>

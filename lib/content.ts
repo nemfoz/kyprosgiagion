@@ -94,19 +94,19 @@ export const youtubeEmbed = (id: string) => `https://www.youtube-nocookie.com/em
 const videoFrame = (id: string) =>
   `<div class="video-embed"><iframe src="${youtubeEmbed(id)}" title="YouTube" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
 
+const blocks = (src: string) => String(src ?? "").replace(/\r\n/g, "\n").split(/\n{2,}/).map((b) => b.trim()).filter(Boolean)
+
 /**
  * Minimal Markdown: ## / ### headings, "- " lists, paragraphs, **bold**, *italic*, [links](url).
  * A YouTube link alone in its paragraph becomes an embedded video. HTML is escaped.
  */
 export function markdown(src: string) {
-  return String(src ?? "")
-    .replace(/\r\n/g, "\n")
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
+  let section = 0
+  return blocks(src)
     .map((block) => {
       const h = block.match(/^(#{2,3})\s+([\s\S]*)$/)
-      if (h) return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`
+      // Main headings get ids (#s1, #s2, …) for the section links on church pages.
+      if (h) return `<h${h[1].length}${h[1].length === 2 ? ` id="s${++section}"` : ""}>${inline(h[2])}</h${h[1].length}>`
       const video = youtubeId(block)
       if (video) return videoFrame(video)
       const lines = block.split("\n")
@@ -114,6 +114,14 @@ export function markdown(src: string) {
       return `<p>${lines.map(inline).join("<br>")}</p>`
     })
     .join("\n")
+}
+
+/** The main (##) headings of a text as plain text, in the order of their ids in markdown(). */
+export function headings(src: string) {
+  return blocks(src).flatMap((b) => {
+    const h = b.match(/^##\s+([\s\S]*)$/)
+    return h ? [h[1].replace(/[*_`[\]]|\(https?:[^)]*\)/g, "").trim()] : []
+  })
 }
 
 /** "Label: Value" per line → [label, value] pairs. */

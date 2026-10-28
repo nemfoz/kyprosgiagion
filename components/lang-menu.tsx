@@ -34,8 +34,8 @@ export function LangMenu({ lang, path, onChange, className }: {
             </>
           )
           return onChange
-            ? <DropdownMenuItem key={l} onSelect={() => onChange(l)}>{label}</DropdownMenuItem>
-            : <DropdownMenuItem key={l} asChild><Link href={localePath(path ?? "/", l)} hrefLang={l}>{label}</Link></DropdownMenuItem>
+            ? <DropdownMenuItem key={l} className="max-md:py-2.5" onSelect={() => onChange(l)}>{label}</DropdownMenuItem>
+            : <DropdownMenuItem key={l} className="max-md:py-2.5" asChild><Link href={localePath(path ?? "/", l)} hrefLang={l}>{label}</Link></DropdownMenuItem>
         })}
         {isExtra(lang) && (
           <>

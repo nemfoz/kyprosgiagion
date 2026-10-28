@@ -1,15 +1,16 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, ExternalLink, MapPin, Pencil, TriangleAlert } from "lucide-react"
+import { ArrowLeft, ExternalLink, MapPin, Navigation, Pencil, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gallery } from "@/components/site/gallery"
+import { ShareButton } from "@/components/site/share-button"
 import { MiniMap } from "@/components/map/mini-map"
 import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
 import { TypeBadge } from "@/components/type-badge"
-import { googleMapsUrl, inline, markdown, parseFacts, pick, translatedInto, TYPE_LABELS, youtubeEmbed, type Lang, type SiteType } from "@/lib/content"
+import { googleMapsUrl, headings, inline, markdown, parseFacts, pick, translatedInto, TYPE_LABELS, youtubeEmbed, type Lang, type SiteType } from "@/lib/content"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
@@ -21,7 +22,8 @@ import { getSession } from "@/lib/session"
 import { getSite, nearbySites } from "@/lib/sites"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { alternates, jsonLd, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
-import { baseLang, intlLocale, isExtra, localePath, type Locale } from "@/lib/locales"
+import { baseLang, isExtra, localePath } from "@/lib/locales"
+import { directionsUrl, formatDistance } from "@/lib/geo"
 import { trData } from "@/lib/i18n"
 
 async function load(slug: string) {
@@ -68,6 +70,16 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   // Completeness is for signed-in contributors only.
   const cfg = session ? await getPointsConfig() : null
   const score = cfg && completeness({ content: c, coordsVerified: site.coordsVerified, photoCount: site.photos.length }, cfg)
+
+  // Phones: links to the parts of a long page, in a bar that stays at the top.
+  const sections = [
+    ...headings(pick(c, lang, "body")).map((h, i) => ({ id: `s${i + 1}`, label: h })),
+    ...(site.videos.length ? [{ id: "videos", label: t("videos", lang) }] : []),
+    ...(site.photos.length ? [{ id: "photos", label: t("photos", lang) }] : []),
+    { id: "details", label: t("details", lang) },
+    ...(sources.length ? [{ id: "sources", label: t("sources", lang) }] : []),
+    { id: "map", label: t("map", lang) },
+  ]
 
   const photos = site.photos.map((p) => ({
     src: p.src,
@@ -133,8 +145,25 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
         </div>
       </section>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-4 pt-8 pb-12 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12">
-        <article className="max-w-[72ch]">
+      <div className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pt-5">
+        <Button asChild className="h-10">
+          <a href={directionsUrl(site.lat, site.lng)} target="_blank" rel="noopener"><Navigation />{t("directions", lang)}</a>
+        </Button>
+        <ShareButton title={name} label={t("share", lang)} copied={t("linkCopied", lang)} />
+      </div>
+
+      {sections.length >= 4 && (
+        <nav aria-label={t("sections", lang)} className="sticky top-0 z-20 mt-4 border-y bg-background/95 backdrop-blur lg:hidden">
+          <div className="flex gap-1.5 overflow-x-auto px-4 py-2 [scrollbar-width:none]">
+            {sections.map((x) => (
+              <a key={x.id} href={`#${x.id}`} className="flex h-9 shrink-0 items-center rounded-full border bg-card px-3.5 text-sm whitespace-nowrap hover:bg-accent">{x.label}</a>
+            ))}
+          </div>
+        </nav>
+      )}
+
+      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-6 pb-12 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12 lg:pt-8">
+        <article className="min-w-0 max-w-[72ch]">
           {pick(c, lang, "summary") && (
             <p className="mb-6 font-heading text-xl leading-relaxed text-foreground/85" dangerouslySetInnerHTML={{ __html: inline(pick(c, lang, "summary")) }} />
           )}
@@ -142,7 +171,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
           {site.videos.length > 0 && (
             <>
-              <h2 className="mt-10 mb-4 text-2xl font-bold">{t("videos", lang)}</h2>
+              <h2 id="videos" className="mt-10 mb-4 scroll-mt-16 text-2xl font-bold">{t("videos", lang)}</h2>
               <div className="grid gap-5">
                 {site.videos.map((v) => {
                   const title = (lang === "el" ? v.titleEl || v.titleEn : v.titleEn || v.titleEl) || ""
@@ -162,14 +191,14 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
 
           {photos.length > 0 && (
             <>
-              <h2 className="mt-10 mb-4 text-2xl font-bold">{t("photos", lang)}</h2>
+              <h2 id="photos" className="mt-10 mb-4 scroll-mt-16 text-2xl font-bold">{t("photos", lang)}</h2>
               <Gallery photos={photos} alt={name} sourceLabel={t("photoSource", lang)} historicLabel={t("historicPhoto", lang)} />
             </>
           )}
 
           {sources.length > 0 && (
             <>
-              <h2 className="mt-10 mb-3 text-2xl font-bold">{t("sources", lang)}</h2>
+              <h2 id="sources" className="mt-10 mb-3 scroll-mt-16 text-2xl font-bold">{t("sources", lang)}</h2>
               <ol className="sources list-decimal space-y-1.5 pl-5">
                 {sources.map((s, i) => <li key={i} dangerouslySetInnerHTML={{ __html: inline(s) }} />)}
               </ol>
@@ -178,7 +207,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
         </article>
 
         {/* Right of the text and sticky on wide screens; after the text on phones. */}
-        <aside className="grid content-start gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
+        <aside id="details" className="grid scroll-mt-16 content-start gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <Card className="gap-2 py-4">
             <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("details", lang)}</CardTitle></CardHeader>
             <CardContent className="px-4">
@@ -207,7 +236,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
                       : <span className="grid h-12 w-11 shrink-0 place-items-center rounded-t-[22px] rounded-b-md bg-muted text-gold-deep">✝</span>}
                     <span className="min-w-0">
                       <span className="line-clamp-2 text-[13px] leading-snug font-medium">{pick(s.content, lang, "name")}</span>
-                      <span className="block text-xs text-muted-foreground">{distance(s.km, lang)}</span>
+                      <span className="block text-xs text-muted-foreground">{formatDistance(s.km, lang)}</span>
                     </span>
                   </Link>
                 ))}
@@ -219,31 +248,29 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
       </main>
 
       {/* The map closes the page, edge to edge. */}
-      <section id="map" className="relative h-[min(65vh,560px)] scroll-mt-4 border-t bg-muted">
+      <section id="map" className="relative h-[min(65vh,560px)] scroll-mt-12 border-t bg-muted lg:scroll-mt-4">
         <MiniMap lat={site.lat} lng={site.lng} type={site.type} boundary={region?.boundary} lang={baseLang(lang)} className="h-full rounded-none" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-4 pb-8">
-          <div className="pointer-events-auto grid max-w-sm gap-2 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur">
-            <p className="font-heading text-lg leading-snug font-bold">{name}</p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-4 md:pb-8">
+          <div className="pointer-events-auto grid max-w-sm gap-1.5 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur md:gap-2 md:p-4">
+            <p className="font-heading text-base leading-snug font-bold md:text-lg">{name}</p>
             <p className="text-sm text-muted-foreground">{pick(c, lang, "location")}{region ? ` · ${regionName(region, lang)}` : ""}</p>
             <p className="font-mono text-xs text-muted-foreground">{site.lat.toFixed(6)}, {site.lng.toFixed(6)}</p>
             {!site.coordsVerified && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><TriangleAlert className="size-3.5 text-gold" />{t("approx", lang)}</p>
             )}
-            <Button asChild size="sm" className="justify-self-start">
-              <a href={googleMapsUrl(site.lat, site.lng)} target="_blank" rel="noopener"><MapPin />{t("openMaps", lang)}<ExternalLink /></a>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" className="max-md:h-9">
+                <a href={directionsUrl(site.lat, site.lng)} target="_blank" rel="noopener"><Navigation />{t("directions", lang)}</a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="max-md:h-9">
+                <a href={googleMapsUrl(site.lat, site.lng)} target="_blank" rel="noopener"><MapPin />{t("openMaps", lang)}<ExternalLink /></a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
     </div>
   )
-}
-
-function distance(km: number, lang: Locale) {
-  const locale = intlLocale(lang)
-  return km < 1
-    ? new Intl.NumberFormat(locale, { style: "unit", unit: "meter", maximumFractionDigits: 0 }).format(Math.round(km * 100) * 10)
-    : new Intl.NumberFormat(locale, { style: "unit", unit: "kilometer", maximumFractionDigits: km < 10 ? 1 : 0 }).format(km)
 }
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {

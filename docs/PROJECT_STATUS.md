@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-27 (languages: /en/ URLs + Russian, Ukrainian, Romanian, Bulgarian, Serbian, Georgian; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-28 (phone layout, "Near me", installable app + offline pages; roadmap in §8). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -64,6 +64,19 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   overrides in `settings.translations`. The language menu on public pages links there ("Suggest a better translation").
 - Admin language without a cookie: Greek for Greek browsers, English otherwise.
 - Light theme only (the dark theme was removed 2026-10-27).
+- **Phones** (below the `md` breakpoint, 768px): the map fills the screen and the list is a sheet over it with three heights
+  (peek/half/full; drag or tap the handle — `components/map/explorer.tsx`, `--sheet-h`); filters fold behind a button with a
+  count; choosing a church opens its card at half height with the pin kept above it. **"Near me"** (map, all sizes) uses
+  the browser's location: sorts the list by distance, shows distances, frames you + the 3 nearest churches. Place names
+  under a pin/cluster are hidden. Header navigation becomes a ☰ menu (`components/mobile-nav.tsx`). Church pages: Directions +
+  Share buttons under the hero, a sticky row of section links on phones (## headings get ids `s1, s2…` in `markdown()`),
+  photos as a swipeable row, swipe in the lightbox. Text fields are 16px on touch screens (iOS would zoom otherwise).
+  Styled 404 (`app/not-found.tsx`). Editor: "Take a photo" (camera) and "My location" in the location picker.
+- **Installable app + offline**: `app/manifest.ts` (icons in `public/`, `app/apple-icon.png`), `viewportFit: cover` with
+  safe-area padding. `public/sw.js` (registered in production only) keeps visited public pages (network first) and
+  immutable build files/photos (cache first, max 400) for use without signal; `public/offline.html` otherwise. Never
+  stores the admin, API or account pages. Map tiles are not stored (the map is blank offline; the list works).
+  Bump `VERSION` in `sw.js` to drop old caches.
 - `/contribute` is labelled «Πάρτε μέρος» in Greek (owner's choice; «Συνεισφέρετε» sounded like a donation request).
 - **Photo copies**: every stored photo has `name.sm.webp` (320px, lists/thumbnails) and `name.md.webp` (960px, cards,
   gallery, hero on phones) next to the original (`lib/photo-sizes.mjs` naming + `sized()`, `lib/photo-variants.mjs`

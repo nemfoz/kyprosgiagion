@@ -52,7 +52,7 @@ export function MissionList({ sites, lang, signedIn }: { sites: MissionSite[]; l
                 <span className="grid h-16 w-16 place-items-center rounded-t-[30px] rounded-b-lg bg-muted text-2xl text-muted-foreground">✝</span>
               )}
               <span className="grid min-w-0 gap-1">
-                <span className="truncate font-heading font-medium">{tr(s.name, lang)}</span>
+                <span className="line-clamp-2 font-heading leading-snug font-medium">{tr(s.name, lang)}</span>
                 <span className="truncate text-xs text-muted-foreground">{tr(s.location, lang)}</span>
                 <span className="flex items-center gap-2">
                   <ProgressBar percent={s.percent} className="h-1.5 flex-1" />
@@ -80,7 +80,7 @@ export function MissionList({ sites, lang, signedIn }: { sites: MissionSite[]; l
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={cn("rounded-full border px-3 py-1 text-xs transition hover:bg-muted", active && "border-primary bg-accent font-semibold")}>
+      className={cn("min-h-9 rounded-full border px-3.5 py-1 text-sm transition hover:bg-muted md:min-h-0 md:px-3 md:text-xs", active && "border-primary bg-accent font-semibold")}>
       {children}
     </button>
   )

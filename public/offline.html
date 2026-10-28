@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6b1d1d">
+<title>Χωρίς σύνδεση – Κύπρος Αγίων Γη</title>
+<style>
+  :root { --crimson: #6b1d1d; --gold: #ad8840; --parchment: #ece8de; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center;
+    background: var(--parchment); color: color-mix(in oklab, var(--crimson) 35%, black); font: 16px/1.6 system-ui, sans-serif; }
+  .mark { margin: 0 auto 8px; width: 64px; height: 80px; display: grid; place-items: center; border-radius: 40px 40px 12px 12px;
+    background: color-mix(in oklab, var(--gold) 20%, var(--parchment)); color: var(--crimson); font-size: 36px; }
+  h1 { margin: 0; font: 700 24px/1.3 Georgia, serif; color: var(--crimson); }
+  p { margin: 0; max-width: 34ch; }
+  .en { opacity: .7; }
+  button { margin-top: 12px; justify-self: center; min-height: 44px; padding: 0 22px; border: 0; border-radius: 10px;
+    background: var(--crimson); color: var(--parchment); font: 600 16px system-ui, sans-serif; }
+</style>
+</head>
+<body>
+  <div class="mark" aria-hidden="true">☦</div>
+  <h1>Δεν υπάρχει σύνδεση</h1>
+  <p>Αυτή η σελίδα δεν έχει αποθηκευτεί για χρήση χωρίς ίντερνετ. Οι σελίδες που έχετε ήδη ανοίξει, όπως ο χάρτης, λειτουργούν και χωρίς σύνδεση.</p>
+  <p class="en">You're offline. This page hasn't been saved yet; pages you have already opened, such as the map, still work.</p>
+  <button type="button" onclick="location.reload()">Δοκιμάστε ξανά · Try again</button>
+</body>
+</html>

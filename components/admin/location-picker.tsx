@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { Loader2, LocateFixed } from "lucide-react"
+import { toast } from "sonner"
 import type { Map as MlMap, Marker } from "maplibre-gl"
 import { useAdminT } from "@/components/i18n-provider"
 import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite } from "@/components/map/terrain"
 
-/** Satellite map for placing a church precisely: click or drag the pin. */
+/** Satellite map for placing a church precisely: click or drag the pin, or (standing at the church) use the phone's location. */
 export function LocationPicker({ lat, lng, type, onChange }: {
   lat: number | null; lng: number | null; type: string; onChange: (lat: number, lng: number) => void
 }) {
@@ -59,5 +61,26 @@ export function LocationPicker({ lat, lng, type, onChange }: {
     if (!m.getBounds().contains([lng, lat])) m.flyTo({ center: [lng, lat], zoom: Math.max(m.getZoom(), 15) })
   })
 
-  return <div ref={el} className="h-80 overflow-hidden rounded-lg bg-muted" />
+  const [locating, setLocating] = useState(false)
+  function locateMe() {
+    if (!navigator.geolocation) { toast.error(t("editor.location.failed")); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setLocating(false)
+      changeRef.current(+pos.coords.latitude.toFixed(6), +pos.coords.longitude.toFixed(6))
+      map.current?.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 17 })
+    }, () => { setLocating(false); toast.error(t("editor.location.failed")) }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 })
+  }
+
+  return (
+    <div className="relative">
+      <div ref={el} className="h-80 overflow-hidden rounded-lg bg-muted" />
+      <button
+        type="button" onClick={locateMe} disabled={locating}
+        className="absolute bottom-3 left-3 flex h-10 items-center gap-2 rounded-full border bg-card px-3.5 text-sm font-semibold shadow-md"
+      >
+        {locating ? <Loader2 className="size-4 animate-spin" /> : <LocateFixed className="size-4 text-primary" />}{t("editor.location.here")}
+      </button>
+    </div>
+  )
 }

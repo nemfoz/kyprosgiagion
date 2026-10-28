@@ -131,7 +131,7 @@
 /* Long-form text on site pages (rendered from the simple Markdown format). */
 .prose-site { font-size: 1.0625rem; line-height: 1.75; }
 .prose-site p { margin: 0 0 1em; }
-.prose-site h2 { font-size: 1.5rem; font-weight: 700; margin: 1.8em 0 .5em; line-height: 1.25; }
+.prose-site h2 { font-size: 1.5rem; font-weight: 700; margin: 1.8em 0 .5em; line-height: 1.25; scroll-margin-top: 4rem; }
 .prose-site h3 { font-size: 1.2rem; font-weight: 700; margin: 1.5em 0 .4em; }
 .prose-site ul { list-style: disc; padding-left: 1.3em; margin: 0 0 1em; }
 .prose-site a, .sources a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
@@ -165,6 +165,13 @@
 .place-label.major { font: 700 14px var(--font-display); color: var(--foreground); }
 .map3d .place-label:not(.major) { visibility: hidden; }
 .map3d.show-minor .place-label { visibility: visible; }
+.map3d .place-label.covered { visibility: hidden; }
+/* "Near me": where the phone is. */
+.me-dot {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--crimson); border: 3px solid var(--card);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--crimson) 45%, transparent); animation: me-pulse 2s infinite;
+}
+@keyframes me-pulse { 70%, 100% { box-shadow: 0 0 0 16px transparent; } }
 .site-tip .maplibregl-popup-content { font: 600 13px var(--font-ui); padding: 5px 10px; border-radius: 6px; box-shadow: 0 4px 16px color-mix(in oklab, var(--ink) 15%, transparent); }
 .site-tip .maplibregl-popup-tip { display: none; }
 .ka-ctrl { display: flex; flex-direction: column; }
@@ -175,7 +182,17 @@
 .map3d .maplibregl-ctrl-group { border-radius: 10px; overflow: hidden; background: var(--card); }
 .map3d .maplibregl-ctrl-group:not(:empty) { box-shadow: 0 2px 10px color-mix(in oklab, var(--ink) 12%, transparent); }
 .map3d .maplibregl-ctrl-group button { min-width: 36px; height: 36px; }
+/* Phones: pinch zooms the explorer map, so only the compass stays; the attribution sits above the list sheet. */
+@media (max-width: 767px) {
+  .explorer-map .maplibregl-ctrl-zoom-in, .explorer-map .maplibregl-ctrl-zoom-out { display: none; }
+  .explorer-map .maplibregl-ctrl-bottom-right { bottom: var(--sheet-h, 0px); transition: bottom .3s ease-out; }
+  .map3d .maplibregl-ctrl-group .ka-ctrl-btn { height: 32px; padding: 0 10px; }
+}
 :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+/* iOS zooms the page into any text field smaller than 16px; keep them at 16px on touch screens. */
+@media (pointer: coarse) and (max-width: 767px) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select { font-size: 16px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }

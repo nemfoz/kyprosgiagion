@@ -3,6 +3,7 @@ import { CalendarDays, Landmark, LayoutDashboard, LogIn, Map as MapIcon, Sparkle
 import { Button } from "@/components/ui/button"
 import { NameDayBar } from "@/components/namedays/nameday-bar"
 import { LangMenu } from "@/components/lang-menu"
+import { MobileNav } from "@/components/mobile-nav"
 import { getT } from "@/lib/i18n-server"
 import { baseLang, localePath, type Locale } from "@/lib/locales"
 import { nameDaysAround } from "@/lib/namedays"
@@ -11,7 +12,7 @@ import { siteName } from "@/lib/regions"
 /**
  * Header of the public pages (except the map, which has its own): name-day bar, title, navigation.
  * `path` is the page's own address without the language prefix (with its parameters), for the language menu;
- * `children` adds page buttons.
+ * `children` adds page buttons. On phones the navigation moves into a menu (MobileNav).
  */
 export async function PublicHeader({ lang, path, signedIn, children }: {
   lang: Locale; path: string; signedIn: boolean; children?: React.ReactNode
@@ -32,17 +33,18 @@ export async function PublicHeader({ lang, path, signedIn, children }: {
         </Link>
         <nav className="ml-auto flex shrink-0 items-center gap-0.5">
           {nav.map((n) => (
-            <Button key={n.href} variant="ghost" size="sm" asChild>
+            <Button key={n.href} variant="ghost" size="sm" className="max-md:hidden" asChild>
               <Link href={n.href} aria-label={n.label}>{n.icon}<span className="hidden lg:inline">{n.label}</span></Link>
             </Button>
           ))}
           {children}
           <LangMenu lang={lang} path={path} />
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" className="max-md:hidden" asChild>
             <Link href={signedIn ? "/admin" : localePath("/login", lang)} aria-label={signedIn ? t("dashboard", lang) : t("signIn", lang)}>
               {signedIn ? <LayoutDashboard /> : <LogIn />}<span className="hidden xl:inline">{signedIn ? t("dashboard", lang) : t("signIn", lang)}</span>
             </Link>
           </Button>
+          <MobileNav lang={lang} signedIn={signedIn} />
         </nav>
       </header>
     </>
