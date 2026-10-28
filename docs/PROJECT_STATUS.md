@@ -1,6 +1,22 @@
-# Project status & handover — Κύπρος – Αγίων Γη
+# Project status & handover — Οδοιπορικό (formerly Κύπρος – Αγίων Γη)
 
-_Last updated: 2026-10-28 (phone layout, "Near me", offline pages; performance pass — see §2 "Performance"; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-28 (new name **Οδοιπορικό / Odoiporiko** — see §0 and [`BRAND.md`](BRAND.md); phone layout, "Near me", offline pages; performance pass — see §2 "Performance"; roadmap in §8). Read this first when continuing work in a new session._
+
+## 0. Rebrand in progress (2026-10-28) — START HERE
+
+The project is being renamed **Οδοιπορικό** (Latin: **Odoiporiko**) — an umbrella brand for all Orthodox churches;
+"Κύπρος – Αγίων Γη" becomes the title of the Cyprus edition. Domains bought by the owner: **odoiporiko.com** (main)
+and **odiporiko.com** (301 → main). Everything decided (name, taglines, editions, domains, 15 logo concepts) is in
+[`BRAND.md`](BRAND.md). **Logo selection is paused**; the next task is adapting the website to the new name:
+
+1. Add both domains to the Vercel project; redirect odiporiko.com and kyprosgiagion.vercel.app → odoiporiko.com.
+   Give the owner the DNS records to set at the registrar.
+2. Set `SITE_URL=https://odoiporiko.com` (canonical, sitemap, OG URLs).
+3. Rename the site everywhere: titles/metadata, `app/manifest.ts`, OG images, JSON-LD, e-mail templates, header/footer,
+   interface text in all 8 languages (`lib/messages/*`), with "Κύπρος – Αγίων Γη" kept as the Cyprus edition subtitle.
+4. Update README and this file.
+
+Until a logo is chosen, keep the existing icons (or use a plain wordmark).
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
