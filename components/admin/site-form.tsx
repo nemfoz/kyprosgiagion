@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ExternalLink, Loader2, Send, Trash2 } from "lucide-react"
@@ -338,7 +339,7 @@ export function SiteForm(props: {
         <Button type="button" variant="ghost" asChild><Link href="/admin/sites">{t("editor.cancel")}</Link></Button>
         {siteId && v.slug && (
           <Button type="button" variant="outline" asChild className="ml-auto">
-            <Link href={`/site/${v.slug}`} target="_blank">{t("editor.viewPage")}<ExternalLink /></Link>
+            <Link href={paths.site(v.slug)} target="_blank">{t("editor.viewPage")}<ExternalLink /></Link>
           </Button>
         )}
         {direct && siteId && (

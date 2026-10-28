@@ -1,8 +1,10 @@
 import Link from "next/link"
+import { paths } from "@/lib/editions"
 import { headers } from "next/headers"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { localePath } from "@/lib/locales"
@@ -20,8 +22,9 @@ export default async function NotFound() {
         <p className="font-heading text-5xl font-bold text-primary">404</p>
         <h1 className="text-2xl font-bold">{t("nfTitle", lang)}</h1>
         <p className="text-muted-foreground">{t("nfText", lang)}</p>
-        <Button asChild size="lg" className="mt-2 h-11"><Link href={localePath("/", lang)}><ArrowLeft />{t("backToMap", lang)}</Link></Button>
+        <Button asChild size="lg" className="mt-2 h-11"><Link href={localePath(paths.map, lang)}><ArrowLeft />{t("backToMap", lang)}</Link></Button>
       </main>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

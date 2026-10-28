@@ -1,13 +1,13 @@
 import type { MetadataRoute } from "next"
 
-/** "Add to Home Screen": the map opens like an app, in the site's colours. */
+/** "Add to Home Screen": the Cyprus map opens like an app, in the site's colours. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Κύπρος – Αγίων Γη",
-    short_name: "Αγίων Γη",
-    description: "Χάρτης των εκκλησιών και μοναστηριών της Κύπρου. A map of the churches and monasteries of Cyprus.",
+    name: "Οδοιπορικό",
+    short_name: "Οδοιπορικό",
+    description: "Οδοιπορικό στις εκκλησίες και τα μοναστήρια της Ορθοδοξίας. A pilgrim's atlas of Orthodox churches.",
     lang: "el",
-    start_url: "/",
+    start_url: "/cyprus/map",
     scope: "/",
     display: "standalone",
     background_color: "#ece8de",

@@ -9,7 +9,7 @@ import { unstable_cache } from "next/cache"
 export const PUBLIC_TAG = "public"
 
 // Each deployment starts with fresh caches: the build's migrations may have changed the data.
-const BUILD = process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local"
+const BUILD = process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.APP_BUILD_ID ?? "local"
 
 /** Caches a read of public data across requests (results must be plain JSON: no Dates, Maps or Sets). */
 export function cached<A extends unknown[], R>(name: string, fn: (...args: A) => Promise<R>, revalidate = 3600) {

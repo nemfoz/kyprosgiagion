@@ -123,6 +123,7 @@ export async function deleteSite(id: number) {
   const list = await db.select().from(photos).where(eq(photos.siteId, id))
   await db.delete(photos).where(eq(photos.siteId, id))
   await db.delete(videos).where(eq(videos.siteId, id))
+  await db.delete(schema.visits).where(eq(schema.visits.siteId, id))
   await db.delete(sites).where(eq(sites.id, id))
   await Promise.all(list.map((p) => deleteStored(p.src)))
 }

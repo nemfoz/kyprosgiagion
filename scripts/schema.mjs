@@ -155,6 +155,21 @@ export const SCHEMA = [
     updated_by TEXT,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Churches a user has visited (lib/visits.ts): "verified" = checked in within reach of the church. No location is kept.
+  `CREATE TABLE IF NOT EXISTS visits (
+    user_id    TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    site_id    INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    verified   INTEGER NOT NULL DEFAULT 0,
+    visited_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, site_id)
+  )`,
+  'CREATE INDEX IF NOT EXISTS visits_site ON visits(site_id)',
+  // A user's own settings outside Better Auth: whether their odoiporiko (/u/<id>) is public.
+  `CREATE TABLE IF NOT EXISTS profiles (
+    user_id    TEXT PRIMARY KEY REFERENCES user(id) ON DELETE CASCADE,
+    public     INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
   `CREATE TABLE IF NOT EXISTS rate_limit (
     id           TEXT PRIMARY KEY,
     key          TEXT NOT NULL UNIQUE,

@@ -1,16 +1,15 @@
 import { OG_SIZE, shareCard } from "@/components/og/share-card"
-import { siteTitle as SITE_NAME } from "@/lib/regions"
 
 export const size = OG_SIZE
 export const contentType = "image/jpeg"
-export const alt = SITE_NAME.el
+export const alt = "Οδοιπορικό · Odoiporiko"
 
-// The preview for every page without its own (the map, name days, Metropolises…).
+// The preview for every page without its own (the home page, the map, name days, Metropolises…).
 export default function Image() {
   return shareCard({
     kicker: "Εκκλησίες και μοναστήρια · Churches and monasteries",
-    title: SITE_NAME.el,
-    subtitle: "Ο χάρτης των εκκλησιών της Καρπασίας και της Αμμοχώστου",
-    footer: SITE_NAME.en,
+    title: "Οδοιπορικό",
+    subtitle: "Οδοιπορικό στις εκκλησίες και τα μοναστήρια της Ορθοδοξίας",
+    footer: "Odoiporiko · A pilgrim's atlas of Orthodox churches",
   })
 }

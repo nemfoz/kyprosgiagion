@@ -61,6 +61,8 @@ if (Number(rows[0].n) === 0) {
 // run close to it (vercel.json "regions"), since every page makes several queries.
 const dbRegion = url.startsWith('file:') ? null : /\.((?:aws|gcp|azure|fly)-[a-z0-9-]+)\.turso\.io/.exec(new URL(url.replace(/^libsql:/, 'https:')).hostname)?.[1];
 console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : `remote${dbRegion ? `, region ${dbRegion}` : ''}`})`);
+// The Docker build only needs the tables (and the sample churches) to prerender pages: no imports or downloads.
+if (process.env.MIGRATE_SCHEMA_ONLY) process.exit(0);
 
 // ---- one-off data steps (each runs at most once per database) ----
 
@@ -150,3 +152,9 @@ if (canStorePhotos && !applied.has('variants:photos')) {
   if (!failed) await db.execute({ sql: "INSERT INTO data_imports (name, summary) VALUES ('variants:photos', ?)", args: [`${done} photos`] });
   console.log(`migrate: made smaller copies of ${done} photos${failed ? `, ${failed} failed — will retry on the next deploy` : ''}`);
 }
+
+// Visits and profile settings of deleted accounts (foreign keys aren't enforced).
+await db.batch([
+  'DELETE FROM visits WHERE user_id NOT IN (SELECT id FROM user) OR site_id NOT IN (SELECT id FROM sites)',
+  'DELETE FROM profiles WHERE user_id NOT IN (SELECT id FROM user)',
+], 'write');

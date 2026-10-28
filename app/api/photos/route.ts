@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { paths } from "@/lib/editions"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { PUBLIC_TAG } from "@/lib/cache"
 import { assertRole, Forbidden, UserError } from "@/lib/session"
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       const src = await storePhoto(site.slug, data, type)
       const photo = await addPhoto(site.id, { src, credit })
       revalidateTag(PUBLIC_TAG, { expire: 0 })
-      revalidatePath(`/site/${site.slug}`)
+      revalidatePath(paths.site(site.slug))
       return NextResponse.json({ photo })
     }
     const src = await storePhoto("proposal", data, type)

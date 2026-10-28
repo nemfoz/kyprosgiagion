@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
       <AuthHeader lang={lang} />
-      <AuthForm mode="login" lang={lang} next={typeof next === "string" && next.startsWith("/") ? next : "/admin"} />
+      <AuthForm mode="login" lang={lang} next={typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/admin"} />
     </>
   )
 }

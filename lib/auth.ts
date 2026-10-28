@@ -25,11 +25,16 @@ async function needsFirstSuperadmin() {
 const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
 
 export const auth = betterAuth({
-  appName: "Κύπρος – Αγίων Γη",
+  appName: "Οδοιπορικό",
   // A fixed URL in production if BETTER_AUTH_URL is set; otherwise the request host, limited to ours
   // (so Vercel preview deployments work too).
   baseURL: process.env.BETTER_AUTH_URL || {
-    allowedHosts: ["localhost:3000", "kyprosgiagion.vercel.app", "kyprosgiagion-*.vercel.app"],
+    allowedHosts: [
+      "localhost:3000", "kyprosgiagion.vercel.app", "kyprosgiagion-*.vercel.app",
+      "odoiporiko.com", "www.odoiporiko.com",
+      // the self-hosted server (Dockerfile): APP_HOSTS="a.example.com,b.example.com"
+      ...(process.env.APP_HOSTS || "").split(",").map((h) => h.trim()).filter(Boolean),
+    ],
   },
   secret: process.env.BETTER_AUTH_SECRET || process.env.SESSION_SECRET,
   database: drizzleAdapter(db, {
@@ -49,7 +54,7 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
-        subject: "Επαναφορά κωδικού – Κύπρος Αγίων Γη",
+        subject: "Επαναφορά κωδικού – Οδοιπορικό",
         ...actionEmail({
           name: user.name, url,
           intro: ["Ζητήθηκε επαναφορά του κωδικού σας.", "A password reset was requested for your account."],
@@ -67,7 +72,7 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
-        subject: "Επιβεβαίωση e-mail – Κύπρος Αγίων Γη",
+        subject: "Επιβεβαίωση e-mail – Οδοιπορικό",
         ...actionEmail({
           name: user.name, url,
           intro: ["Ευχαριστούμε για την εγγραφή σας. Επιβεβαιώστε τη διεύθυνση e-mail σας για να ενεργοποιηθεί ο λογαριασμός.", "Thank you for signing up. Please confirm your e-mail address to activate your account:"],
@@ -109,7 +114,7 @@ export const auth = betterAuth({
       if (ctx.path !== "/sign-up/email") return
       // The confirmation e-mail is sent in the background, so check up front that it can be sent at all.
       const firstSuperadmin = isSuperadminEmail(ctx.body?.email) && (await needsFirstSuperadmin())
-      if (process.env.VERCEL && !process.env.RESEND_API_KEY && !firstSuperadmin) {
+      if ((process.env.VERCEL || process.env.REQUIRE_EMAIL) && !process.env.RESEND_API_KEY && !firstSuperadmin) {
         throw new APIError("SERVICE_UNAVAILABLE", { message: "Οι εγγραφές δεν είναι ακόμα διαθέσιμες. Δοκιμάστε αργότερα.", code: "EMAIL_NOT_CONFIGURED" })
       }
       const h = ctx.headers

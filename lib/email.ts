@@ -3,7 +3,7 @@ import "server-only"
 // Transactional e-mail through Resend's HTTP API (RESEND_API_KEY + EMAIL_FROM).
 // Without a key in development, the message (and its link) is printed to the server console instead.
 
-const FROM = process.env.EMAIL_FROM || "Κύπρος – Αγίων Γη <onboarding@resend.dev>"
+const FROM = process.env.EMAIL_FROM || "Οδοιπορικό <onboarding@resend.dev>"
 
 export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
   const key = process.env.RESEND_API_KEY
@@ -29,7 +29,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export function actionEmail(o: { name: string; intro: [string, string]; button: [string, string]; url: string; outro: [string, string] }) {
   const html = `<!doctype html><html><body style="margin:0;background:#ece8de;font-family:Arial,Helvetica,sans-serif;color:#2a0b0b">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px">
-    <p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;margin:0 0 24px">☦ Κύπρος – Αγίων Γη</p>
+    <p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;margin:0 0 24px">☦ Οδοιπορικό</p>
     <div style="background:#f6f3ec;border:1px solid #dcd0b6;border-radius:12px;padding:24px">
       <p style="margin:0 0 12px">Γεια σας ${esc(o.name)},</p>
       <p style="margin:0 0 20px;line-height:1.6">${o.intro[0]}</p>

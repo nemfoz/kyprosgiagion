@@ -1,7 +1,8 @@
-# Κύπρος – Αγίων Γη / Cyprus – Land of Saints
+# Οδοιπορικό / Odoiporiko
 
-Map of the churches and monasteries of Cyprus, starting with Famagusta District and the Karpasia peninsula.
-A project for the Holy Metropolis of Constantia–Ammochostos.
+A pilgrim's atlas of Orthodox churches: maps of the churches and monasteries of each local Orthodox Church, with
+their history, photographs and sources. The first edition is **Κύπρος – Αγίων Γη / Cyprus – Land of Saints**
+(Famagusta District and the Karpasia peninsula). An El Frank Foundation project, built by hnf.sh.
 
 **Stack:** Next.js 16 (App Router) · Tailwind CSS 4 · shadcn/ui · Better Auth · Drizzle ORM on libSQL
 (local SQLite file / Turso) · Vercel Blob · MapLibre GL (3D terrain).
@@ -41,8 +42,12 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 
 | Path | What it is |
 |---|---|
-| `app/page.tsx`, `components/map/` | Public 3D map (MapLibre) with list, search and filters |
-| `app/site/[slug]/` | Page for each church / monastery |
+| `app/page.tsx` | Home page: the brand and the choice of Church (`lib/editions.ts`; only Cyprus is open) |
+| `app/cyprus/page.tsx` | The Cyprus edition's landing page (regions, sees, featured churches) |
+| `app/cyprus/map/`, `components/map/` | Public 3D map (MapLibre) with list, search and filters |
+| `app/cyprus/site/[slug]/`, `app/cyprus/metropolis/` | Church pages and the sees (old `/site/…`, `/metropolis/…` links redirect, `next.config.ts`) |
+| `app/profile/`, `app/u/[id]/`, `lib/visits.ts` | Visited churches ("I'm here" GPS check-in or a manual mark), the user's odoiporiko, public profiles |
+| `app/(info)/`, `lib/pages.ts`, `/admin/pages` | About, Contact, Privacy, Cookies, Terms (texts editable by superadmins), footer, cookie notice |
 | `app/(auth)/` | Sign in / sign up |
 | `app/admin/` | Dashboard: churches, proposals, users; `actions.ts` holds the server actions |
 | `app/api/photos/` | Photo uploads (resized in the browser first) |
@@ -60,6 +65,29 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 Photos are never hotlinked: uploads and images from other websites are stored in our own storage
 (Vercel Blob in production). The original page is kept as the photo's **source link** and shown next to it.
 Links in texts and sources always show the destination website, e.g. "Μητρόπολη Κωνσταντίας (imconstantias.org.cy)".
+
+## Self-hosting (Docker)
+
+`Dockerfile` + `docker-compose.yml` run the app with its data in one volume (`./data` → `/data`: `app.db` and
+`uploads/`). Migrations run on every start. On the server, next to `docker-compose.yml`, put a `.env`:
+
+```bash
+SITE_URL=https://odoiporiko.com          # canonical/sitemap/OG addresses (also a build argument)
+APP_HOSTS=odoiporiko.com,www.odoiporiko.com,sv.hasnofriends.com   # host names accepted for sign-in
+BETTER_AUTH_SECRET=…                     # random, keep it
+SUPERADMIN_EMAILS=…
+PORT=3100                                # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
+# RESEND_API_KEY, EMAIL_FROM, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY when ready
+```
+
+`docker compose up -d --build` builds and starts it. Without `RESEND_API_KEY` sign-ups are refused
+(`REQUIRE_EMAIL=1`), except the first superadmin.
+
+**Moving the data from Vercel** (once): set `EXPORT_TOKEN` on the Vercel project and deploy, then
+`curl -H "Authorization: Bearer $EXPORT_TOKEN" https://kyprosgiagion.vercel.app/api/export > data/dump.json` and
+`docker compose run --rm app node scripts/import-dump.mjs /data/dump.json https://kyprosgiagion.vercel.app`
+(imports every table except sessions, downloads the photos into `/data/uploads`, rewrites `/media/photos/…` to
+`/uploads/…`; re-running only fetches missing photos). Remove `EXPORT_TOKEN` afterwards.
 
 ## Deploying (Vercel)
 

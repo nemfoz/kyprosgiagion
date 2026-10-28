@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CalendarDays, Landmark, LayoutDashboard, LogIn, Map as MapIcon, Sparkles } from "lucide-react"
+import { CalendarDays, Footprints, Landmark, LayoutDashboard, LogIn, Map as MapIcon, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NameDayBar } from "@/components/namedays/nameday-bar"
 import { LangMenu } from "@/components/lang-menu"
@@ -8,19 +8,20 @@ import { getT } from "@/lib/i18n-server"
 import { baseLang, localePath, type Locale } from "@/lib/locales"
 import { nameDaysAround } from "@/lib/namedays"
 import { siteName } from "@/lib/regions"
+import { brandName, paths } from "@/lib/editions"
 
 /**
  * Header of the public pages (except the map, which has its own): name-day bar, title, navigation.
  * `path` is the page's own address without the language prefix (with its parameters), for the language menu;
- * `children` adds page buttons. On phones the navigation moves into a menu (MobileNav).
+ * `children` adds page buttons; `edition` shows the Cyprus edition's name next to the brand. On phones the navigation moves into a menu (MobileNav).
  */
-export async function PublicHeader({ lang, path, signedIn, children }: {
-  lang: Locale; path: string; signedIn: boolean; children?: React.ReactNode
+export async function PublicHeader({ lang, path, signedIn, edition = true, children }: {
+  lang: Locale; path: string; signedIn: boolean; edition?: boolean; children?: React.ReactNode
 }) {
   const t = await getT()
   const nav = [
-    { href: localePath("/", lang), label: t("map", lang), icon: <MapIcon /> },
-    { href: localePath("/metropolis", lang), label: t("navMetropolises", lang), icon: <Landmark /> },
+    { href: localePath(paths.map, lang), label: t("map", lang), icon: <MapIcon /> },
+    { href: localePath(paths.metropolises, lang), label: t("navMetropolises", lang), icon: <Landmark /> },
     { href: localePath("/eortologio", lang), label: t("navNameDays", lang), icon: <CalendarDays /> },
     { href: localePath("/contribute", lang), label: t("contribute", lang), icon: <Sparkles /> },
   ]
@@ -28,9 +29,14 @@ export async function PublicHeader({ lang, path, signedIn, children }: {
     <>
       <NameDayBar days={nameDaysAround(baseLang(lang))} lang={lang} />
       <header className="flex h-14 items-center gap-2 border-b bg-card px-4">
-        <Link href={localePath("/", lang)} className="flex min-w-0 items-center gap-2 font-heading text-lg font-bold">
-          <span className="text-primary">☦</span><span className="truncate">{siteName(lang)}</span>
-        </Link>
+        <span className="flex min-w-0 items-baseline gap-2">
+          <Link href={localePath("/", lang)} className="flex shrink-0 items-center gap-2 font-heading text-lg font-bold">
+            <span className="text-primary">☦</span>{brandName(lang)}
+          </Link>
+          {edition && (
+            <Link href={localePath(paths.home, lang)} className="truncate text-sm text-muted-foreground hover:text-primary max-sm:hidden">· {siteName(lang)}</Link>
+          )}
+        </span>
         <nav className="ml-auto flex shrink-0 items-center gap-0.5">
           {nav.map((n) => (
             <Button key={n.href} variant="ghost" size="sm" className="max-md:hidden" asChild>
@@ -39,6 +45,11 @@ export async function PublicHeader({ lang, path, signedIn, children }: {
           ))}
           {children}
           <LangMenu lang={lang} path={path} />
+          {signedIn && (
+            <Button variant="ghost" size="sm" className="max-md:hidden" asChild>
+              <Link href={localePath("/profile", lang)} aria-label={t("myOdoiporiko", lang)}><Footprints /><span className="hidden xl:inline">{t("myOdoiporiko", lang)}</span></Link>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="max-md:hidden" asChild>
             <Link href={signedIn ? "/admin" : localePath("/login", lang)} aria-label={signedIn ? t("dashboard", lang) : t("signIn", lang)}>
               {signedIn ? <LayoutDashboard /> : <LogIn />}<span className="hidden xl:inline">{signedIn ? t("dashboard", lang) : t("signIn", lang)}</span>

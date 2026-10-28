@@ -18,7 +18,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     kicker: [TYPE_LABELS[site.type as SiteType]?.el, el.location.split(",")[0] || region?.name.el].filter(Boolean).join(" · "),
     title: el.name || en.name,
     subtitle: en.name && en.name !== el.name ? en.name : undefined,
-    footer: `${SITE_NAME.el} · ${SITE_NAME.en}`,
+    footer: `Οδοιπορικό · ${SITE_NAME.el}`,
     photo: site.photos[0]?.src,
   })
 }

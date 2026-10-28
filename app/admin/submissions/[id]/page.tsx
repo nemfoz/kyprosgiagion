@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { paths } from "@/lib/editions"
 import { notFound } from "next/navigation"
 import { ExternalLink } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -62,7 +63,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
         <StatusBadge status={sub.status} />
         {current && (
           <Button variant="outline" size="sm" asChild className="ml-auto">
-            <Link href={`/site/${current.slug}`} target="_blank">{t("editor.sub.currentPage")}<ExternalLink /></Link>
+            <Link href={paths.site(current.slug)} target="_blank">{t("editor.sub.currentPage")}<ExternalLink /></Link>
           </Button>
         )}
       </div>

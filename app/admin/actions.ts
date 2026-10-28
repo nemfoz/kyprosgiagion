@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath, updateTag } from "next/cache"
+import { paths } from "@/lib/editions"
 import { PUBLIC_TAG } from "@/lib/cache"
 import { eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
@@ -13,6 +14,7 @@ import {
 } from "@/lib/sites"
 import { youtubeId } from "@/lib/content"
 import { savePointsConfig } from "@/lib/points"
+import { saveSiteInfo } from "@/lib/site-info"
 import { approveSubmission, createSubmission, rejectSubmission } from "@/lib/submissions"
 import { rehostImage, isStored } from "@/lib/storage"
 
@@ -33,7 +35,7 @@ const refresh = (slug?: string) => {
   updateTag(PUBLIC_TAG)
   revalidatePath("/")
   revalidatePath("/admin", "layout")
-  if (slug) revalidatePath(`/site/${slug}`)
+  if (slug) revalidatePath(paths.site(slug))
 }
 
 // ---- churches (admins edit directly) ----
@@ -216,5 +218,17 @@ export async function savePointsAction(raw: unknown) {
     updateTag(PUBLIC_TAG)
     revalidatePath("/", "layout")
     return { recalculated }
+  })
+}
+
+// ---- information pages and footer (superadmins) ----
+
+export async function saveSiteInfoAction(raw: unknown) {
+  return run(async () => {
+    const user = await assertRole("superadmin")
+    await saveSiteInfo(raw, user.id)
+    updateTag(PUBLIC_TAG)
+    revalidatePath("/", "layout")
+    return {}
   })
 }

@@ -1,17 +1,17 @@
 // Service worker: keeps the public pages a visitor has opened (the map page carries the whole church list
 // with summaries) and their photos, so they still open where there is no signal (much of Karpasia).
 // Pages always come from the network first; the stored copy is only used offline.
-const VERSION = "v1"
+const VERSION = "v2"
 const PAGES = `pages-${VERSION}`
 const ASSETS = `assets-${VERSION}`
 const OFFLINE = "/offline.html"
 const MAX_ASSETS = 400
 
 // Accounts, forms and the admin area are never stored.
-const PRIVATE = /^\/(?:[a-z]{2}\/)?(?:admin|api|login|signup|forgot-password|reset-password|verified)(?:\/|$)/
+const PRIVATE = /^\/(?:[a-z]{2}\/)?(?:admin|api|profile|login|signup|forgot-password|reset-password|verified)(?:\/|$)/
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(PAGES).then((c) => c.addAll([OFFLINE, "/"])).then(() => self.skipWaiting()))
+  event.waitUntil(caches.open(PAGES).then((c) => c.addAll([OFFLINE, "/", "/cyprus/map"])).then(() => self.skipWaiting()))
 })
 
 self.addEventListener("activate", (event) => {

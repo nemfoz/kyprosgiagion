@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { LOCALE_REGION, LOCALES, localePath, type Locale } from "@/lib/locales"
-import { siteName } from "@/lib/regions"
+import { brandName } from "@/lib/editions"
 
 // The public address: SITE_URL if set (e.g. a custom domain), else Vercel's production domain, else local dev.
 export const SITE_URL = (process.env.SITE_URL
@@ -20,7 +20,7 @@ export function alternates(path: string, lang: Locale, locales: readonly Locale[
 /** Open Graph basics shared by every public page (the image comes from opengraph-image files). */
 export function openGraph(path: string, lang: Locale, title?: string, description?: string): Metadata["openGraph"] {
   return {
-    type: "website", siteName: siteName(lang), url: localePath(path, lang), title, description,
+    type: "website", siteName: brandName(lang), url: localePath(path, lang), title, description,
     locale: LOCALE_REGION[lang], alternateLocale: LOCALES.filter((l) => l !== lang).map((l) => LOCALE_REGION[l]),
   }
 }
@@ -34,5 +34,5 @@ export function plainText(md: string, max = 300) {
 /** A <script type="application/ld+json"> body; "<" is escaped so the text can't close the tag. */
 export const jsonLd = (data: object) => JSON.stringify(data).replace(/</g, "\\u003c")
 
-/** A page title: Greek pages use the layout's template; other languages end with the site's name in that language. */
-export const pageTitle = (title: string, lang: Locale): Metadata["title"] => (lang === "el" ? title : { absolute: `${title} – ${siteName(lang)}` })
+/** A page title: Greek pages use the layout's template; other languages end with the brand in their script. */
+export const pageTitle = (title: string, lang: Locale): Metadata["title"] => (lang === "el" ? title : { absolute: `${title} – ${brandName(lang)}` })

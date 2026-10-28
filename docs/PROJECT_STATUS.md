@@ -1,22 +1,25 @@
 # Project status & handover — Οδοιπορικό (formerly Κύπρος – Αγίων Γη)
 
-_Last updated: 2026-10-28 (new name **Οδοιπορικό / Odoiporiko** — see §0 and [`BRAND.md`](BRAND.md); phone layout, "Near me", offline pages; performance pass — see §2 "Performance"; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-28 (Οδοιπορικό rename, editions under `/cyprus`, visits, information pages, Docker — see §0). Read this first when continuing work in a new session._
 
-## 0. Rebrand in progress (2026-10-28) — START HERE
+## 0. Rebrand + editions + self-hosting (2026-10-28) — START HERE
 
-The project is being renamed **Οδοιπορικό** (Latin: **Odoiporiko**) — an umbrella brand for all Orthodox churches;
-"Κύπρος – Αγίων Γη" becomes the title of the Cyprus edition. Domains bought by the owner: **odoiporiko.com** (main)
-and **odiporiko.com** (301 → main). Everything decided (name, taglines, editions, domains, 15 logo concepts) is in
-[`BRAND.md`](BRAND.md). **Logo selection is paused**; the next task is adapting the website to the new name:
+The project is now **Οδοιπορικό** (Latin: **Odoiporiko**) — an umbrella brand for all Orthodox churches;
+"Κύπρος – Αγίων Γη" is the title of the Cyprus edition. Domains bought by the owner: **odoiporiko.com** (main)
+and **odiporiko.com** (301 → main). Name, taglines, editions, domains, 15 logo concepts: [`BRAND.md`](BRAND.md).
+**Logo selection is paused** (the ☦ mark stays until then).
 
-1. Add both domains to the Vercel project; redirect odiporiko.com and kyprosgiagion.vercel.app → odoiporiko.com.
-   Give the owner the DNS records to set at the registrar.
-2. Set `SITE_URL=https://odoiporiko.com` (canonical, sitemap, OG URLs).
-3. Rename the site everywhere: titles/metadata, `app/manifest.ts`, OG images, JSON-LD, e-mail templates, header/footer,
-   interface text in all 8 languages (`lib/messages/*`), with "Κύπρος – Αγίων Γη" kept as the Cyprus edition subtitle.
-4. Update README and this file.
+Done 2026-10-28 (see §2 "Editions", "Visits", "Information pages", §4 "Self-hosting"):
+- Site renamed everywhere (titles, manifest, OG images, e-mails, headers; brand + edition subtitle in the header).
+- `/` = Odoiporiko home (choose a Church), `/cyprus` = Cyprus landing, `/cyprus/map`, `/cyprus/site/x`,
+  `/cyprus/metropolis/x`; old URLs 308-redirect.
+- Visited churches + "My odoiporiko" profile; About/Contact/Privacy/Cookies/Terms, footer, cookie notice.
+- Docker image + compose; export/import scripts for moving the data off Vercel.
 
-Until a logo is chosen, keep the existing icons (or use a plain wordmark).
+**Next:** bring the container live on sv.hasnofriends.com (§4), then the domains: point odoiporiko.com /
+odiporiko.com at the server, set `SITE_URL=https://odoiporiko.com`, redirect kyprosgiagion.vercel.app.
+The legal texts (privacy/terms) are drafts — the owner/Foundation should review them; contact e-mail
+(`contact@odoiporiko.com` placeholder) and the Foundation's link are set at `/admin/pages`.
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -42,14 +45,31 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 
 ## 2. What exists (features)
 
+**Editions** (`lib/editions.ts`): `EDITIONS` lists the autocephalous Churches (diptych order); only Cyprus is active.
+Build Cyprus links with `paths.*` (`paths.site(slug)`, `paths.map`, `paths.metropolis(slug)`…) wrapped in `localePath`.
+`brandName(lang)`: Οδοιπορικό in Greek, Odoiporiko in every other language. Every region belongs to Cyprus for now.
+
+**Visits** (`lib/visits.ts`, tables `visits`, `profiles`): a church page's "Have you been here?" card — "I'm here"
+checks the browser's position server-side (≤300 m, 1500 m for approximate pins, minus up to 100 m of GPS accuracy)
+and records a *verified* visit; "I've been here before" records an unverified one (a later check-in upgrades it).
+The position is never stored. `/profile` ("My odoiporiko"): X of Y overall, by country, region and see, milestones,
+contribution badges, the list with dates. Private by default; a switch makes `/u/<userId>` public (short name,
+counts, badges — no dates, no list). The map list shows ✓ on visited churches.
+
+**Information pages** (`lib/pages.ts`, `components/info-page.tsx`, `app/(info)/*`): about, contact, privacy, cookies,
+terms (Markdown; `{email}`, `{foundation}`, `{site}` filled in); superadmins edit the texts, contact e-mail and the
+El Frank Foundation link at `/admin/pages` (`settings` key `pages`). Footer on every public page (`SiteFooter`; a short
+one under the map list): page links + "An El Frank Foundation project · powered by hnf.sh". Cookie notice (only
+essential cookies → informs, no consent) shown once, remembered in local storage.
+
 **Public**
-- `/` 3D map (MapLibre): list panel with search, Region and Metropolis dropdowns (`?region=`, `?metropolis=`;
+- `/cyprus/map` 3D map (MapLibre): list panel with search, Region and Metropolis dropdowns (`?region=`, `?metropolis=`;
   a Metropolis frames its churches) and type filters,
   fly-to on select, pins grouped into numbered clusters while zoomed out (supercluster, up to zoom 13; click zooms in),
   3D/2D and Map/Satellite toggles, district mask (rest of Cyprus faded),
   Greek/English toggle (`?lang=en`), completeness bar per church in the side panel (signed-in users only).
 - Content sidebars (church, name days, Metropolis, contribute pages) are on the right and sticky on wide screens.
-- `/site/[slug]` church page: hero photo; compact sticky sidebar on the right (details + completeness card for
+- `/cyprus/site/[slug]` church page: hero photo; compact sticky sidebar on the right (details + completeness card for
   signed-in users only — visitors never see completeness — and the 5 nearest churches with distance); history (simple Markdown — a YouTube link alone in
   a paragraph is embedded), YouTube videos, gallery with lightbox ("old photograph" label on archive photos),
   sources (links always show their destination domain); the 3D map closes the page edge to edge with a
@@ -59,7 +79,7 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   movable feasts. Fixed days: `data/namedays.json` (built by `scripts/fetch-namedays.mjs` from newsbeast.gr, years
   2024–2026 compared); Easter-dependent days computed in `lib/namedays.ts` (Orthodox Easter, Lazarus, Palm Sunday,
   Life-giving Spring, Thomas, Whit Monday; St George/St Mark move after Easter when they fall before it).
-- `/metropolis` + `/metropolis/[slug]`: the 13 sees of the Church of Cyprus (Archdiocese, 9 Metropolises,
+- `/cyprus/metropolis` + `/cyprus/metropolis/[slug]`: the 13 sees of the Church of Cyprus (Archdiocese, 9 Metropolises,
   Bishoprics of Karpasia, Arsinoe, Amathus) — history (from their own sites, with source link), latest news from
   their RSS feeds (titles/links only; refreshed in the background via `after()` at most hourly, stored in
   `metropolis_news`), and the churches on our map that belong to each (`sites.metropolis_id`). Church pages link
@@ -193,6 +213,14 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
 - The 31 imported churches have placeholder history (map completeness is low).
 
 ## 4. Deployment & infrastructure (important)
+
+**Self-hosting (in progress, 2026-10-28):** `Dockerfile` + `docker-compose.yml` (README "Self-hosting"). Data in the
+`/data` volume (`app.db` = local SQLite via `DATABASE_URL=file:/data/app.db`, `uploads/` = photos); migrate runs on
+every container start. Without Blob, `/media/photos/x` is served from `uploads/x`. Moving production off Vercel:
+`EXPORT_TOKEN` + `/api/export` (one-off, remove afterwards) → `scripts/import-dump.mjs`. Target server:
+sv.hasnofriends.com (Ubuntu, user `nmf`; SSH got refused after a few wrong-username attempts — probably fail2ban).
+Until the move is finished, the Vercel notes below still describe production.
+
 
 - `npm run build` = `node scripts/migrate.mjs && next build`. **migrate runs on every Vercel build** with
   the production credentials and is idempotent: creates/alters tables (never drops), seeds samples into

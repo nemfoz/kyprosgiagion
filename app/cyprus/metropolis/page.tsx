@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
+import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { after } from "next/server"
 import { ArrowRight, Church, Newspaper } from "lucide-react"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { publicMetropolises, metroText, refreshStaleNews } from "@/lib/metropolises"
@@ -10,20 +12,20 @@ import { localePath } from "@/lib/locales"
 import { getSession } from "@/lib/session"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
-export async function generateMetadata({ searchParams }: PageProps<"/metropolis">): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: PageProps<"/cyprus/metropolis">): Promise<Metadata> {
   const lang = langFrom((await searchParams).lang)
   const t = await getT()
-  return { title: pageTitle(t("navMetropolises", lang), lang), description: t("metroIntro", lang), alternates: alternates("/metropolis", lang), openGraph: openGraph("/metropolis", lang, t("metroTitle", lang), t("metroIntro", lang)) }
+  return { title: pageTitle(t("navMetropolises", lang), lang), description: t("metroIntro", lang), alternates: alternates(paths.metropolises, lang), openGraph: openGraph(paths.metropolises, lang, t("metroTitle", lang), t("metroIntro", lang)) }
 }
 
-export default async function MetropolisesPage({ searchParams }: PageProps<"/metropolis">) {
+export default async function MetropolisesPage({ searchParams }: PageProps<"/cyprus/metropolis">) {
   const lang = langFrom((await searchParams).lang)
   const [t, session, list] = await Promise.all([getT(), getSession(), publicMetropolises()])
   after(refreshStaleNews) // news are fetched in the background, at most hourly
 
   return (
-    <div className="min-h-dvh bg-background">
-      <PublicHeader lang={lang} path="/metropolis" signedIn={!!session} />
+    <div className="flex min-h-dvh flex-col bg-background">
+      <PublicHeader lang={lang} path={paths.metropolises} signedIn={!!session} />
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <p className="mb-3 text-[11px] font-semibold tracking-[.14em] text-gold uppercase">{t("navMetropolises", lang)}</p>
@@ -35,7 +37,7 @@ export default async function MetropolisesPage({ searchParams }: PageProps<"/met
         {list.map((m) => {
           const c = { name: metroText(m, "name", lang), seat: metroText(m, "seat", lang), summary: metroText(m, "summary", lang) }
           return (
-            <Link key={m.id} href={localePath(`/metropolis/${m.slug}`, lang)} className="group grid content-start gap-3 rounded-xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm">
+            <Link key={m.id} href={localePath(paths.metropolis(m.slug), lang)} className="group grid content-start gap-3 rounded-xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm">
               <div className="flex items-center gap-3">
                 {m.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -58,6 +60,7 @@ export default async function MetropolisesPage({ searchParams }: PageProps<"/met
           )
         })}
       </main>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

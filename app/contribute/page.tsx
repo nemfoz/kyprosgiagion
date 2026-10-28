@@ -12,6 +12,7 @@ import { publicLeaderboard, publicMissionBoard } from "@/lib/contributors"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { getSession } from "@/lib/session"
 import { trData } from "@/lib/i18n"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
@@ -27,7 +28,7 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
   const [board, top, session, cfg, t] = await Promise.all([publicMissionBoard(), publicLeaderboard(10), getSession(), getPointsConfig(), getT()])
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <PublicHeader lang={lang} path="/contribute" signedIn={!!session}>
         {!session && <Button size="sm" asChild><Link href="/signup">{t("signUp", lang)}</Link></Button>}
       </PublicHeader>
@@ -123,6 +124,7 @@ export default async function ContributePage({ searchParams }: PageProps<"/contr
           </Card>
         </aside>
       </main>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

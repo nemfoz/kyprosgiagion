@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import type { GeoJSONSource, MapGeoJSONFeature, Map as MlMap, Popup } from "maplibre-gl"
-import { ArrowLeft, ArrowRight, CalendarDays, Landmark, LayoutDashboard, Loader2, LocateFixed, LogIn, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, TriangleAlert } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Footprints, Landmark, LayoutDashboard, Loader2, LocateFixed, LogIn, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 import { NameDayBar, type NameDays } from "@/components/namedays/nameday-bar"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,9 @@ import { MobileNav } from "@/components/mobile-nav"
 import { useT } from "@/components/i18n-provider"
 import { places, regionAncestors, regionName, regions as allRegions, siteName, defaultRegion, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
+import { brandName, paths } from "@/lib/editions"
+import { INFO_PAGES, PAGE_TITLE_KEY } from "@/lib/pages"
+import { FooterCredits } from "@/components/footer-credits"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 import { addSiteLayers, ButtonsControl, collapseAttribution, mapStyle, PIN_LAYERS, PIXEL_RATIO, setMe, setPlaces, setRegion, setSatellite, setSitePoints, setTerrain } from "./terrain"
@@ -34,6 +37,8 @@ export type MapSite = {
   cover: string | null
   /** Page completeness; null for visitors who aren't signed in. */
   percent: number | null
+  /** The signed-in user has marked it as visited. */
+  visited: boolean
   metropolisId: number | null
   name: Partial<Record<Locale, string>>
   location: Partial<Record<Locale, string>>
@@ -50,6 +55,8 @@ type Props = {
   initialSlug?: string
   account: { name: string } | null
   nameDays: Record<Lang, NameDays>
+  /** The Foundation's link for the credits under the list (lib/pages.ts). */
+  foundationUrl: string
 }
 
 // Active regions, parents first with their sub-regions after them; "all" (the whole island) when there are
@@ -80,7 +87,7 @@ function regionCamera(map: MlMap, r: Region, is3d: boolean, fit = false, bottom 
   return { ...cam, bearing, pitch: is3d ? r.camera?.pitch ?? 50 : 0, zoom: (cam?.zoom ?? 8) + extra }
 }
 
-export function Explorer({ sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays }: Props) {
+export function Explorer({ sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays, foundationUrl }: Props) {
   const t = useT()
   const [lang, setLang] = useState<Locale>(initialLang)
   const [regionId, setRegionId] = useState(initialRegion)
@@ -379,9 +386,9 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     const metro = metropolises.find((m) => m.id === metroId)
     if (metro) p.set("metropolis", metro.slug)
     if (current) p.set("site", current.slug)
-    history.replaceState(null, "", localePath(`/${p.size ? `?${p}` : ""}`, lang))
+    history.replaceState(null, "", localePath(`${paths.map}${p.size ? `?${p}` : ""}`, lang))
     document.documentElement.lang = lang
-    document.title = siteName(lang)
+    document.title = `${siteName(lang)} – ${brandName(lang)}`
   }, [lang, regionId, metroId, metropolises, current])
 
   // Alphabetical, or nearest first after "Near me".
@@ -397,22 +404,22 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
       <span className="h-1.5 w-11 rounded-full bg-border" />
     </div>
   )
-  const siteHref = (s: MapSite) => localePath(`/site/${encodeURIComponent(s.slug)}`, lang)
+  const siteHref = (s: MapSite) => localePath(paths.site(s.slug), lang)
 
   return (
     <div className="flex h-dvh flex-col bg-background" style={{ "--sheet-h": `${sheetH}px` } as React.CSSProperties}>
       <NameDayBar days={nameDays[baseLang(lang)]} lang={lang} />
       <header className="z-10 flex shrink-0 items-center gap-x-3 border-b bg-card px-4 py-2.5 md:h-22 md:gap-x-7 md:px-7 md:py-0">
-        <Link href="/" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
-          <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-border bg-accent text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</span>
+        <div className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
+          <Link href={localePath("/", lang)} aria-label={brandName(lang)} className="grid h-9 w-8 flex-none place-items-center rounded-t-[22px] rounded-b-[7px] border border-border bg-accent text-[22px] text-primary md:h-12 md:w-[42px] md:text-[26px]">☦</Link>
           <span className="grid min-w-0 gap-1 md:gap-2">
-            <span className="truncate font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{siteName(lang)}</span>
-            <span className="hidden truncate text-[11px] tracking-wide text-muted-foreground md:block">{t("caption", lang)}</span>
+            <Link href={localePath("/", lang)} className="truncate font-heading text-base leading-none font-bold whitespace-nowrap md:text-xl">{brandName(lang)}</Link>
+            <Link href={localePath(paths.home, lang)} className="truncate text-[11px] leading-none tracking-wide text-muted-foreground hover:text-primary">{siteName(lang)}<span className="max-lg:hidden"> · {t("caption", lang)}</span></Link>
           </span>
-        </Link>
+        </div>
         <div className="ml-auto flex shrink-0 items-center gap-1">
           {([
-            ["/metropolis", "navMetropolises", <Landmark key="m" />],
+            [paths.metropolises, "navMetropolises", <Landmark key="m" />],
             ["/eortologio", "navNameDays", <CalendarDays key="n" />],
             ["/contribute", "contribute", <Sparkles key="c" />],
           ] as const).map(([href, key, icon]) => (
@@ -421,6 +428,11 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
             </Button>
           ))}
           <LangMenu lang={lang} onChange={setLang} />
+          {account && (
+            <Button variant="ghost" size="sm" className="max-md:hidden" asChild>
+              <Link href={localePath("/profile", lang)} aria-label={t("myOdoiporiko", lang)}><Footprints /><span className="hidden 2xl:inline">{t("myOdoiporiko", lang)}</span></Link>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="max-md:hidden" asChild>
             <Link href={account ? "/admin" : localePath("/login", lang)}>
               {account ? <LayoutDashboard /> : <LogIn />}
@@ -444,7 +456,10 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
               <div className="pb-5">
                 <Button variant="link" className="h-10 px-5 text-sm md:px-6 md:pt-5 md:text-xs" onClick={back}><ArrowLeft />{t("back", lang)}</Button>
                 <div className="grid gap-3 px-5 pt-1 pb-4 md:px-6 md:py-4">
-                  <TypeBadge type={current.type} lang={lang} />
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <TypeBadge type={current.type} lang={lang} />
+                    {current.visited && <span className="flex items-center gap-1 text-xs font-semibold text-primary"><CircleCheck className="size-3.5" />{t("visitedBadge", lang)}</span>}
+                  </span>
                   <h2 className="text-2xl leading-snug font-bold md:text-[27px]">{name(current)}</h2>
                   <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4 shrink-0" />{tr(current.location, lang)}</p>
                   {here && <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><LocateFixed className="size-4 shrink-0" />{formatDistance(km(current), lang)}</p>}
@@ -575,11 +590,19 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                             {s.location[lang] || s.location.el}
                           </span>
                         </span>
-                        <span aria-hidden className="text-[17px] text-muted-foreground">↗</span>
+                        {s.visited
+                          ? <CircleCheck aria-label={t("visitedBadge", lang)} className="size-4 text-primary" />
+                          : <span aria-hidden className="text-[17px] text-muted-foreground">↗</span>}
                       </button>
                     </li>
                   ))}
                 </ul>
+                <div className="grid gap-2 border-t px-5 py-4 text-[11px] text-muted-foreground md:px-6">
+                  <nav className="flex flex-wrap gap-x-3 gap-y-1">
+                    {INFO_PAGES.map((p) => <Link key={p} href={localePath(`/${p}`, lang)} className="hover:text-primary">{t(PAGE_TITLE_KEY[p], lang)}</Link>)}
+                  </nav>
+                  <FooterCredits foundationUrl={foundationUrl} project={t("footerProject", lang, { foundation: "\u0000" })} poweredBy={t("footerPoweredBy", lang)} />
+                </div>
               </ScrollArea>
             </>
           )}

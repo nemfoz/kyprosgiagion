@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ExternalLink, MapPin, Navigation, Pencil, TriangleAlert } from "lucide-react"
@@ -6,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Gallery } from "@/components/site/gallery"
 import { ShareButton } from "@/components/site/share-button"
+import { VisitCard } from "@/components/site/visit-card"
+import { APPROX_RADIUS, CHECK_IN_RADIUS, visitOf } from "@/lib/visits"
 import { MiniMap } from "@/components/map/mini-map"
 import { CompletenessCard } from "@/components/gamify/completeness-card"
 import { completeness } from "@/lib/completeness"
@@ -14,6 +17,7 @@ import { googleMapsUrl, headings, inline, markdown, parseFacts, pick, translated
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { isAdmin } from "@/lib/permissions"
 import { regionName, regions } from "@/lib/regions"
 import { getPointsConfig } from "@/lib/points"
@@ -33,12 +37,12 @@ async function load(slug: string) {
   return { site, session, admin }
 }
 
-export async function generateMetadata({ params, searchParams }: PageProps<"/site/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/cyprus/site/[slug]">): Promise<Metadata> {
   const { slug } = await params
   const lang = langFrom((await searchParams).lang)
   const site = await publicSite(slug)
   if (!site) return {}
-  const path = `/site/${site.slug}`
+  const path = paths.site(site.slug)
   const title = pick(site.content, lang, "name")
   const description = plainText(pick(site.content, lang, "summary"))
   return {
@@ -50,17 +54,18 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/sit
   }
 }
 
-export default async function SitePage({ params, searchParams }: PageProps<"/site/[slug]">) {
+export default async function SitePage({ params, searchParams }: PageProps<"/cyprus/site/[slug]">) {
   const { slug } = await params
   const lang = langFrom((await searchParams).lang)
   // The second name under the title: English on Greek pages, otherwise the Greek original.
   const other: Lang = lang === "el" ? "en" : "el"
   const [{ site, session, admin }, t] = await Promise.all([load(slug), getT()])
   const untranslated = isExtra(lang) && !translatedInto(site.content).includes(lang)
-  const [metropolis, nearby, cfg] = await Promise.all([
+  const [metropolis, nearby, cfg, visit] = await Promise.all([
     site.metropolisId ? publicMetropolis(site.metropolisId) : null,
     nearbySites(site),
     session ? getPointsConfig() : null, // completeness is for signed-in contributors only
+    session ? visitOf(session.user.id, site.id) : null,
   ])
   const c = site.content
   const region = regions.find((r) => r.id === site.region)
@@ -98,19 +103,19 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
     name,
     alternateName: altName && altName !== name ? altName : undefined,
     description: plainText(pick(c, lang, "summary")) || undefined,
-    url: SITE_URL + localePath(`/site/${site.slug}`, lang),
+    url: SITE_URL + localePath(paths.site(site.slug), lang),
     image: site.photos.slice(0, 3).map((p) => (p.src.startsWith("/") ? SITE_URL + p.src : p.src)),
     geo: { "@type": "GeoCoordinates", latitude: site.lat, longitude: site.lng },
     address: { "@type": "PostalAddress", addressLocality: pick(c, lang, "location") || undefined, addressRegion: region && regionName(region, lang), addressCountry: "CY" },
     hasMap: googleMapsUrl(site.lat, site.lng),
-    containedInPlace: metropolis ? { "@type": "Organization", name: metroText(metropolis, "name", lang), url: SITE_URL + localePath(`/metropolis/${metropolis.slug}`, lang) } : undefined,
+    containedInPlace: metropolis ? { "@type": "Organization", name: metroText(metropolis, "name", lang), url: SITE_URL + localePath(paths.metropolis(metropolis.slug), lang) } : undefined,
     inLanguage: untranslated ? "en" : lang,
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col bg-background">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(ld) }} />
-      <PublicHeader lang={lang} path={`/site/${site.slug}`} signedIn={!!session}>
+      <PublicHeader lang={lang} path={paths.site(site.slug)} signedIn={!!session}>
         {session && (
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/admin/sites/${site.id}`} aria-label={admin ? t("edit", lang) : t("propose", lang)}>
@@ -137,7 +142,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
         )}
         {cover && <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />}
         <div className="relative mx-auto w-full max-w-6xl px-4 py-8 text-parchment">
-          <Link href={localePath(`/?site=${encodeURIComponent(site.slug)}`, lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment">
+          <Link href={localePath(paths.onMap(site.slug), lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment">
             <ArrowLeft className="size-4" />{t("backToMap", lang)}
           </Link>
           <TypeBadge type={site.type as SiteType} lang={lang} className="block text-gold [&>span]:bg-gold" />
@@ -218,7 +223,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
                 {pick(c, lang, "location") && <Fact label={t("location", lang)}>{pick(c, lang, "location")}</Fact>}
                 {metropolis && (
                   <Fact label={t("metropolis", lang)}>
-                    <Link href={localePath(`/metropolis/${metropolis.slug}`, lang)}>{metroText(metropolis, "name", lang)}</Link>
+                    <Link href={localePath(paths.metropolis(metropolis.slug), lang)}>{metroText(metropolis, "name", lang)}</Link>
                   </Fact>
                 )}
                 {shownFacts.map(([k, v], i) => <Fact key={i} label={k}><span dangerouslySetInnerHTML={{ __html: inline(v) }} /></Fact>)}
@@ -226,12 +231,15 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
               <a href="#map" className="mt-3 flex items-center gap-1.5 text-[13px] text-primary underline underline-offset-2"><MapPin className="size-3.5" />{t("onMap", lang)}</a>
             </CardContent>
           </Card>
+          {site.published && (
+            <VisitCard siteId={site.id} lang={lang} signedIn={!!session} initial={visit} radius={site.coordsVerified ? CHECK_IN_RADIUS : APPROX_RADIUS} />
+          )}
           {nearby.length > 0 && (
             <Card className="gap-2 py-4">
               <CardHeader className="px-4"><CardTitle className="font-heading text-base">{t("nearby", lang)}</CardTitle></CardHeader>
               <CardContent className="grid gap-1 px-2">
                 {nearby.map((s) => (
-                  <Link key={s.id} href={localePath(`/site/${s.slug}`, lang)} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted">
+                  <Link key={s.id} href={localePath(paths.site(s.slug), lang)} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted">
                     {s.cover
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-12 w-11 shrink-0 rounded-t-[22px] rounded-b-md object-cover" />
@@ -271,6 +279,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
           </div>
         </div>
       </section>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

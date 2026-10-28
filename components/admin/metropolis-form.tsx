@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ExternalLink, Loader2, RefreshCw, Save, Trash2 } from "lucide-react"
@@ -150,7 +151,7 @@ export function MetropolisForm({ id, initial, churches, news }: {
         <Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Save />}{t("metro.save")}</Button>
         {id && v.slug && (
           <Button type="button" variant="outline" asChild className="ml-auto">
-            <Link href={`/metropolis/${initial.slug}`} target="_blank">{t("metro.view")}<ExternalLink /></Link>
+            <Link href={paths.metropolis(initial.slug)} target="_blank">{t("metro.view")}<ExternalLink /></Link>
           </Button>
         )}
         {id && (

@@ -1,7 +1,7 @@
 // Drizzle table definitions. The tables themselves are created by scripts/migrate.mjs
 // (scripts/schema.mjs) — keep both in sync.
 import { sql } from "drizzle-orm"
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core"
+import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 const now = sql`(datetime('now'))`
 
@@ -98,6 +98,21 @@ export const translationSuggestions = sqliteTable("translation_suggestions", {
   reviewerId: text("reviewer_id"),
   createdAt: text("created_at").notNull().default(now),
   reviewedAt: text("reviewed_at"),
+})
+
+/** Churches a user has visited; `verified` = checked in on location (lib/visits.ts). */
+export const visits = sqliteTable("visits", {
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  siteId: integer("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+  visitedAt: text("visited_at").notNull().default(now),
+}, (t) => [primaryKey({ columns: [t.userId, t.siteId] })])
+
+/** A user's own settings: whether their odoiporiko is public. */
+export const profiles = sqliteTable("profiles", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  public: integer("public", { mode: "boolean" }).notNull().default(false),
+  updatedAt: text("updated_at").notNull().default(now),
 })
 
 // ---- Better Auth ----

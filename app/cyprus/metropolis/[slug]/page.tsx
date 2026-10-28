@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { after } from "next/server"
@@ -6,6 +7,7 @@ import { ArrowLeft, ExternalLink, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { markdown } from "@/lib/content"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
@@ -17,17 +19,17 @@ import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
 
-export async function generateMetadata({ params, searchParams }: PageProps<"/metropolis/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/cyprus/metropolis/[slug]">): Promise<Metadata> {
   const lang = langFrom((await searchParams).lang)
   const m = await publicMetropolisPage((await params).slug)
   if (!m) return {}
-  const path = `/metropolis/${m.slug}`
+  const path = paths.metropolis(m.slug)
   const title = metroText(m, "name", lang)
   const description = metroText(m, "summary", lang)
   return { title: pageTitle(title, lang), description, alternates: alternates(path, lang), openGraph: openGraph(path, lang, title, description) }
 }
 
-export default async function MetropolisPage({ params, searchParams }: PageProps<"/metropolis/[slug]">) {
+export default async function MetropolisPage({ params, searchParams }: PageProps<"/cyprus/metropolis/[slug]">) {
   const lang = langFrom((await searchParams).lang)
   const [t, session, m] = await Promise.all([getT(), getSession(), publicMetropolisPage((await params).slug)])
   if (!m) notFound()
@@ -36,8 +38,8 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
   const dateFmt = new Intl.DateTimeFormat(intlLocale(lang), { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Nicosia" })
 
   return (
-    <div className="min-h-dvh bg-background">
-      <PublicHeader lang={lang} path={`/metropolis/${m.slug}`} signedIn={!!session} />
+    <div className="flex min-h-dvh flex-col bg-background">
+      <PublicHeader lang={lang} path={paths.metropolis(m.slug)} signedIn={!!session} />
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-5 px-4 py-10">
           {m.logo && (
@@ -45,7 +47,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
             <img src={m.logo} alt="" className="size-24 rounded-xl bg-parchment object-contain p-2" />
           )}
           <div className="min-w-0 flex-1">
-            <Link href={localePath("/metropolis", lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment"><ArrowLeft className="size-4" />{t("metroAll", lang)}</Link>
+            <Link href={localePath(paths.metropolises, lang)} className="mb-3 inline-flex items-center gap-1.5 text-sm text-parchment/85 hover:text-parchment"><ArrowLeft className="size-4" />{t("metroAll", lang)}</Link>
             <h1 className="text-[clamp(26px,4.5vw,42px)] leading-tight font-bold">{field("name")}</h1>
             {field("seat") && <p className="mt-1 text-parchment/85">{t("metroSeat", lang, { seat: field("seat") })}</p>}
           </div>
@@ -75,7 +77,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
             <ul className="grid gap-3 sm:grid-cols-2">
               {m.churches.map((s) => (
                 <li key={s.id}>
-                  <Link href={localePath(`/site/${s.slug}`, lang)} className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
+                  <Link href={localePath(paths.site(s.slug), lang)} className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
                     {s.cover ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-16 w-16 rounded-t-[30px] rounded-b-lg object-cover" />
@@ -112,6 +114,7 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
           </Card>
         </aside>
       </main>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

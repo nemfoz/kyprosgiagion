@@ -1,7 +1,18 @@
+import fs from "node:fs/promises"
+import path from "node:path"
 import { get } from "@vercel/blob"
 import { originalBase } from "@/lib/photo-sizes.mjs"
 
-const fetchBlob = (pathname: string) => get(pathname, { access: "private" }).then((b) => (b?.stream ? b : null), () => null)
+const USE_BLOB = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
+const TYPES: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" }
+
+// Without Blob (the self-hosted server), /media/photos/x is read from ./uploads/x: old addresses keep working.
+const readLocal = (pathname: string) => fs.readFile(path.join(process.cwd(), "uploads", path.basename(pathname)))
+  .then((data) => ({ stream: new Blob([new Uint8Array(data)]).stream(), blob: { contentType: TYPES[path.extname(pathname).toLowerCase()] } }), () => null)
+
+const fetchBlob = (pathname: string) => USE_BLOB
+  ? get(pathname, { access: "private" }).then((b) => (b?.stream ? b : null), () => null)
+  : readLocal(pathname)
 
 // Serves photos from a private Vercel Blob store. Responses are immutable, so Vercel's CDN caches them.
 // A smaller copy that doesn't exist (yet) falls back to the original, cached only briefly.

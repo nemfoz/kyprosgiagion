@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PublicHeader } from "@/components/public-header"
+import { SiteFooter } from "@/components/site-footer"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { addDays, findName, formatDay, isoDay, feastName, monthName, movableFeasts, nameDay, orthodoxEaster, today, weekday, type Day } from "@/lib/namedays"
@@ -50,7 +51,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
   const results = q ? findName(q, y) : []
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <PublicHeader lang={lang} path={`/eortologio?${new URLSearchParams({ y: String(y), m: String(m), ...(q ? { q } : {}) })}`} signedIn={!!session} />
 
       <section className="border-b bg-crimson bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--gold)_45%,transparent),transparent_70%)] text-parchment">
@@ -157,6 +158,7 @@ export default async function NameDaysPage({ searchParams }: PageProps<"/eortolo
           <p className="px-1 text-xs text-muted-foreground">{t("ndSource", lang)}</p>
         </aside>
       </main>
+      <SiteFooter lang={lang} />
     </div>
   )
 }

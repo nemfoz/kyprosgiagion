@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { I18nProvider } from "@/components/i18n-provider"
 import { ServiceWorker } from "@/components/service-worker"
+import { CookieNotice } from "@/components/cookie-notice"
 import { getOverrides } from "@/lib/i18n-server"
 import { SITE_URL } from "@/lib/seo"
 
@@ -20,9 +21,9 @@ const serifKa = Noto_Serif_Georgian({ variable: "--font-noto-serif-ka", subsets:
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Κύπρος – Αγίων Γη", template: "%s – Κύπρος Αγίων Γη" },
-  description: "Χάρτης των εκκλησιών και μοναστηριών της Καρπασίας και της επαρχίας Αμμοχώστου.",
-  appleWebApp: { capable: true, title: "Αγίων Γη", statusBarStyle: "default" },
+  title: { default: "Οδοιπορικό", template: "%s – Οδοιπορικό" },
+  description: "Οδοιπορικό στις εκκλησίες και τα μοναστήρια της Ορθοδοξίας.",
+  appleWebApp: { capable: true, title: "Οδοιπορικό", statusBarStyle: "default" },
 }
 
 // viewportFit "cover" lets the pages use the full iPhone screen; the list sheet and the map card pad
@@ -34,7 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={lang} className={`${sans.variable} ${serif.variable} ${sansKa.variable} ${serifKa.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <I18nProvider overrides={overrides}><TooltipProvider>{children}</TooltipProvider></I18nProvider>
+        <I18nProvider overrides={overrides}><TooltipProvider>{children}</TooltipProvider><CookieNotice /></I18nProvider>
         <Toaster position="bottom-center" richColors />
         <ServiceWorker />
       </body>

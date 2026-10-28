@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { paths } from "@/lib/editions"
+import { localePath } from "@/lib/locales"
 import { usePathname, useRouter } from "next/navigation"
 import { useTransition } from "react"
-import { CalendarDays, Church, ExternalLink, FileClock, Landmark, Languages, LayoutDashboard, Trophy, Users } from "lucide-react"
+import { CalendarDays, Church, ExternalLink, FileClock, FileText, Footprints, Landmark, Languages, LayoutDashboard, Trophy, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useAdminT } from "@/components/i18n-provider"
 import { setAdminLangAction } from "@/app/admin/i18n-actions"
@@ -22,12 +24,14 @@ export function AdminNav({ role, pending, translations = 0, onNavigate }: { role
     { href: "/admin", label: "admin.nav.overview", icon: <LayoutDashboard />, exact: true },
     { href: "/admin/sites", label: "admin.nav.sites", icon: <Church /> },
     { href: "/admin/submissions", label: admin ? "admin.nav.submissions" : "admin.nav.mySubmissions", icon: <FileClock />, count: admin ? pending : 0 },
+    { href: localePath("/profile", t.lang), label: "myOdoiporiko" as MessageKey, icon: <Footprints /> },
     ...(admin ? [
       { href: "/admin/metropolises", label: "admin.nav.metropolises", icon: <Landmark /> } as Item,
       { href: "/admin/users", label: "admin.nav.users", icon: <Users /> } as Item,
     ] : []),
     ...(role === "superadmin" ? [
       { href: "/admin/points", label: "admin.nav.points", icon: <Trophy /> } as Item,
+      { href: "/admin/pages", label: "admin.nav.pages", icon: <FileText /> } as Item,
     ] : []),
     // Superadmins edit every text; everyone else suggests fixes to the other languages.
     { href: "/admin/translations", label: "admin.nav.translations", icon: <Languages />, count: admin ? translations : 0 },
@@ -45,7 +49,7 @@ export function AdminNav({ role, pending, translations = 0, onNavigate }: { role
         )
       })}
       <div className="my-2 border-t" />
-      <Link href={t.lang === "en" ? "/?lang=en" : "/"} target="_blank" className={link}><ExternalLink />{t("admin.nav.publicMap")}</Link>
+      <Link href={localePath(paths.map, t.lang)} target="_blank" className={link}><ExternalLink />{t("admin.nav.publicMap")}</Link>
       <Link href={`/eortologio${t.lang === "en" ? "?lang=en" : ""}`} target="_blank" className={link}><CalendarDays />{t("navNameDays" as MessageKey)}</Link>
     </nav>
   )

@@ -67,9 +67,11 @@ export const esc = (s: string) =>
 
 // Links always show where they lead: "text (domain)" for [text](url), the URL itself for bare links.
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
-const link = (href: string, text: string) =>
-  `<a href="${href}" target="_blank" rel="noopener">${text}</a>` +
-  (text === href ? "" : ` <span class="link-domain">(${esc(domain(href))})</span>`)
+// Links to our own pages (/…) open in place, without a domain.
+const link = (href: string, text: string) => href.startsWith("/")
+  ? `<a href="${href}">${text}</a>`
+  : `<a href="${href}" target="_blank" rel="noopener">${text}</a>` +
+    (text === href ? "" : ` <span class="link-domain">(${esc(domain(href))})</span>`)
 
 /** Inline formatting on already-escaped text. */
 export function inline(text: string) {
