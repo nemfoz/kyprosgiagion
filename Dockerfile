@@ -30,7 +30,8 @@ COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/lib ./lib
 COPY --from=build /app/data ./data
 COPY --from=build /app/assets ./assets
-RUN mkdir -p /data && ln -s /data/uploads /app/uploads && chown -R node:node /data /app/.next
+# Any user id may run it (compose "user:"): the build cache in .next must be writable for all.
+RUN mkdir -p /data && ln -s /data/uploads /app/uploads && chown -R node:node /data /app/.next && chmod -R a+rwX /app/.next
 USER node
 VOLUME /data
 EXPOSE 3000

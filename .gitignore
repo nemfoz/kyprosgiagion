@@ -15,3 +15,4 @@ data/app.db*
 data/.secret
 uploads/*
 !uploads/.gitkeep
+storage/

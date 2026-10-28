@@ -1,4 +1,6 @@
 # docker compose up -d --build   (on the server; secrets in .env next to this file — see README "Self-hosting")
+name: odoiporiko
+
 services:
   app:
     build:
@@ -8,11 +10,13 @@ services:
         APP_BUILD_ID: ${APP_BUILD_ID:-docker}
     image: odoiporiko:latest
     restart: unless-stopped
+    # The owner of ./storage on the host (APP_UID=1001:1001 in .env), so the data files belong to that user.
+    user: ${APP_UID:-1000:1000}
     env_file: .env
     environment:
       DATABASE_URL: file:/data/app.db
       REQUIRE_EMAIL: "1"
     volumes:
-      - ./data:/data
+      - ./storage:/data
     ports:
-      - "127.0.0.1:${PORT:-4002}:3000"
+      - "127.0.0.1:${HOST_PORT:-4002}:3000"

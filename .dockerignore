@@ -9,3 +9,4 @@ uploads
 docs
 *.pdf
 *.tsbuildinfo
+storage

@@ -76,7 +76,7 @@ SITE_URL=https://odoiporiko.com          # canonical/sitemap/OG addresses (also 
 APP_HOSTS=odoiporiko.com,www.odoiporiko.com,sv.hasnofriends.com   # host names accepted for sign-in
 BETTER_AUTH_SECRET=…                     # random, keep it
 SUPERADMIN_EMAILS=…
-PORT=4002                                # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
+HOST_PORT=4002                           # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
 # RESEND_API_KEY, EMAIL_FROM, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY when ready
 ```
 
@@ -84,7 +84,7 @@ PORT=4002                                # published on 127.0.0.1 only; put the 
 (`REQUIRE_EMAIL=1`), except the first superadmin.
 
 **Moving the data from Vercel** (once): set `EXPORT_TOKEN` on the Vercel project and deploy, then
-`curl -H "Authorization: Bearer $EXPORT_TOKEN" https://kyprosgiagion.vercel.app/api/export > data/dump.json` and
+`curl -H "Authorization: Bearer $EXPORT_TOKEN" https://kyprosgiagion.vercel.app/api/export > storage/dump.json` and
 `docker compose run --rm app node scripts/import-dump.mjs /data/dump.json https://kyprosgiagion.vercel.app`
 (imports every table except sessions, downloads the photos into `/data/uploads`, rewrites `/media/photos/…` to
 `/uploads/…`; re-running only fetches missing photos). Remove `EXPORT_TOKEN` afterwards.
