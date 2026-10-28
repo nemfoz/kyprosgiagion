@@ -1,7 +1,8 @@
 "use server"
 
 import { cookies } from "next/headers"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
+import { PUBLIC_TAG } from "@/lib/cache"
 import { ADMIN_LANG_COOKIE, type Overrides } from "@/lib/i18n"
 import { getAdminT, saveOverrides, setLocaleText } from "@/lib/i18n-server"
 import { EXTRA_LOCALES, type ExtraLocale } from "@/lib/locales"
@@ -15,6 +16,7 @@ type Result = { ok: true } | { ok: false; error: string }
 async function run(fn: () => Promise<void>): Promise<Result> {
   try {
     await fn()
+    updateTag(PUBLIC_TAG)
     revalidatePath("/", "layout")
     return { ok: true }
   } catch (e) {
@@ -61,6 +63,7 @@ export async function saveTranslationsAction(overrides: Overrides): Promise<{ ok
   try {
     const user = await assertRole("superadmin")
     const count = await saveOverrides(overrides, user.id)
+    updateTag(PUBLIC_TAG)
     revalidatePath("/", "layout")
     return { ok: true, count }
   } catch (e) {

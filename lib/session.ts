@@ -1,13 +1,13 @@
 import "server-only"
+import { cache } from "react"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { isAdmin, isSuperadmin } from "@/lib/permissions"
 import type { MessageKey, Vars } from "@/lib/i18n"
 
-export async function getSession() {
-  return auth.api.getSession({ headers: await headers() })
-}
+/** The signed-in user's session, looked up once per request. */
+export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }))
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSession>>>["user"]
 

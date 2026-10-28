@@ -1,7 +1,8 @@
 import "server-only"
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm"
+import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
-import { normaliseContent, SITE_TYPES, slugify, type SiteContent, type SiteType } from "@/lib/content"
+import { byLocale, normaliseContent, SITE_TYPES, slugify, translatedInto, type SiteContent, type SiteType } from "@/lib/content"
+import { cached } from "@/lib/cache"
 import { regions } from "@/lib/regions"
 import { distanceKm } from "@/lib/geo"
 import { deleteStored } from "@/lib/storage"
@@ -44,12 +45,25 @@ export async function listSites({ publishedOnly }: { publishedOnly: boolean }) {
   return rows.map(({ site, cover }) => ({ ...withContent(site), cover }))
 }
 
+/**
+ * What the map, lists and "nearby" need of each published church: names, places and summaries in every
+ * language, without the histories. One query, cached across requests.
+ */
+export const siteSummaries = cached("siteSummaries", async () => (await listSites({ publishedOnly: true })).map((s) => ({
+  id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng, coordsVerified: s.coordsVerified,
+  cover: s.cover, metropolisId: s.metropolisId, updatedAt: s.updatedAt, locales: translatedInto(s.content),
+  name: byLocale(s.content, "name"), location: byLocale(s.content, "location"), summary: byLocale(s.content, "summary"),
+})))
+export type SiteSummary = Awaited<ReturnType<typeof siteSummaries>>[number]
+
 /** The published churches closest to a point, nearest first. */
 export async function nearbySites(from: { id: number; lat: number; lng: number }, limit = 5) {
-  const rows = await db.select({ id: sites.id, slug: sites.slug, type: sites.type, lat: sites.lat, lng: sites.lng, content: sites.content, cover: coverSql })
-    .from(sites).where(and(eq(sites.published, true), ne(sites.id, from.id)))
-  return rows.map((r) => ({ ...withContent(r), km: distanceKm(from, r) })).sort((a, b) => a.km - b.km).slice(0, limit)
+  return (await siteSummaries()).filter((s) => s.id !== from.id)
+    .map((s) => ({ ...s, km: distanceKm(from, s) })).sort((a, b) => a.km - b.km).slice(0, limit)
 }
+
+/** A church page's data (also unpublished ones, for the admin preview), cached across requests. */
+export const publicSite = cached("site", (slug: string) => getSite({ slug }))
 
 export async function getSite(where: { id: number } | { slug: string }): Promise<SiteWithPhotos | null> {
   const [row] = await db.select().from(sites)

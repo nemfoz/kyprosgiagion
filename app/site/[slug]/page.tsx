@@ -17,17 +17,17 @@ import { PublicHeader } from "@/components/public-header"
 import { isAdmin } from "@/lib/permissions"
 import { regionName, regions } from "@/lib/regions"
 import { getPointsConfig } from "@/lib/points"
-import { getMetropolis, metroText } from "@/lib/metropolises"
+import { publicMetropolis, metroText } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
-import { getSite, nearbySites } from "@/lib/sites"
+import { nearbySites, publicSite } from "@/lib/sites"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { alternates, jsonLd, openGraph, pageTitle, plainText, SITE_URL } from "@/lib/seo"
-import { baseLang, isExtra, localePath } from "@/lib/locales"
+import { baseLang, isExtra, localePath, tr } from "@/lib/locales"
 import { directionsUrl, formatDistance } from "@/lib/geo"
 import { trData } from "@/lib/i18n"
 
 async function load(slug: string) {
-  const [site, session] = await Promise.all([getSite({ slug }), getSession()])
+  const [site, session] = await Promise.all([publicSite(slug), getSession()])
   const admin = isAdmin(session?.user.role)
   if (!site || (!site.published && !admin)) notFound()
   return { site, session, admin }
@@ -36,7 +36,7 @@ async function load(slug: string) {
 export async function generateMetadata({ params, searchParams }: PageProps<"/site/[slug]">): Promise<Metadata> {
   const { slug } = await params
   const lang = langFrom((await searchParams).lang)
-  const site = await getSite({ slug })
+  const site = await publicSite(slug)
   if (!site) return {}
   const path = `/site/${site.slug}`
   const title = pick(site.content, lang, "name")
@@ -57,7 +57,11 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   const other: Lang = lang === "el" ? "en" : "el"
   const [{ site, session, admin }, t] = await Promise.all([load(slug), getT()])
   const untranslated = isExtra(lang) && !translatedInto(site.content).includes(lang)
-  const [metropolis, nearby] = await Promise.all([site.metropolisId ? getMetropolis({ id: site.metropolisId }) : null, nearbySites(site)])
+  const [metropolis, nearby, cfg] = await Promise.all([
+    site.metropolisId ? publicMetropolis(site.metropolisId) : null,
+    nearbySites(site),
+    session ? getPointsConfig() : null, // completeness is for signed-in contributors only
+  ])
   const c = site.content
   const region = regions.find((r) => r.id === site.region)
   const facts = parseFacts(pick(c, lang, "facts"))
@@ -67,8 +71,6 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
   const cover = site.photos[0]
   const name = pick(c, lang, "name")
   const altName = c[other].name
-  // Completeness is for signed-in contributors only.
-  const cfg = session ? await getPointsConfig() : null
   const score = cfg && completeness({ content: c, coordsVerified: site.coordsVerified, photoCount: site.photos.length }, cfg)
 
   // Phones: links to the parts of a long page, in a bar that stays at the top.
@@ -235,7 +237,7 @@ export default async function SitePage({ params, searchParams }: PageProps<"/sit
                       ? <img src={sized(s.cover, "sm")} alt="" loading="lazy" className="h-12 w-11 shrink-0 rounded-t-[22px] rounded-b-md object-cover" />
                       : <span className="grid h-12 w-11 shrink-0 place-items-center rounded-t-[22px] rounded-b-md bg-muted text-gold-deep">✝</span>}
                     <span className="min-w-0">
-                      <span className="line-clamp-2 text-[13px] leading-snug font-medium">{pick(s.content, lang, "name")}</span>
+                      <span className="line-clamp-2 text-[13px] leading-snug font-medium">{tr(s.name, lang)}</span>
                       <span className="block text-xs text-muted-foreground">{formatDistance(s.km, lang)}</span>
                     </span>
                   </Link>

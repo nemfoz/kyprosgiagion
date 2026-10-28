@@ -82,6 +82,10 @@ export const auth = betterAuth({
     },
   },
 
+  // The session is kept in a signed cookie for 5 minutes, so most requests skip the database lookup.
+  // (A ban or role change therefore takes up to 5 minutes to reach a browser that is already signed in.)
+  session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
+
   user: {
     additionalFields: {
       approved: { type: "boolean", defaultValue: false, input: false },

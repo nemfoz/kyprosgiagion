@@ -4,7 +4,8 @@ import { db, schema } from "@/lib/db"
 import type { Lang } from "@/lib/content"
 import { trData } from "@/lib/i18n"
 import { tr, type Locale } from "@/lib/locales"
-import { listSites } from "@/lib/sites"
+import { siteSummaries } from "@/lib/sites"
+import { cached } from "@/lib/cache"
 
 const { metropolises, metropolisNews, sites } = schema
 
@@ -52,12 +53,17 @@ export async function getMetropolis(where: { slug: string } | { id: number }) {
   return row ? withContent(row) : null
 }
 
+/** The public pages' copies, cached across requests (news is refreshed in the background, so at most 30 min old). */
+export const publicMetropolises = cached("metropolises", listMetropolises, 1800)
+export const publicMetropolis = cached("metropolis", (id: number) => getMetropolis({ id }))
+export const publicMetropolisPage = cached("metropolisPage", (slug: string) => metropolisPage(slug), 1800)
+
 /** A Metropolis page: its churches on the map and its latest news. */
 export async function metropolisPage(slug: string) {
   const m = await getMetropolis({ slug })
   if (!m) return null
   const [churches, news] = await Promise.all([
-    listSites({ publishedOnly: true }).then((all) => all.filter((s) => s.metropolisId === m.id)),
+    siteSummaries().then((all) => all.filter((s) => s.metropolisId === m.id)),
     db.select().from(metropolisNews).where(eq(metropolisNews.metropolisId, m.id)).orderBy(desc(metropolisNews.publishedAt)).limit(8),
   ])
   return { ...m, churches, news }

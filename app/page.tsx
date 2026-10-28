@@ -2,11 +2,10 @@ import { Explorer, type MapSite } from "@/components/map/explorer"
 import { langFrom } from "@/lib/i18n"
 import { defaultRegion, regions } from "@/lib/regions"
 import { getSession } from "@/lib/session"
-import { listSites } from "@/lib/sites"
-import { byLocale, type SiteType } from "@/lib/content"
-import { missionBoard } from "@/lib/contributors"
+import { siteSummaries } from "@/lib/sites"
+import { publicMissionBoard } from "@/lib/contributors"
 import { nameDaysAround } from "@/lib/namedays"
-import { listMetropolises, metroText } from "@/lib/metropolises"
+import { metroText, publicMetropolises } from "@/lib/metropolises"
 import { LOCALES } from "@/lib/locales"
 import type { Metadata } from "next"
 import { getT } from "@/lib/i18n-server"
@@ -25,16 +24,14 @@ export async function generateMetadata({ searchParams }: PageProps<"/">): Promis
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams
-  const [rows, session, metros] = await Promise.all([listSites({ publishedOnly: true }), getSession(), listMetropolises()])
+  const [rows, session, metros] = await Promise.all([siteSummaries(), getSession(), publicMetropolises()])
   // Completeness is for contributors only; visitors browsing the map don't see it.
-  const board = session ? await missionBoard() : null
+  const board = session ? await publicMissionBoard() : null
   const percent = new Map(board?.sites.map((s) => [s.id, s.percent]))
   const sites: MapSite[] = rows.map((s) => ({
-    id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng,
+    id: s.id, slug: s.slug, type: s.type, region: s.region, lat: s.lat, lng: s.lng,
     coordsVerified: s.coordsVerified, cover: s.cover, percent: percent.get(s.id) ?? null, metropolisId: s.metropolisId,
-    name: byLocale(s.content, "name"),
-    location: byLocale(s.content, "location"),
-    summary: byLocale(s.content, "summary"),
+    name: s.name, location: s.location, summary: s.summary,
   }))
   const region = typeof sp.region === "string" && regions.some((r) => r.active && r.id === sp.region) ? sp.region : defaultRegion
 

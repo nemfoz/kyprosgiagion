@@ -8,7 +8,7 @@ import { MissionList } from "@/components/gamify/mission-list"
 import { Leaderboard } from "@/components/gamify/leaderboard"
 import { BADGES, BONUSES, levelsFor, PAGE_POINTS, SECTIONS, type BonusKey } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
-import { leaderboard, missionBoard } from "@/lib/contributors"
+import { publicLeaderboard, publicMissionBoard } from "@/lib/contributors"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { PublicHeader } from "@/components/public-header"
@@ -24,7 +24,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/contribute"
 
 export default async function ContributePage({ searchParams }: PageProps<"/contribute">) {
   const lang = langFrom((await searchParams).lang)
-  const [board, top, session, cfg, t] = await Promise.all([missionBoard(), leaderboard(10), getSession(), getPointsConfig(), getT()])
+  const [board, top, session, cfg, t] = await Promise.all([publicMissionBoard(), publicLeaderboard(10), getSession(), getPointsConfig(), getT()])
 
   return (
     <div className="min-h-dvh bg-background">

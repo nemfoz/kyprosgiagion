@@ -2,16 +2,17 @@ import "server-only"
 import { cache } from "react"
 import { eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
+import { cached } from "@/lib/cache"
 import { UserError } from "@/lib/session"
 import { normalisePoints, normaliseEarned, proposalPoints, validatePoints, type PointsConfig } from "@/lib/completeness"
 
 const { settings, submissions } = schema
 
-/** The point values in force (defaults until a superadmin changes them). Read once per request. */
-export const getPointsConfig = cache(async (): Promise<PointsConfig> => {
+/** The point values in force (defaults until a superadmin changes them). Cached across requests; saving expires it. */
+export const getPointsConfig = cache(cached("points", async (): Promise<PointsConfig> => {
   const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "points"))
   return normalisePoints(row ? JSON.parse(row.value) : null)
-})
+}))
 
 /**
  * Saves new point values and recalculates every approved proposal with them,

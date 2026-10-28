@@ -6,20 +6,20 @@ import { ArrowLeft, ExternalLink, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PublicHeader } from "@/components/public-header"
-import { markdown, pick } from "@/lib/content"
+import { markdown } from "@/lib/content"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
-import { getMetropolis, metropolisPage, refreshStaleNews, metroText } from "@/lib/metropolises"
+import { publicMetropolisPage, refreshStaleNews, metroText } from "@/lib/metropolises"
 import { getSession } from "@/lib/session"
 import { sized } from "@/lib/photo-sizes.mjs"
-import { intlLocale, localePath } from "@/lib/locales"
+import { intlLocale, localePath, tr } from "@/lib/locales"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
 
 const domain = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") } catch { return url } }
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/metropolis/[slug]">): Promise<Metadata> {
   const lang = langFrom((await searchParams).lang)
-  const m = await getMetropolis({ slug: (await params).slug })
+  const m = await publicMetropolisPage((await params).slug)
   if (!m) return {}
   const path = `/metropolis/${m.slug}`
   const title = metroText(m, "name", lang)
@@ -29,7 +29,7 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/met
 
 export default async function MetropolisPage({ params, searchParams }: PageProps<"/metropolis/[slug]">) {
   const lang = langFrom((await searchParams).lang)
-  const [t, session, m] = await Promise.all([getT(), getSession(), metropolisPage((await params).slug)])
+  const [t, session, m] = await Promise.all([getT(), getSession(), publicMetropolisPage((await params).slug)])
   if (!m) notFound()
   after(refreshStaleNews)
   const field = (f: Parameters<typeof metroText>[1]) => metroText(m, f, lang)
@@ -83,8 +83,8 @@ export default async function MetropolisPage({ params, searchParams }: PageProps
                       <span className="grid h-16 w-16 place-items-center rounded-t-[30px] rounded-b-lg bg-muted text-2xl text-muted-foreground">✝</span>
                     )}
                     <span className="grid min-w-0 gap-0.5">
-                      <span className="truncate font-heading font-medium">{pick(s.content, lang, "name")}</span>
-                      <span className="flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="size-3 shrink-0" />{pick(s.content, lang, "location")}</span>
+                      <span className="truncate font-heading font-medium">{tr(s.name, lang)}</span>
+                      <span className="flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="size-3 shrink-0" />{tr(s.location, lang)}</span>
                     </span>
                   </Link>
                 </li>

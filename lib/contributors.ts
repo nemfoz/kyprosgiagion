@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db"
 import { badgesFor, completeness, levelFor, nextLevel, publicName, TOTAL_POINTS } from "@/lib/completeness"
 import { getPointsConfig } from "@/lib/points"
 import { listSites } from "@/lib/sites"
+import { cached } from "@/lib/cache"
 
 const { submissions, user, photos } = schema
 
@@ -53,6 +54,10 @@ export async function leaderboard(limit = 10) {
 }
 
 /** Every published church with its completeness, least complete first. */
+/** The board and leaderboard as the public pages see them, cached across requests (approvals expire them). */
+export const publicMissionBoard = cached("missionBoard", () => missionBoard())
+export const publicLeaderboard = cached("leaderboard", (limit: number) => leaderboard(limit))
+
 export async function missionBoard() {
   const [sites, cfg] = await Promise.all([listSites({ publishedOnly: true }), getPointsConfig()])
   const counts = await db.select({ siteId: photos.siteId, n: sql<number>`COUNT(*)` }).from(photos).groupBy(photos.siteId)

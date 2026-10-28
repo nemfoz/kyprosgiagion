@@ -1,6 +1,7 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
+import { PUBLIC_TAG } from "@/lib/cache"
 import { getAdminT } from "@/lib/i18n-server"
 import { deleteMetropolis, getMetropolis, normaliseMetroContent, refreshNews, saveMetropolis } from "@/lib/metropolises"
 import { assertRole, UserError } from "@/lib/session"
@@ -21,6 +22,7 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
 }
 
 const refresh = () => {
+  updateTag(PUBLIC_TAG)
   revalidatePath("/metropolis", "layout")
   revalidatePath("/admin/metropolises", "layout")
 }

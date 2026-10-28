@@ -10,11 +10,13 @@ import { ServiceWorker } from "@/components/service-worker"
 import { getOverrides } from "@/lib/i18n-server"
 import { SITE_URL } from "@/lib/seo"
 
-// Greek, Latin (with Romanian ș ț) and Cyrillic in Noto; Georgian in its own Noto font (see --font-ui in globals.css).
-const sans = Noto_Sans({ variable: "--font-noto-sans", subsets: ["latin", "latin-ext", "greek", "cyrillic", "cyrillic-ext"], weight: ["400", "500", "600", "700"] })
-const serif = Noto_Serif({ variable: "--font-noto-serif", subsets: ["latin", "latin-ext", "greek", "cyrillic", "cyrillic-ext"], weight: ["500", "700"], style: ["normal", "italic"] })
-const sansKa = Noto_Sans_Georgian({ variable: "--font-noto-sans-ka", subsets: ["georgian"], weight: ["400", "600", "700"], preload: false })
-const serifKa = Noto_Serif_Georgian({ variable: "--font-noto-serif-ka", subsets: ["georgian"], weight: ["500", "700"], preload: false })
+// Variable Noto fonts (one file per alphabet covers every weight). Only Greek and Latin are preloaded; Latin
+// extensions (Romanian ș ț) and Cyrillic are listed in the CSS too and download only on pages that use them.
+// Georgian has its own Noto font (see --font-ui in globals.css).
+const sans = Noto_Sans({ variable: "--font-noto-sans", subsets: ["latin", "greek"] })
+const serif = Noto_Serif({ variable: "--font-noto-serif", subsets: ["latin", "greek"], style: ["normal", "italic"] })
+const sansKa = Noto_Sans_Georgian({ variable: "--font-noto-sans-ka", subsets: ["georgian"], preload: false })
+const serifKa = Noto_Serif_Georgian({ variable: "--font-noto-serif-ka", subsets: ["georgian"], preload: false })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

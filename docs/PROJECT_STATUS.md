@@ -1,6 +1,6 @@
 # Project status & handover — Κύπρος – Αγίων Γη
 
-_Last updated: 2026-10-28 (phone layout, "Near me", installable app + offline pages; roadmap in §8). Read this first when continuing work in a new session._
+_Last updated: 2026-10-28 (phone layout, "Near me", offline pages; performance pass — see §2 "Performance"; roadmap in §8). Read this first when continuing work in a new session._
 
 A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, starting with
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
@@ -72,6 +72,23 @@ now `proxy` (not used here); use `PageProps<"/route">` / `RouteContext<…>` typ
   Share buttons under the hero, a sticky row of section links on phones (## headings get ids `s1, s2…` in `markdown()`),
   photos as a swipeable row, swipe in the lightbox. Text fields are 16px on touch screens (iOS would zoom otherwise).
   Styled 404 (`app/not-found.tsx`). Editor: "Take a photo" (camera) and "My location" in the location picker.
+- **Performance** (2026-10-28):
+  - Map pins, clusters and place names are drawn by MapLibre (`addSiteLayers`/`setSitePoints`/`setPlaces` in
+    `components/map/terrain.ts`; images drawn on canvas, ids `pin:<type>[:approx]`, `cluster:<n>`, `label:<major|minor>:<text>`).
+    Don't go back to HTML markers on 3D maps: each one reads the GPU depth buffer while the map moves. Place names hide
+    themselves under pins (symbol collision). Maps render at most 1.5 device pixels per CSS pixel (`PIXEL_RATIO`), tilt ≤ 65°,
+    one elevation source shared by terrain and hill shading. The church-page map starts when scrolled near.
+  - Fonts are variable Noto; only Greek + Latin preloaded (~200 KB).
+  - Public data is cached across requests (`lib/cache.ts` → `cached()`, tag `public`): `siteSummaries` (map/lists/nearby/
+    sitemap, no histories), `publicSite(slug)`, `publicMetropolises/…Page/…Metropolis`, `publicMissionBoard`,
+    `publicLeaderboard`, interface overrides, points. **Every write to public content must expire the tag** —
+    `updateTag(PUBLIC_TAG)` in server actions (done in the `refresh`/`run` helpers), `revalidateTag(PUBLIC_TAG, { expire: 0 })`
+    in route handlers. Cache keys include the deployment id, so each deploy (and its migrations) starts fresh.
+    Admin pages and read-modify-write paths read the database directly.
+  - Sessions: `getSession` is per-request cached; Better Auth keeps the session in a cookie for 5 min (a ban or role
+    change takes up to 5 min to apply to a signed-in browser).
+  - The build log prints the Turso region (`migrate: database ready (remote, region …)`): set Vercel's function region
+    (`vercel.json` `regions`) next to it.
 - **Installable app + offline**: `app/manifest.ts` (icons in `public/`, `app/apple-icon.png`), `viewportFit: cover` with
   safe-area padding. `public/sw.js` (registered in production only) keeps visited public pages (network first) and
   immutable build files/photos (cache first, max 400) for use without signal; `public/offline.html` otherwise. Never

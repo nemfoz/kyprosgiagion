@@ -25,7 +25,7 @@ export default async function MetropolisEditPage({ params }: PageProps<"/admin/m
     <div className="grid gap-4">
       <h1 className="text-2xl font-bold">{m.content[t.lang].name || m.content.el.name}</h1>
       <MetropolisForm id={m.id} initial={{ slug: m.slug, sort: m.sort, website: m.website, feedUrl: m.feedUrl, logo: m.logo, content: m.content }}
-        churches={page.churches.map((s) => ({ id: s.id, name: s.content[t.lang].name || s.content.el.name }))}
+        churches={page.churches.map((s) => ({ id: s.id, name: s.name[t.lang] || s.name.el || "" }))}
         news={page.news.map((n) => ({ id: n.id, title: n.title, url: n.url, date: n.publishedAt }))} />
     </div>
   )

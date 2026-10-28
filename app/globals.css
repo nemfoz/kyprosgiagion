@@ -149,29 +149,10 @@
 .pin span::after { content: '✝'; transform: rotate(45deg); color: var(--card); font-size: 15px; line-height: 1; }
 .pin.active span { transform: rotate(-45deg) scale(1.3); }
 .pin.pin-approx span { border-style: dashed; }
-.pin-cluster {
-  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
-  background: var(--crimson); color: var(--parchment); font: 700 14px var(--font-ui);
-  border: 2px solid var(--card); box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold) 70%, transparent), 0 2px 6px color-mix(in oklab, var(--ink) 25%, transparent);
-  transition: transform .15s;
-}
-.pin-cluster.large { width: 44px; height: 44px; font-size: 15px; }
-.pin-cluster:hover { transform: scale(1.1); }
 .pin-church { --c: var(--type-church); }
 .pin-monastery { --c: var(--type-monastery); }
 .pin-chapel { --c: var(--type-chapel); }
 .pin-basilica { --c: var(--type-basilica); }
-.place-label { font: 600 12px var(--font-ui); color: var(--muted-foreground); text-shadow: 0 0 3px var(--card), 0 0 3px var(--card), 0 0 4px var(--card); white-space: nowrap; pointer-events: none; }
-.place-label.major { font: 700 14px var(--font-display); color: var(--foreground); }
-.map3d .place-label:not(.major) { visibility: hidden; }
-.map3d.show-minor .place-label { visibility: visible; }
-.map3d .place-label.covered { visibility: hidden; }
-/* "Near me": where the phone is. */
-.me-dot {
-  width: 18px; height: 18px; border-radius: 50%; background: var(--crimson); border: 3px solid var(--card);
-  box-shadow: 0 0 0 0 color-mix(in oklab, var(--crimson) 45%, transparent); animation: me-pulse 2s infinite;
-}
-@keyframes me-pulse { 70%, 100% { box-shadow: 0 0 0 16px transparent; } }
 .site-tip .maplibregl-popup-content { font: 600 13px var(--font-ui); padding: 5px 10px; border-radius: 6px; box-shadow: 0 4px 16px color-mix(in oklab, var(--ink) 15%, transparent); }
 .site-tip .maplibregl-popup-tip { display: none; }
 .ka-ctrl { display: flex; flex-direction: column; }

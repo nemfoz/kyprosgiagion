@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { revalidatePath, revalidateTag } from "next/cache"
+import { PUBLIC_TAG } from "@/lib/cache"
 import { assertRole, Forbidden, UserError } from "@/lib/session"
 import { getAdminT } from "@/lib/i18n-server"
 import { isAdmin } from "@/lib/permissions"
@@ -24,7 +26,10 @@ export async function POST(req: Request) {
       const site = await getSite({ id: siteId })
       if (!site) return NextResponse.json({ error: t("error.site.notFound") }, { status: 404 })
       const src = await storePhoto(site.slug, data, type)
-      return NextResponse.json({ photo: await addPhoto(site.id, { src, credit }) })
+      const photo = await addPhoto(site.id, { src, credit })
+      revalidateTag(PUBLIC_TAG, { expire: 0 })
+      revalidatePath(`/site/${site.slug}`)
+      return NextResponse.json({ photo })
     }
     const src = await storePhoto("proposal", data, type)
     return NextResponse.json({ pending: { src, credit, captionEl: "", captionEn: "", sourceUrl: "", historic: false } })

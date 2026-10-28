@@ -5,7 +5,7 @@ import { Loader2, LocateFixed } from "lucide-react"
 import { toast } from "sonner"
 import type { Map as MlMap, Marker } from "maplibre-gl"
 import { useAdminT } from "@/components/i18n-provider"
-import { ButtonsControl, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite } from "@/components/map/terrain"
+import { ButtonsControl, collapseAttribution, mapStyle, pinElement, PIXEL_RATIO, setRegion, setSatellite } from "@/components/map/terrain"
 
 /** Satellite map for placing a church precisely: click or drag the pin, or (standing at the church) use the phone's location. */
 export function LocationPicker({ lat, lng, type, onChange }: {
@@ -29,7 +29,7 @@ export function LocationPicker({ lat, lng, type, onChange }: {
       const has = lat != null && lng != null
       const m = new lib.Map({
         container: el.current, style: mapStyle(),
-        center: has ? [lng!, lat!] : [34.0, 35.35], zoom: has ? 15 : 8.4, attributionControl: { compact: true },
+        center: has ? [lng!, lat!] : [34.0, 35.35], zoom: has ? 15 : 8.4, attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),
       })
       map.current = m
       m.addControl(new lib.NavigationControl({ showCompass: false }), "top-right")

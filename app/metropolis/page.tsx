@@ -5,7 +5,7 @@ import { ArrowRight, Church, Newspaper } from "lucide-react"
 import { PublicHeader } from "@/components/public-header"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
-import { listMetropolises, metroText, refreshStaleNews } from "@/lib/metropolises"
+import { publicMetropolises, metroText, refreshStaleNews } from "@/lib/metropolises"
 import { localePath } from "@/lib/locales"
 import { getSession } from "@/lib/session"
 import { alternates, openGraph, pageTitle } from "@/lib/seo"
@@ -18,7 +18,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/metropolis"
 
 export default async function MetropolisesPage({ searchParams }: PageProps<"/metropolis">) {
   const lang = langFrom((await searchParams).lang)
-  const [t, session, list] = await Promise.all([getT(), getSession(), listMetropolises()])
+  const [t, session, list] = await Promise.all([getT(), getSession(), publicMetropolises()])
   after(refreshStaleNews) // news are fetched in the background, at most hourly
 
   return (

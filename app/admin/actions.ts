@@ -1,6 +1,7 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
+import { PUBLIC_TAG } from "@/lib/cache"
 import { eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { assertRole, UserError } from "@/lib/session"
@@ -29,6 +30,7 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
 }
 
 const refresh = (slug?: string) => {
+  updateTag(PUBLIC_TAG)
   revalidatePath("/")
   revalidatePath("/admin", "layout")
   if (slug) revalidatePath(`/site/${slug}`)
@@ -211,6 +213,7 @@ export async function savePointsAction(raw: unknown) {
   return run(async () => {
     const user = await assertRole("superadmin")
     const recalculated = await savePointsConfig(raw, user.id)
+    updateTag(PUBLIC_TAG)
     revalidatePath("/", "layout")
     return { recalculated }
   })

@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import type { Map as MlMap, Marker, Popup } from "maplibre-gl"
-import Supercluster from "supercluster"
+import type { GeoJSONSource, MapGeoJSONFeature, Map as MlMap, Popup } from "maplibre-gl"
 import { ArrowLeft, ArrowRight, CalendarDays, Landmark, LayoutDashboard, Loader2, LocateFixed, LogIn, MapPin, Navigation, Search, SlidersHorizontal, Sparkles, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 import { NameDayBar, type NameDays } from "@/components/namedays/nameday-bar"
@@ -20,7 +19,7 @@ import { places, regionAncestors, regionName, regions as allRegions, siteName, d
 import { cn } from "@/lib/utils"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
 import { ProgressBar } from "@/components/gamify/completeness-card"
-import { ButtonsControl, clusterElement, collapseAttribution, mapStyle, pinElement, setRegion, setSatellite, setTerrain } from "./terrain"
+import { addSiteLayers, ButtonsControl, collapseAttribution, mapStyle, PIN_LAYERS, PIXEL_RATIO, setMe, setPlaces, setRegion, setSatellite, setSitePoints, setTerrain } from "./terrain"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { directionsUrl, distanceKm, formatDistance } from "@/lib/geo"
 
@@ -62,9 +61,6 @@ const regions = [
   ...(tops.length > 1 ? [ALL] : []),
   ...tops.flatMap((r) => [r, ...active.filter((c) => c.parent === r.id)]),
 ]
-// Pins closer than this (in pixels) are drawn as one numbered circle, up to zoom 13.
-const clusterer = () => new Supercluster<{ id: number }>({ radius: 42, maxZoom: 13 })
-const WORLD: [number, number, number, number] = [-180, -85, 180, 85]
 const fold = (s: string) => s.toLocaleLowerCase("el").normalize("NFD").replace(/[̀-ͯ]/g, "")
 
 // Phones: the list is a sheet over the map, dragged between three heights.
@@ -102,15 +98,10 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   const [locating, setLocating] = useState(false)
   const areaEl = useRef<HTMLDivElement>(null)
   const drag = useRef<{ y: number; h: number; moved: boolean } | null>(null)
-  const meMarker = useRef<Marker | null>(null)
 
   const mapEl = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const mlRef = useRef<typeof import("maplibre-gl") | null>(null)
-  const markers = useRef(new Map<number, Marker>())
-  const labels = useRef<Marker[]>([])
-  const clusterMarkers = useRef<Marker[]>([])
-  const [zoom, setZoom] = useState(7)
   const tip = useRef<Popup | null>(null)
   const view = useRef({ is3d: true, satellite: false })
   const langRef = useRef(lang)
@@ -191,7 +182,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
         container: mapEl.current,
         style: mapStyle(),
         center: [33.4, 35.1], zoom: 7.6, // whole island first, then fly into the region
-        maxPitch: 75, minZoom: 7, attributionControl: { compact: true },
+        maxPitch: 65, minZoom: 7, attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),
       })
       mapRef.current = map
       map.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right")
@@ -206,16 +197,11 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
         },
       ])
       map.addControl(controls.current, "top-right")
-      const zoomClass = () => {
-        map!.getContainer().classList.toggle("show-minor", map!.getZoom() >= 10.3)
-        setZoom(Math.floor(map!.getZoom()))
-      }
-      map.on("zoom", zoomClass)
       map.on("load", () => {
         collapseAttribution(map!)
         setTerrain(map!, view.current.is3d)
         setSatellite(map!, view.current.satellite)
-        zoomClass()
+        addSiteLayers(map!)
         setReady(true)
       })
     })
@@ -227,63 +213,51 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   useEffect(() => {
     langRef.current = lang
     controls.current?.refresh()
-    const map = mapRef.current, ml = mlRef.current
-    if (!ready || !map || !ml) return
-    labels.current.splice(0).forEach((m) => m.remove())
-    for (const p of places) {
-      const el = Object.assign(document.createElement("div"), { className: cn("place-label", p.major && "major"), textContent: p[baseLang(lang)] })
-      labels.current.push(new ml.Marker({ element: el, anchor: "top", offset: [0, 4] }).setLngLat([p.lng, p.lat]).addTo(map))
-    }
-    scheduleDeclutter()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- scheduleDeclutter only reads refs
+    const map = mapRef.current
+    if (!ready || !map) return
+    setPlaces(map, places.map((p) => ({ lng: p.lng, lat: p.lat, text: p[baseLang(lang)], major: !!p.major })))
   }, [lang, ready])
 
-  // ---- markers ----
-  // Nearby pins are grouped while zoomed out (the selected church always keeps its own pin).
-  const index = useMemo(() => clusterer().load(visible.filter((s) => s.id !== selected).map((s) => ({
-    type: "Feature", properties: { id: s.id }, geometry: { type: "Point", coordinates: [s.lng, s.lat] },
-  }))), [visible, selected])
-  const clusters = useMemo(() => index.getClusters(WORLD, zoom), [index, zoom])
-
+  // ---- pins ----
+  // Drawn by the map (clustered up to zoom 13); the selected church keeps its own, larger pin.
   useEffect(() => {
-    const map = mapRef.current, ml = mlRef.current
-    if (!ready || !map || !ml) return
-    const show = new Set(clusters.flatMap((c) => ("cluster" in c.properties ? [] : [c.properties.id])))
-    if (selected && visible.some((s) => s.id === selected)) show.add(selected)
-    clusterMarkers.current.splice(0).forEach((m) => m.remove())
-    for (const c of clusters) {
-      if (!("cluster" in c.properties)) continue
-      const { cluster_id: id, point_count: count } = c.properties
-      const [lng, lat] = c.geometry.coordinates
-      const el = clusterElement(count)
-      const names = () => index.getLeaves(id, 5).map((p) => name(sites.find((s) => s.id === p.properties.id)!))
-      el.addEventListener("click", (e) => {
-        e.stopPropagation()
-        tip.current?.remove()
-        map.flyTo({ center: [lng, lat], zoom: Math.min(index.getClusterExpansionZoom(id) + 0.2, 15), duration: 1200, essential: true })
-      })
-      el.addEventListener("mouseenter", () => showTipAt(lng, lat, names().join(" · ") + (count > 5 ? " …" : "")))
-      el.addEventListener("mouseleave", () => tip.current?.remove())
-      clusterMarkers.current.push(new ml.Marker({ element: el }).setLngLat([lng, lat]).addTo(map))
-    }
-    for (const s of sites) {
-      let m = markers.current.get(s.id)
-      if (!m) {
-        const el = pinElement(s.type, { approx: !s.coordsVerified })
-        el.addEventListener("click", (e) => { e.stopPropagation(); choose(s.id) })
-        el.addEventListener("mouseenter", () => showTip(s))
-        el.addEventListener("mouseleave", () => tip.current?.remove())
-        m = new ml.Marker({ element: el, anchor: "bottom", offset: [0, -6] }).setLngLat([s.lng, s.lat])
-        markers.current.set(s.id, m)
+    const map = mapRef.current
+    if (!ready || !map) return
+    const point = (s: MapSite) => ({ id: s.id, type: s.type, lng: s.lng, lat: s.lat, approx: !s.coordsVerified })
+    const chosen = visible.find((s) => s.id === selected)
+    setSitePoints(map, visible.filter((s) => s.id !== selected).map(point), chosen ? point(chosen) : null)
+  }, [visible, selected, ready])
+
+  // Hover names, clicks on pins and clusters.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const hit = (point: { x: number; y: number }): MapGeoJSONFeature | undefined => map.queryRenderedFeatures([point.x, point.y], { layers: PIN_LAYERS })[0]
+    let hovered: string | number | undefined
+    const onMove = async (e: { point: { x: number; y: number } }) => {
+      const f = hit(e.point)
+      map.getCanvas().style.cursor = f ? "pointer" : ""
+      const key = f ? f.properties.cluster_id ?? `s${f.properties.id}` : undefined
+      if (key === hovered) return
+      hovered = key
+      if (!f) { tip.current?.remove(); return }
+      const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates
+      if (f.properties.cluster) {
+        const leaves = await (map.getSource("sites") as GeoJSONSource).getClusterLeaves(f.properties.cluster_id, 5, 0)
+        if (hovered !== key) return
+        const names = leaves.map((l) => sites.find((s) => s.id === l.properties?.id)).filter(Boolean).map((s) => tr(s!.name, langRef.current))
+        showTipAt(lng, lat, names.join(" · ") + (f.properties.point_count > 5 ? " …" : ""))
+      } else {
+        const s = sites.find((x) => x.id === f.properties.id)
+        if (s) showTip(s)
       }
-      m.getElement().classList.toggle("active", s.id === selected)
-      m.getElement().style.zIndex = s.id === selected ? "2" : "1"
-      if (show.has(s.id)) m.addTo(map)
-      else m.remove()
     }
-    scheduleDeclutter()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- name() only reads the language
-  }, [clusters, visible, selected, ready, sites, lang])
+    const onLeave = () => { hovered = undefined; tip.current?.remove(); map.getCanvas().style.cursor = "" }
+    map.on("mousemove", onMove)
+    map.on("mouseout", onLeave)
+    return () => { map.off("mousemove", onMove); map.off("mouseout", onLeave) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showTip only reads refs
+  }, [ready, sites])
 
   function showTip(s: MapSite) {
     showTipAt(s.lng, s.lat, tr(s.name, langRef.current), 36)
@@ -296,20 +270,6 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     tip.current = new ml.Popup({ closeButton: false, closeOnClick: false, offset, className: "site-tip" })
       .setLngLat([lng, lat]).setText(text).addTo(map)
   }
-
-  // Hide place names that sit under a pin or a cluster (the pins matter more).
-  const declutterFrame = useRef(0)
-  function declutter() {
-    declutterFrame.current = 0
-    const boxes = [...clusterMarkers.current, ...markers.current.values()]
-      .map((m) => m.getElement()).filter((el) => el.isConnected).map((el) => el.getBoundingClientRect())
-    for (const l of labels.current) {
-      const el = l.getElement()
-      const r = el.getBoundingClientRect()
-      el.classList.toggle("covered", boxes.some((b) => b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top))
-    }
-  }
-  const scheduleDeclutter = () => { if (!declutterFrame.current) declutterFrame.current = requestAnimationFrame(declutter) }
 
   // ---- near me ----
   function locate() {
@@ -335,10 +295,8 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   }
 
   useEffect(() => {
-    const map = mapRef.current, ml = mlRef.current
-    if (!ready || !map || !ml || !here) return
-    if (!meMarker.current) meMarker.current = new ml.Marker({ element: Object.assign(document.createElement("div"), { className: "me-dot" }) })
-    meMarker.current.setLngLat([here.lng, here.lat]).addTo(map)
+    const map = mapRef.current
+    if (ready && map) setMe(map, here)
   }, [here, ready])
 
   // ---- camera ----
@@ -390,14 +348,22 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
       if (selected) map.easeTo({ pitch: view.current.is3d ? 60 : 0, bearing: view.current.is3d ? map.getBearing() : 0, duration: 800 })
       else map.easeTo({ ...regionCamera(map, area(), view.current.is3d, metroId !== null, insetRef.current), duration: 900 })
     }
-    const onClick = () => { if (selected) back() }
+    // A pin opens its church, a cluster zooms in to it, anywhere else closes the open church.
+    const onClick = async (e: { point: { x: number; y: number } }) => {
+      const f = map.queryRenderedFeatures([e.point.x, e.point.y], { layers: PIN_LAYERS })[0]
+      if (f?.properties.cluster) {
+        tip.current?.remove()
+        const z = await (map.getSource("sites") as GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id)
+        map.flyTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom: Math.min(z + 0.2, 15), duration: 1200, essential: true })
+      } else if (f) choose(f.properties.id)
+      else if (selected) back()
+    }
     // Phones: moving the map lowers the list out of the way.
     const onDrag = () => { if (mobile && !selected && snap === "half") setSnap("peek") }
     window.addEventListener("ka:view", onView)
     map.on("click", onClick)
     map.on("dragstart", onDrag)
-    map.on("move", scheduleDeclutter)
-    return () => { window.removeEventListener("ka:view", onView); map.off("click", onClick); map.off("dragstart", onDrag); map.off("move", scheduleDeclutter) }
+    return () => { window.removeEventListener("ka:view", onView); map.off("click", onClick); map.off("dragstart", onDrag) }
   })
 
   function back() {
@@ -579,7 +545,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                 <p className="flex min-h-10 items-center justify-between px-5 pt-2 pb-1 text-xs text-muted-foreground md:min-h-0 md:px-6 md:pt-5 md:pb-3 md:text-[11px]">
                   <span>{t(list.length === 1 ? "countOne" : "countMany", lang, { n: list.length })}</span>
                   {here ? (
-                    <button type="button" onClick={() => { setHere(null); meMarker.current?.remove() }} className="-my-2 rounded-md px-2 py-2 text-xs text-primary underline underline-offset-2 md:text-[11px]">
+                    <button type="button" onClick={() => setHere(null)} className="-my-2 rounded-md px-2 py-2 text-xs text-primary underline underline-offset-2 md:text-[11px]">
                       {t("sortByName", lang)}
                     </button>
                   ) : <span className="text-[10px] tracking-[.12em] md:text-[9px]">{t("results", lang)}</span>}

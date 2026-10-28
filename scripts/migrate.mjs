@@ -57,7 +57,10 @@ if (Number(rows[0].n) === 0) {
   console.log(`migrate: seeded ${seedSites.length} sample sites (run "npm run rehost-photos" to copy their photos into storage)`);
 }
 
-console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : 'remote'})`);
+// For remote databases, the cloud region (e.g. aws-eu-west-1) from the host name: the Vercel functions should
+// run close to it (vercel.json "regions"), since every page makes several queries.
+const dbRegion = url.startsWith('file:') ? null : /\.((?:aws|gcp|azure|fly)-[a-z0-9-]+)\.turso\.io/.exec(new URL(url.replace(/^libsql:/, 'https:')).hostname)?.[1];
+console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : `remote${dbRegion ? `, region ${dbRegion}` : ''}`})`);
 
 // ---- one-off data steps (each runs at most once per database) ----
 

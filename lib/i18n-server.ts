@@ -3,6 +3,7 @@ import { cache } from "react"
 import { cookies, headers } from "next/headers"
 import { eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
+import { cached } from "@/lib/cache"
 import type { Lang } from "@/lib/content"
 import { EXTRA_LOCALES, type ExtraLocale } from "@/lib/locales"
 import { LOCALE_MESSAGES } from "@/lib/messages/locales"
@@ -10,10 +11,16 @@ import { ADMIN_LANG_COOKIE, bindLang, makeT, MESSAGES, setDataOverrides, type Ov
 
 const { settings } = schema
 
-/** Superadmin edits to the interface text. Read once per request. */
-export const getOverrides = cache(async (): Promise<Overrides> => {
+/** The stored overrides, straight from the database (edits read-modify-write this, never a cached copy). */
+async function storedOverrides(): Promise<Overrides> {
   const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "translations"))
-  const o: Overrides = row ? JSON.parse(row.value) : {}
+  return row ? JSON.parse(row.value) : {}
+}
+const cachedOverrides = cached("overrides", storedOverrides)
+
+/** Superadmin edits to the interface text, cached across requests (edits expire the cache). */
+export const getOverrides = cache(async (): Promise<Overrides> => {
+  const o = await cachedOverrides()
   setDataOverrides(o)
   return o
 })
@@ -47,7 +54,7 @@ async function writeOverrides(o: Overrides, userId: string) {
  */
 export async function saveOverrides(input: Overrides, userId: string) {
   const clean: Overrides = {}
-  for (const [key, v] of Object.entries(await getOverrides())) {
+  for (const [key, v] of Object.entries(await storedOverrides())) {
     for (const l of EXTRA_LOCALES) if (v?.[l]) (clean[key] ??= {})[l] = v[l]
   }
   let count = 0
@@ -65,7 +72,7 @@ export async function saveOverrides(input: Overrides, userId: string) {
 
 /** Sets one text in an extra language (an approved fix or a superadmin's edit); "" or the draft removes it. */
 export async function setLocaleText(key: string, locale: ExtraLocale, text: string, userId: string) {
-  const o = structuredClone(await getOverrides())
+  const o = await storedOverrides()
   const clean = text.trim().slice(0, 2000)
   if (clean && clean !== LOCALE_MESSAGES[locale][key]) (o[key] ??= {})[locale] = clean
   else if (o[key]) {
