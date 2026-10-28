@@ -76,7 +76,7 @@ SITE_URL=https://odoiporiko.com          # canonical/sitemap/OG addresses (also 
 APP_HOSTS=odoiporiko.com,www.odoiporiko.com,sv.hasnofriends.com   # host names accepted for sign-in
 BETTER_AUTH_SECRET=…                     # random, keep it
 SUPERADMIN_EMAILS=…
-PORT=3100                                # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
+PORT=4002                                # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
 # RESEND_API_KEY, EMAIL_FROM, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY when ready
 ```
 

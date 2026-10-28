@@ -21,6 +21,8 @@ const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL
   || `file:${fileURLToPath(new URL('../data/app.db', import.meta.url))}`;
 const db = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN });
 
+// Local files: write-ahead logging, so readers (the running server) aren't blocked while something writes.
+if (url.startsWith('file:')) await db.execute('PRAGMA journal_mode = WAL');
 await db.batch(SCHEMA, 'write');
 
 for (const [table, column, definition] of ADDED_COLUMNS) {
