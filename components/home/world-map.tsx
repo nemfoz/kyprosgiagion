@@ -37,10 +37,12 @@ function style(): StyleSpecification {
   }
 }
 
-export function WorldMap({ editions, className, center = [30, 38], zoom = 1.9, spin = true, labels, narrow }: {
+export function WorldMap({ editions, className, center = [30, 38], zoom = 1.9, spin = true, labels, narrow, offsetLeft = 0 }: {
   editions: WorldEdition[]; className?: string; center?: [number, number]; zoom?: number; spin?: boolean
   /** Centre and zoom for narrow screens (phones), when they differ. */
   narrow?: { center: [number, number]; zoom: number }
+  /** On wide screens, the share of the width kept free on the left (for text): the globe moves right. */
+  offsetLeft?: number
   /** "Coming soon" in the page's language. */
   labels: { soon: string }
 }) {
@@ -57,12 +59,14 @@ export function WorldMap({ editions, className, center = [30, 38], zoom = 1.9, s
     import("maplibre-gl").then(async (ml) => {
       if (cancelled || !el.current) return
       const touch = matchMedia("(pointer: coarse)").matches
-      const view = narrow && el.current.clientWidth < 640 ? narrow : { center, zoom }
+      const wide = el.current.clientWidth >= 768
+      const view = narrow && !wide ? narrow : { center, zoom }
       map = new ml.Map({
         container: el.current, style: style(), ...view, minZoom: 1, maxZoom: 5,
         attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),
         scrollZoom: false, dragPan: !touch, dragRotate: false, touchZoomRotate: false, doubleClickZoom: false, keyboard: false,
       })
+      if (wide && offsetLeft) map.setPadding({ left: Math.round(el.current.clientWidth * offsetLeft), top: 0, right: 0, bottom: 0 })
       const points: Record<string, { lng: number; lat: number }> = (await fetch("/data/world.geojson").then((r) => r.json()).catch(() => ({}))).editions ?? {}
       if (cancelled || !map) return
       for (const e of props.current.editions) {

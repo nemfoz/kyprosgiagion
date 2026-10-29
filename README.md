@@ -42,13 +42,12 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 
 | Path | What it is |
 |---|---|
-| `app/page.tsx` | Home page: the brand and the choice of Church (`lib/editions.ts`; only Cyprus is open) |
 | `app/[edition]/page.tsx` | An edition's landing page (regions, sees, featured churches); editions and regions are data (`lib/editions-server.ts`, `lib/regions-server.ts`, `/admin/editions`, `/admin/regions`) |
 | `app/[edition]/map/`, `components/map/` | Public 3D map (MapLibre) with list, search and filters |
 | `app/[edition]/site/[slug]/`, `app/[edition]/metropolis/` | Church pages and the sees (`/site/<slug>` and `/metropolis/<slug>` redirect to the right edition) |
 | `/admin/import`, `lib/church-import.ts`, `lib/parish-sources/` | Adding churches: quick add, spreadsheet, Metropolis websites — checked (location, region, duplicates) before writing |
 | `lib/contact.ts`, `/admin/messages` | Contact form and its inbox |
-| `app/home-0x/`, `components/home/` | Three home page versions to choose from |
+| `app/page.tsx`, `components/home/` | Home page: the globe of the Orthodox world, the mission, three ways in |
 | `app/profile/`, `app/u/[id]/`, `lib/visits.ts` | Visited churches ("I'm here" GPS check-in or a manual mark), the user's odoiporiko, public profiles |
 | `app/(info)/`, `lib/pages.ts`, `/admin/pages` | About, Contact, Privacy, Cookies, Terms (texts editable by superadmins), footer, cookie notice |
 | `app/(auth)/` | Sign in / sign up |

@@ -45,7 +45,7 @@ export const homeData = cached("home", async () => {
       contributors: board.length,
       sees: sees.length,
     },
-    featured: [...withPhoto.filter((s) => s.coordsVerified), ...withPhoto.filter((s) => !s.coordsVerified)].slice(0, 9),
+    featured: [...withPhoto.filter((s) => s.coordsVerified), ...withPhoto.filter((s) => !s.coordsVerified)].slice(0, 12),
     recent: [...sites].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6),
   }
 }, 900)

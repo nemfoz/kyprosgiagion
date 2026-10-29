@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Camera, Church, Footprints, Landmark, MapPinned, Search, Sparkles, Users } from "lucide-react"
+import { ArrowRight, Camera, Church, Landmark, MapPinned, Users } from "lucide-react"
 import { TypeBadge } from "@/components/type-badge"
 import type { WorldEdition } from "@/components/home/world-map"
 import { editionChurch, editionName, editionPaths, sitePath } from "@/lib/editions"
@@ -9,7 +9,7 @@ import { localePath, tr, type Locale } from "@/lib/locales"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { cn } from "@/lib/utils"
 
-// Pieces shared by the home page versions (app/home-0x).
+// Parts of the home page (app/page.tsx).
 
 export const worldEditions = (data: HomeData, lang: Locale, t: TFn): WorldEdition[] => data.editions.map(({ edition: e, churches }) => ({
   churchesLabel: t("hChurchesN", lang, { n: churches }), id: e.id, name: editionName(e, lang), church: editionChurch(e, lang), active: e.active, churches, href: localePath(editionPaths(e.id).home, lang),
@@ -53,33 +53,9 @@ export function StatsRow({ data, t, lang, className, dark }: { data: HomeData; t
   )
 }
 
-export function HowItWorks({ t, lang }: { t: TFn; lang: Locale }) {
-  const steps = [
-    { title: t("hStep1Title", lang), text: t("hStep1Text", lang), icon: <Search /> },
-    { title: t("hStep2Title", lang), text: t("hStep2Text", lang), icon: <Footprints /> },
-    { title: t("hStep3Title", lang), text: t("hStep3Text", lang), icon: <Sparkles /> },
-  ]
-  return (
-    <section className="grid gap-5">
-      <h2 className="text-2xl font-bold">{t("hHowTitle", lang)}</h2>
-      <ol className="grid gap-4 md:grid-cols-3">
-        {steps.map((s, i) => (
-          <li key={s.title} className="relative grid content-start gap-2 rounded-2xl border bg-card p-5">
-            <span className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-t-[20px] rounded-b-md bg-accent text-primary [&_svg]:size-5">{s.icon}</span>
-              <span className="font-heading text-sm text-gold-deep">{i + 1}</span>
-            </span>
-            <h3 className="font-heading text-xl font-bold">{s.title}</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
 
-export function FeaturedChurches({ data, t, lang, count = 6 }: { data: HomeData; t: TFn; lang: Locale; count?: number }) {
-  if (!data.featured.length) return null
+export function FeaturedChurches({ data, t, lang, count = 6, skip = 0 }: { data: HomeData; t: TFn; lang: Locale; count?: number; skip?: number }) {
+  if (data.featured.length <= skip) return null
   return (
     <section className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -87,7 +63,7 @@ export function FeaturedChurches({ data, t, lang, count = 6 }: { data: HomeData;
         <Link href={localePath(editionPaths("cyprus").map, lang)} className="inline-flex items-center gap-1 text-sm font-medium text-primary">{t("edOpenMap", lang)}<ArrowRight className="size-4" /></Link>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {data.featured.slice(0, count).map((s) => (
+        {data.featured.slice(skip, skip + count).map((s) => (
           <li key={s.id}>
             <Link href={localePath(sitePath(s), lang)} className="group grid overflow-hidden rounded-xl border bg-card transition hover:border-primary/40 hover:shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,15 +116,3 @@ export function EditionsGrid({ data, t, lang }: { data: HomeData; t: TFn; lang: 
   )
 }
 
-/** Floating switch between the home page versions while the owner chooses one. */
-export function VersionSwitch({ current, t, lang }: { current: 1 | 2 | 3; t: TFn; lang: Locale }) {
-  return (
-    <nav aria-label={t("hVersion", lang)} className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-1 rounded-full border bg-card/95 p-1 text-sm shadow-lg backdrop-blur">
-      <span className="px-2 text-xs text-muted-foreground max-sm:hidden">{t("hVersion", lang)}</span>
-      {([1, 2, 3] as const).map((n) => (
-        <Link key={n} href={localePath(`/home-0${n}`, lang)} aria-current={n === current ? "page" : undefined}
-          className={cn("grid size-8 place-items-center rounded-full font-semibold", n === current ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>{n}</Link>
-      ))}
-    </nav>
-  )
-}

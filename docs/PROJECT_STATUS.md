@@ -25,9 +25,11 @@ _Last updated: 2026-10-29 (editions/regions in the database, church import, cont
 - **Contact form** on `/contact` (`lib/contact.ts`, `app/contact-actions.ts`): honeypot, fill time, 4/hour per sender,
   Turnstile when keys are set. Saved in `contact_messages`, read at `/admin/messages` (admins; unread count in the
   menu); also e-mailed to the contact address (Reply-To = sender) once `RESEND_API_KEY` is set.
-- **Home page versions** for the owner to choose: `/home-01` (globe first), `/home-02` (story: photo + mission),
-  `/home-03` (three ways in) — not indexed, with a 1/2/3 switch. `/` is still the old home; once chosen, the chosen
-  version becomes `app/page.tsx` and the others are deleted. Shared parts: `components/home/*`, data `lib/home.ts`.
+- **Home page** (`app/page.tsx`, chosen by the owner 2026-10-29 from three versions): a globe of the Orthodox world on
+  the right (Orthodox countries bright, occupied Cyprus crimson, a marker per Church — open ones lead in; text on the
+  left), then a church photograph with "So that no church is forgotten", three ways in (explore / your odoiporiko /
+  help) over its lower edge, the numbers, churches from the map and every Church. Parts: `components/home/*`, data
+  `lib/home.ts` (cached; counts churches in the occupied areas from `occupied.geojson`).
 
 ## 0. Rebrand + editions + self-hosting (2026-10-28)
 
