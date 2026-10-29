@@ -9,5 +9,6 @@ export async function GET(req: Request, { params }: RouteContext<"/metropolis/[s
   const m = await getMetropolis({ slug: decodeURIComponent(slug) })
   if (!m) return new Response("Not found", { status: 404 })
   const to = localePath(editionPaths(m.edition).metropolis(m.slug), isLocale(lang) ? lang : "el")
-  return Response.redirect(new URL(to, req.url), 308)
+  // A relative address: behind the proxy, req.url carries the container's own host.
+  return new Response(null, { status: 308, headers: { Location: to } })
 }

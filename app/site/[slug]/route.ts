@@ -11,5 +11,6 @@ export async function GET(req: Request, { params }: RouteContext<"/site/[slug]">
   if (!site) return new Response("Not found", { status: 404 })
   const edition = regions.find((r) => r.id === site.region)?.edition ?? "cyprus"
   const to = localePath(editionPaths(edition).site(site.slug), isLocale(lang) ? lang : "el")
-  return Response.redirect(new URL(to, req.url), 308)
+  // A relative address: behind the proxy, req.url carries the container's own host.
+  return new Response(null, { status: 308, headers: { Location: to } })
 }
