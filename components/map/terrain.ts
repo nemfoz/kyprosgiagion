@@ -26,7 +26,8 @@ const DEM = {
   attribution: '<a href="https://mapterhorn.com/attribution" target="_blank">© Mapterhorn</a>',
 }
 
-export function mapStyle(): StyleSpecification {
+/** `world`: draw the world's countries as land (editions other than Cyprus, which has its own coastline). */
+export function mapStyle({ world = false } = {}): StyleSpecification {
   return {
     version: 8,
     sources: {
@@ -37,7 +38,7 @@ export function mapStyle(): StyleSpecification {
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
       },
-      world: { type: "geojson", data: "/data/world.geojson", attribution: "Natural Earth" },
+      ...(world ? { world: { type: "geojson" as const, data: "/data/world.geojson", attribution: "Natural Earth" } } : {}),
       cyprus: { type: "geojson", data: "/data/cyprus.geojson" },
       occupied: { type: "geojson", data: "/data/occupied.geojson" },
       mask: { type: "geojson", data: EMPTY },
@@ -45,7 +46,7 @@ export function mapStyle(): StyleSpecification {
     },
     layers: [
       { id: "sea", type: "background", paint: { "background-color": COLORS.sea } },
-      { id: "world", type: "fill", source: "world", paint: { "fill-color": COLORS.island } },
+      ...(world ? [{ id: "world", type: "fill" as const, source: "world", paint: { "fill-color": COLORS.island } }] : []),
       { id: "island", type: "fill", source: "cyprus", paint: { "fill-color": COLORS.island } },
       { id: "land", type: "fill", source: "region", paint: { "fill-color": COLORS.land } },
       { id: "satellite", type: "raster", source: "satellite", layout: { visibility: "none" }, paint: { "raster-saturation": -0.1 } },

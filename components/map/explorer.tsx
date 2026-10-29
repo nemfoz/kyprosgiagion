@@ -201,7 +201,7 @@ export function Explorer({ edition, regions: active, defaultRegion, sites, initi
       mlRef.current = ml
       map = new ml.Map({
         container: mapEl.current,
-        style: mapStyle(),
+        style: mapStyle({ world: edition.id !== "cyprus" }),
         // the whole edition first, then fly into the region
         bounds: [[edition.bounds[0][1], edition.bounds[0][0]], [edition.bounds[1][1], edition.bounds[1][0]]],
         maxPitch: 65, minZoom: 3, attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),

@@ -24,13 +24,20 @@ export function isOccupied(lat: number, lng: number) {
   return occupied!.some((g) => inGeometry(lat, lng, g as { type: string; coordinates: unknown }))
 }
 
+// The marker point of each Church on the home page's globe (its seat), from the world map's data.
+function seatPoints(): Record<string, { lng: number; lat: number }> {
+  try { return JSON.parse(fs.readFileSync(path.join(process.cwd(), "public/data/world.geojson"), "utf8")).editions ?? {} }
+  catch { return {} }
+}
+
 export const homeData = cached("home", async () => {
   const [editions, regions, sites, sees, board, [photos]] = await Promise.all([
     getEditions(), getRegions(), siteSummaries(), publicMetropolises(), publicLeaderboard(50),
     db.select({ n: sql<number>`COUNT(*)` }).from(schema.photos).innerJoin(schema.sites, sql`${schema.sites.id} = ${schema.photos.siteId} AND ${schema.sites.published} = 1`),
   ])
+  const seats = seatPoints()
   const perEdition = editions.map((e) => ({
-    edition: e,
+    edition: e, point: seats[e.id] ?? null,
     churches: sites.filter((s) => s.edition === e.id).length,
     sees: sees.filter((m) => m.edition === e.id).length,
     regions: regions.filter((r) => r.edition === e.id && r.active).length,

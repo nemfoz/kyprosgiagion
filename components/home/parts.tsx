@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
 
 // Parts of the home page (app/page.tsx).
 
-export const worldEditions = (data: HomeData, lang: Locale, t: TFn): WorldEdition[] => data.editions.map(({ edition: e, churches }) => ({
-  churchesLabel: t("hChurchesN", lang, { n: churches }), id: e.id, name: editionName(e, lang), church: editionChurch(e, lang), active: e.active, churches, href: localePath(editionPaths(e.id).home, lang),
+export const worldEditions = (data: HomeData, lang: Locale, t: TFn): WorldEdition[] => data.editions.map(({ edition: e, churches, point }) => ({
+  point, churchesLabel: t("hChurchesN", lang, { n: churches }), id: e.id, name: editionName(e, lang), church: editionChurch(e, lang), active: e.active, churches, href: localePath(editionPaths(e.id).home, lang),
 }))
 
 export const worldLabels = (t: TFn, lang: Locale) => ({ soon: t("homeSoon", lang) })

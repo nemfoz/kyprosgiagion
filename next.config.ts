@@ -4,6 +4,15 @@ import type { NextConfig } from "next";
 const LANG = ":lang(en|ru|uk|ro|bg|sr|ka)";
 
 const nextConfig: NextConfig = {
+  // Files in public/ are served with max-age=0 by default, so every visit asks for them again. The map data and
+  // icons change only with a deploy: keep them a day, then refresh in the background.
+  async headers() {
+    const day = "public, max-age=86400, stale-while-revalidate=604800";
+    return [
+      { source: "/data/:path*", headers: [{ key: "Cache-Control", value: day }] },
+      { source: "/:icon(icon-[a-z0-9-]+\\.png)", headers: [{ key: "Cache-Control", value: day }] },
+    ];
+  },
   // The Cyprus pages moved under /cyprus (Οδοιπορικό editions); old links keep working.
   async redirects() {
     const moved = (from: string, to: string) => [
