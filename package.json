@@ -13,14 +13,11 @@
     "start": "next start",
     "lint": "eslint",
     "migrate": "node scripts/migrate.mjs",
-    "dev:prod": "node --env-file=.env.production.local scripts/migrate.mjs && dotenv -e .env.production.local -- next dev",
-    "sync:pull": "node --env-file=.env.production.local scripts/sync.mjs pull",
-    "sync:push": "node --env-file=.env.production.local scripts/sync.mjs push",
-    "rehost-photos": "node scripts/rehost-photos.mjs"
+    "rehost-photos": "node scripts/rehost-photos.mjs",
+    "deploy": "sh deploy/deploy.sh"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
-    "@vercel/blob": "2.8.2",
     "better-auth": "1.7.7",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
@@ -43,7 +40,6 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "dotenv-cli": "11.0.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "4.3.3",

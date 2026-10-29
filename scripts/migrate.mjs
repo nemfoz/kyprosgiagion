@@ -1,5 +1,5 @@
 // Creates/updates the database tables (safe to run repeatedly) and seeds sample content into an
-// empty database. Runs before every build. Uses TURSO_DATABASE_URL if set, else data/app.db.
+// empty database. Runs on every container start. Uses DATABASE_URL if set, else data/app.db.
 
 import { createClient } from '@libsql/client';
 import { fileURLToPath } from 'node:url';
@@ -8,18 +8,13 @@ import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
 import { importChurches, slugify } from './import-core.mjs';
 import { rehostPhotos } from './rehost-core.mjs';
-import { hasBlobStorage, readStored, rehost, storeVariants } from './lib.mjs';
+import { readStored, rehost, storeVariants } from './lib.mjs';
 
 // Reviewed content files applied once per database (tracked in data_imports), in order.
 const IMPORTS = [{ file: 'data/imports/imconstantias-occupied.json', published: true }];
 
-if (process.env.VERCEL && !(process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL)) {
-  console.error('migrate: TURSO_DATABASE_URL is not set for this Vercel environment (Settings → Environment Variables).');
-  process.exit(1);
-}
-const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL
-  || `file:${fileURLToPath(new URL('../data/app.db', import.meta.url))}`;
-const db = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN });
+const url = process.env.DATABASE_URL || `file:${fileURLToPath(new URL('../data/app.db', import.meta.url))}`;
+const db = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
 
 // Local files: write-ahead logging, so readers (the running server) aren't blocked while something writes.
 if (url.startsWith('file:')) await db.execute('PRAGMA journal_mode = WAL');
@@ -59,17 +54,15 @@ if (Number(rows[0].n) === 0) {
   console.log(`migrate: seeded ${seedSites.length} sample sites (run "npm run rehost-photos" to copy their photos into storage)`);
 }
 
-// For remote databases, the cloud region (e.g. aws-eu-west-1) from the host name: the Vercel functions should
-// run close to it (vercel.json "regions"), since every page makes several queries.
-const dbRegion = url.startsWith('file:') ? null : /\.((?:aws|gcp|azure|fly)-[a-z0-9-]+)\.turso\.io/.exec(new URL(url.replace(/^libsql:/, 'https:')).hostname)?.[1];
-console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : `remote${dbRegion ? `, region ${dbRegion}` : ''}`})`);
+console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : 'remote'})`);
 // The Docker build only needs the tables (and the sample churches) to prerender pages: no imports or downloads.
 if (process.env.MIGRATE_SCHEMA_ONLY) process.exit(0);
 
 // ---- one-off data steps (each runs at most once per database) ----
 
 const applied = new Set((await db.execute('SELECT name FROM data_imports')).rows.map((r) => r.name));
-const canStorePhotos = url.startsWith('file:') || hasBlobStorage();
+// Photos are stored next to the database (./uploads), so only a local database can take new ones.
+const canStorePhotos = url.startsWith('file:');
 
 for (const { file, published } of IMPORTS) {
   if (applied.has(file)) continue;
@@ -146,7 +139,7 @@ if (canStorePhotos) {
 
 // Smaller copies of the photos stored before uploads made them (once; retried while any fail).
 if (canStorePhotos && !applied.has('variants:photos')) {
-  const photos = (await db.execute('SELECT src FROM photos')).rows.map((r) => String(r.src)).filter((src) => /^\/(uploads|media)\/|\.blob\.vercel-storage\.com\//.test(src));
+  const photos = (await db.execute('SELECT src FROM photos')).rows.map((r) => String(r.src)).filter((src) => /^\/(uploads|media)\//.test(src));
   let done = 0, failed = 0;
   for (const src of photos) {
     try { await storeVariants(src, await readStored(src)); done++ } catch (e) { failed++; console.log(`migrate:   copies ${src}: ${e.message}`) }

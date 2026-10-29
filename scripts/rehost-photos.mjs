@@ -1,5 +1,5 @@
 // Copies every photo that is still loaded from another website into our own storage
-// (Vercel Blob in production, ./uploads locally) and keeps the original address as the visible source link.
+// (./uploads) and keeps the original address as the visible source link.
 // Also runs automatically on every deploy (scripts/migrate.mjs).
 //
 //   npm run rehost-photos      # local database

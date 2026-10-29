@@ -16,3 +16,4 @@ data/.secret
 uploads/*
 !uploads/.gitkeep
 storage/
+data/backups/

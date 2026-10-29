@@ -5,7 +5,7 @@ their history, photographs and sources. The first edition is **Κύπρος – 
 (Famagusta District and the Karpasia peninsula). An El Frank Foundation project, built by hnf.sh.
 
 **Stack:** Next.js 16 (App Router) · Tailwind CSS 4 · shadcn/ui · Better Auth · Drizzle ORM on libSQL
-(local SQLite file / Turso) · Vercel Blob · MapLibre GL (3D terrain).
+(SQLite file) · MapLibre GL (3D terrain). Self-hosted with Docker at https://odoiporiko.com.
 
 ## Run locally
 
@@ -54,71 +54,61 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 | `lib/auth.ts`, `lib/permissions.ts` | Better Auth setup and the three roles |
 | `lib/db/schema.ts` | Drizzle tables — created by `scripts/migrate.mjs` from `scripts/schema.mjs` (keep both in sync) |
 | `lib/sites.ts`, `lib/submissions.ts` | Church and proposal data |
-| `lib/storage.ts` | Photo storage (Blob / `./uploads`) and copying images from other websites |
+| `lib/storage.ts` | Photo storage (`./uploads`) and copying images from other websites |
 | `lib/photo-sizes.mjs`, `lib/photo-variants.mjs` | Smaller WebP copies of every photo (`sized(src, "sm" \| "md")`) |
 | `lib/seo.ts`, `app/sitemap.ts`, `app/robots.ts`, `**/opengraph-image.tsx` | SEO, hreflang and share previews |
 | `data/regions.json`, `public/data/*.geojson` | Regions, map labels, outlines |
-| `scripts/` | migrate, sync, import, rehost-photos |
+| `scripts/` | migrate, import, rehost-photos, backup |
+| `Dockerfile`, `docker-compose.yml`, `deploy/` | The server: image, compose file, nginx config, `deploy.sh` |
 
 ## Photos and links
 
 Photos are never hotlinked: uploads and images from other websites are stored in our own storage
-(Vercel Blob in production). The original page is kept as the photo's **source link** and shown next to it.
+(`./uploads`; on the server the `storage/uploads` volume). The original page is kept as the photo's **source link** and shown next to it.
 Links in texts and sources always show the destination website, e.g. "Μητρόπολη Κωνσταντίας (imconstantias.org.cy)".
 
 ## Self-hosting (Docker)
 
-`Dockerfile` + `docker-compose.yml` run the app with its data in one volume (`./data` → `/data`: `app.db` and
-`uploads/`). Migrations run on every start. On the server, next to `docker-compose.yml`, put a `.env`:
+`Dockerfile` + `docker-compose.yml` run the app with its data in one volume (`./storage` → `/data`: `app.db` and
+`uploads/`). Migrations run on every start. Server: sv.hasnofriends.com (user `nmf`),
+`/srv/nvme/platform/stacks/projects/odoiporiko.com/app`, behind nginx (`deploy/nginx-odoiporiko.com.conf`, Let's
+Encrypt certificate for odoiporiko.com, www and odiporiko.com, renewed by certbot). On the server, next to `docker-compose.yml`, put a `.env`:
 
 ```bash
 SITE_URL=https://odoiporiko.com          # canonical/sitemap/OG addresses (also a build argument)
-APP_HOSTS=odoiporiko.com,www.odoiporiko.com,sv.hasnofriends.com   # host names accepted for sign-in
+BETTER_AUTH_URL=https://odoiporiko.com
+APP_HOSTS=odoiporiko.com,www.odoiporiko.com   # host names accepted for sign-in
 BETTER_AUTH_SECRET=…                     # random, keep it
 SUPERADMIN_EMAILS=…
-HOST_PORT=4002                           # published on 127.0.0.1 only; put the reverse proxy (TLS) in front
+HOST_PORT=4002                           # published on 127.0.0.1 only; nginx (TLS) in front
+APP_UID=1001:1001                        # the owner of ./storage (nmf), so the container can write there
+APP_BUILD_ID=…                           # set by deploy.sh on every deploy
 # RESEND_API_KEY, EMAIL_FROM, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY when ready
 ```
 
 `docker compose up -d --build` builds and starts it. Without `RESEND_API_KEY` sign-ups are refused
 (`REQUIRE_EMAIL=1`), except the first superadmin.
 
-**Moving the data from Vercel** (once): set `EXPORT_TOKEN` on the Vercel project and deploy, then
-`curl -H "Authorization: Bearer $EXPORT_TOKEN" https://kyprosgiagion.vercel.app/api/export > storage/dump.json` and
-`docker compose run --rm app node scripts/import-dump.mjs /data/dump.json https://kyprosgiagion.vercel.app`
-(imports every table except sessions, downloads the photos into `/data/uploads`, rewrites `/media/photos/…` to
-`/uploads/…`; re-running only fetches missing photos). Remove `EXPORT_TOKEN` afterwards.
+### Deploying
 
-## Deploying (Vercel)
+`npm run deploy` (= `sh deploy/deploy.sh`) copies this working tree to the server with rsync (never the server's `.env`
+or `storage/`), rebuilds the image and restarts the container; migrations run as it starts. Pushing to GitHub does
+**not** deploy. To change production data, add a step to `scripts/migrate.mjs` (it runs on every start) or run a
+script in the container: `ssh nmf@sv.hasnofriends.com`, `cd` to the directory above, then
+`docker compose exec -T app node scripts/import.mjs data/imports/<file>.json`.
 
-Environment variables (Settings → Environment Variables), for Production **and** Preview:
+### Backups
 
-| Variable | |
-|---|---|
-| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | from the Turso integration |
-| `BLOB_READ_WRITE_TOKEN` | from the Blob store |
-| `BETTER_AUTH_SECRET` | random string (`SESSION_SECRET` is used if this is missing) |
-| `SUPERADMIN_EMAILS` | your e-mail(s) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | e-mail sending ([resend.com](https://resend.com), with a verified sender domain) |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget (dash.cloudflare.com → Turnstile; add the site's domains) |
-| `BETTER_AUTH_URL` | optional, only for a custom domain |
+`scripts/backup.mjs` runs nightly at 03:30 from `nmf`'s crontab on the server:
 
-Every build runs `scripts/migrate.mjs` first. It adds any missing tables/columns (never drops anything), applies
-the content files listed in its `IMPORTS` once per database (tracked in the `data_imports` table; churches arrive as
-drafts with their photos copied into Blob), and copies any hotlinked photo into storage. This is how production data
-is changed without downloading the production secrets (Vercel keeps the Turso credentials and Blob OIDC access
-server-side only).
+```
+30 3 * * * cd /srv/nvme/platform/stacks/projects/odoiporiko.com/app && docker compose exec -T app node scripts/backup.mjs >> storage/backups/backup.log 2>&1
+```
 
-## Production data from your computer
-
-Put the production values in `.env.production.local`, then:
-
-| Command | |
-|---|---|
-| `npm run dev:prod` | Run locally against the production database and Blob |
-| `npm run sync:pull` / `sync:push [-- --apply]` | Copy churches between local and production (push is a dry run without `--apply`) |
-| `node --env-file=.env.production.local scripts/rehost-photos.mjs` | Copy any hotlinked photos into Blob |
-| `node --env-file=.env.production.local scripts/import.mjs data/imports/imconstantias-occupied.json` | Add the Metropolis' occupied churches as drafts, with photos |
+It writes `storage/backups/YYYY-MM-DD/` (`app.db` copied with `VACUUM INTO` while the site runs, `uploads/` as hard
+links) and keeps 14 days. **Restore:** `docker compose stop app`, copy `storage/backups/<day>/app.db` over
+`storage/app.db` (delete `storage/app.db-wal` and `-shm`), copy back any missing photos into `storage/uploads/`,
+`docker compose start app`. These copies sit on the same disk — also copy `storage/backups` off the server.
 
 `scripts/fetch-imconstantias.mjs` re-reads the Metropolis website into `data/imports/imconstantias-occupied.json`.
 

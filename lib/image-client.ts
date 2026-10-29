@@ -1,5 +1,5 @@
 // Browser-side: resize large photos (max 2400 px, JPEG) before uploading, so they stay small and fast
-// (and under Vercel's 4.5 MB request limit).
+// (and well under the upload size limit).
 export async function shrinkImage(file: File, max = 2400): Promise<Blob> {
   if (file.type === "image/gif") return file
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" })

@@ -469,7 +469,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                 </div>
                 {current.cover && (
                   <Link href={siteHref(current)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- photos come from Blob/uploads at any size */}
+                    {/* eslint-disable-next-line @next/next/no-img-element -- stored photos come at any size */}
                     <img src={sized(current.cover, "md")} alt="" className="aspect-[16/10] w-full object-cover" />
                   </Link>
                 )}

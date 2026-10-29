@@ -2,9 +2,8 @@ import type { Metadata } from "next"
 import { LOCALE_REGION, LOCALES, localePath, type Locale } from "@/lib/locales"
 import { brandName } from "@/lib/editions"
 
-// The public address: SITE_URL if set (e.g. a custom domain), else Vercel's production domain, else local dev.
-export const SITE_URL = (process.env.SITE_URL
-  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000")).replace(/\/$/, "")
+// The public address: SITE_URL (https://odoiporiko.com on the server), else local dev.
+export const SITE_URL = (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "")
 
 /**
  * Canonical URL and hreflang alternates. `locales` are the languages the page really exists in (a church

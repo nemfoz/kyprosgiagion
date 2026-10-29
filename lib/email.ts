@@ -8,7 +8,7 @@ const FROM = process.env.EMAIL_FROM || "Οδοιπορικό <onboarding@resend.
 export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
   const key = process.env.RESEND_API_KEY
   if (!key) {
-    if (process.env.VERCEL) throw new Error("Η αποστολή e-mail δεν έχει ρυθμιστεί (RESEND_API_KEY).")
+    if (process.env.REQUIRE_EMAIL) throw new Error("Η αποστολή e-mail δεν έχει ρυθμιστεί (RESEND_API_KEY).")
     console.log(`\n✉️  [dev e-mail] to: ${to}\n   subject: ${subject}\n   ${text}\n`)
     return
   }

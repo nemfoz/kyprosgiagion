@@ -2,16 +2,12 @@ import "server-only"
 import fs from "node:fs/promises"
 import path from "node:path"
 import crypto from "node:crypto"
-import { del, get, put } from "@vercel/blob"
 import { UserError } from "@/lib/session"
 import { sized } from "@/lib/photo-sizes.mjs"
 import { makeVariants } from "@/lib/photo-variants.mjs"
 
-// Photos live in Vercel Blob in production and in ./uploads (served by app/uploads/[name]) locally.
+// Photos live in ./uploads (served by app/uploads/[name]; on the server a link to the /data volume).
 // We never hotlink: images from other sites are downloaded and stored here first.
-
-// A read-write token, or the store id with Vercel's OIDC login (how newly connected Blob stores authenticate).
-const USE_BLOB = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
 const UPLOADS = path.join(process.cwd(), "uploads")
 
 export const IMAGE_TYPES: Record<string, string> = {
@@ -19,27 +15,10 @@ export const IMAGE_TYPES: Record<string, string> = {
 }
 
 export function isStored(src: string) {
-  return src.startsWith("/uploads/") || src.startsWith("/media/") || /\.blob\.vercel-storage\.com\//.test(src)
+  return src.startsWith("/uploads/") || src.startsWith("/media/")
 }
 
-// Public stores give a CDN URL; private stores are served through our /media route (app/media/[...path]).
-let blobAccess: "public" | "private" = process.env.BLOB_ACCESS === "private" ? "private" : "public"
-
-async function putBlob(pathname: string, data: Buffer, contentType: string) {
-  try {
-    const r = await put(pathname, data, { access: blobAccess, contentType })
-    return blobAccess === "public" ? r.url : `/media/${r.pathname}`
-  } catch (e) {
-    if (blobAccess === "public" && /private store/i.test((e as Error).message)) {
-      blobAccess = "private"
-      return putBlob(pathname, data, contentType)
-    }
-    throw e
-  }
-}
-
-async function storeFile(name: string, data: Buffer, contentType: string) {
-  if (USE_BLOB) return putBlob(`photos/${name}`, data, contentType)
+async function storeFile(name: string, data: Buffer) {
   await fs.mkdir(UPLOADS, { recursive: true })
   await fs.writeFile(path.join(UPLOADS, name), data)
   return `/uploads/${name}`
@@ -50,10 +29,10 @@ export async function storePhoto(baseName: string, data: Buffer, contentType: st
   const ext = IMAGE_TYPES[contentType]
   if (!ext) throw new UserError("error.image.unsupported")
   const stem = `${baseName.slice(0, 60)}-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`
-  const src = await storeFile(stem + ext, data, contentType)
+  const src = await storeFile(stem + ext, data)
   // A failed copy isn't fatal: the original is served in its place.
   await makeVariants(data)
-    .then((list) => Promise.all(list.map((v) => storeFile(`${stem}.${v.size}.webp`, v.data, "image/webp"))))
+    .then((list) => Promise.all(list.map((v) => storeFile(`${stem}.${v.size}.webp`, v.data))))
     .catch((e) => console.warn("photo copies failed:", (e as Error).message))
   return src
 }
@@ -86,15 +65,8 @@ export async function rehostImage(url: string, baseName: string) {
 /** Reads a stored photo's bytes, or null if it can't be found. */
 export async function readStored(src: string): Promise<Buffer | null> {
   try {
-    if (src.startsWith("/uploads/")) return await fs.readFile(path.join(UPLOADS, path.basename(src)))
-    if (src.startsWith("/media/")) {
-      const b = await get(src.slice("/media/".length), { access: "private" })
-      return b?.stream ? Buffer.from(await new Response(b.stream).arrayBuffer()) : null
-    }
-    if (/\.blob\.vercel-storage\.com\//.test(src)) {
-      const res = await fetch(src)
-      return res.ok ? Buffer.from(await res.arrayBuffer()) : null
-    }
+    // /media/photos/x (addresses from the Vercel days) is the same file as /uploads/x.
+    if (isStored(src)) return await fs.readFile(path.join(UPLOADS, path.basename(src)))
   } catch (e) {
     console.warn("read photo failed:", (e as Error).message)
   }
@@ -106,9 +78,5 @@ export async function deleteStored(src: string) {
 }
 
 async function deleteOne(src: string) {
-  if (src.startsWith("/uploads/")) {
-    await fs.rm(path.join(UPLOADS, path.basename(src)), { force: true })
-  } else if (USE_BLOB && (src.startsWith("/media/") || /\.blob\.vercel-storage\.com\//.test(src))) {
-    await del(src.startsWith("/media/") ? src.slice("/media/".length) : src).catch((e) => console.warn("blob delete failed:", e.message))
-  }
+  if (isStored(src)) await fs.rm(path.join(UPLOADS, path.basename(src)), { force: true })
 }

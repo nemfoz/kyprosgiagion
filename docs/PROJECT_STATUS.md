@@ -1,6 +1,6 @@
 # Project status & handover — Οδοιπορικό (formerly Κύπρος – Αγίων Γη)
 
-_Last updated: 2026-10-28 (Οδοιπορικό rename, editions under `/cyprus`, visits, information pages, Docker — see §0). Read this first when continuing work in a new session._
+_Last updated: 2026-10-29 (live at https://odoiporiko.com on our own server; Vercel removed — see §0, §4). Read this first when continuing work in a new session._
 
 ## 0. Rebrand + editions + self-hosting (2026-10-28) — START HERE
 
@@ -14,10 +14,12 @@ Done 2026-10-28 (see §2 "Editions", "Visits", "Information pages", §4 "Self-ho
 - `/` = Odoiporiko home (choose a Church), `/cyprus` = Cyprus landing, `/cyprus/map`, `/cyprus/site/x`,
   `/cyprus/metropolis/x`; old URLs 308-redirect.
 - Visited churches + "My odoiporiko" profile; About/Contact/Privacy/Cookies/Terms, footer, cookie notice.
-- Docker image + compose; export/import scripts for moving the data off Vercel.
+- Docker image + compose; the data was moved off Vercel with a one-off export/import (removed afterwards).
 
-**Next:** bring the container live on sv.hasnofriends.com (§4), then the domains: point odoiporiko.com /
-odiporiko.com at the server, set `SITE_URL=https://odoiporiko.com`, redirect kyprosgiagion.vercel.app.
+**Live 2026-10-29:** https://odoiporiko.com runs in Docker on sv.hasnofriends.com (§4); www and odiporiko.com 301 to it.
+The Vercel code (Blob, Turso, `vercel.json`, the one-off export) is gone; the owner deletes the Vercel project
+(kyprosgiagion.vercel.app stops working). Deploy with `npm run deploy` — **pushing to GitHub no longer deploys.**
+Nightly backups on the server (`scripts/backup.mjs`, same disk only — an off-server copy is still to do).
 The legal texts (privacy/terms) are drafts — the owner/Foundation should review them; contact e-mail
 (`contact@odoiporiko.com` placeholder) and the Foundation's link are set at `/admin/pages`.
 
@@ -25,8 +27,8 @@ A bilingual (Greek/English) web map of the churches and monasteries of Cyprus, s
 **Famagusta District and the Karpasia peninsula**. Built for the Holy Metropolis of
 Constantia–Ammochostos / the Archbishopric, to be handed over to them free of charge.
 
-- **Live:** https://kyprosgiagion.vercel.app (Vercel project `has-no-friends/kyprosgiagion`)
-- **Repo:** https://github.com/nemfoz/kyprosgiagion — branch `main` deploys to production on push
+- **Live:** https://odoiporiko.com (Docker on sv.hasnofriends.com; deploy with `npm run deploy`)
+- **Repo:** https://github.com/nemfoz/kyprosgiagion — branch `main` (pushing does not deploy)
 - **Owner / superadmin:** nmf@hnf.sh (first-superadmin bootstrap; see Auth)
 - Developer docs (commands, structure, deploy): [`README.md`](../README.md)
 
@@ -36,7 +38,7 @@ Constantia–Ammochostos / the Archbishopric, to be handed over to them free of 
 
 Next.js 16.3 (App Router, Turbopack) · React 19.3 · Tailwind CSS 4 · shadcn/ui (Radix, "nova" preset,
 `cn` package) · Better Auth 1.7 (email/password + admin plugin + captcha plugin) · Drizzle ORM on
-libSQL (local SQLite file / Turso in production) · Vercel Blob (private store) · MapLibre GL 5.24 with
+libSQL (SQLite file; on the server `storage/app.db`) · photos on disk (`uploads/`) · MapLibre GL 5.24 with
 3D terrain (Mapterhorn DEM, Esri satellite, Natural Earth coastline, OSM district outlines).
 
 Next.js 16 note: **read `node_modules/next/dist/docs/` before writing Next code** (see `AGENTS.md`).
@@ -123,8 +125,6 @@ essential cookies → informs, no consent) shown once, remembered in local stora
     Admin pages and read-modify-write paths read the database directly.
   - Sessions: `getSession` is per-request cached; Better Auth keeps the session in a cookie for 5 min (a ban or role
     change takes up to 5 min to apply to a signed-in browser).
-  - The build log prints the Turso region (`migrate: database ready (remote, region …)`): set Vercel's function region
-    (`vercel.json` `regions`) next to it.
 - **Installable app + offline**: `app/manifest.ts` (icons in `public/`, `app/apple-icon.png`), `viewportFit: cover` with
   safe-area padding. `public/sw.js` (registered in production only) keeps visited public pages (network first) and
   immutable build files/photos (cache first, max 400) for use without signal; `public/offline.html` otherwise. Never
@@ -133,12 +133,12 @@ essential cookies → informs, no consent) shown once, remembered in local stora
 - `/contribute` is labelled «Πάρτε μέρος» in Greek (owner's choice; «Συνεισφέρετε» sounded like a donation request).
 - **Photo copies**: every stored photo has `name.sm.webp` (320px, lists/thumbnails) and `name.md.webp` (960px, cards,
   gallery, hero on phones) next to the original (`lib/photo-sizes.mjs` naming + `sized()`, `lib/photo-variants.mjs`
-  sharp). Made on upload and once for older photos by migrate (`variants:photos`); `/media` and `/uploads` serve the
+  sharp). Made on upload and once for older photos by migrate (`variants:photos`); `/media` (old addresses) and `/uploads` serve the
   original while a copy is missing. The lightbox and desktop hero use the original.
 - **SEO/sharing** (`lib/seo.ts`): per-church OG image `app/site/[slug]/opengraph-image.tsx` (first photo + Greek and
   English name; fonts in `assets/fonts`), default `app/opengraph-image.tsx`; canonical + hreflang (Greek = plain URL,
-  English = `?lang=en`); `sitemap.xml` (both languages, revalidated hourly) and `robots.txt`; schema.org
-  Church/PlaceOfWorship JSON-LD on church pages. Absolute URLs use `SITE_URL`, else `VERCEL_PROJECT_PRODUCTION_URL`.
+  English = `?lang=en`); `sitemap.xml` (both languages) and `robots.txt`; schema.org
+  Church/PlaceOfWorship JSON-LD on church pages. Absolute URLs use `SITE_URL`.
 - Palette: exactly three colours taken from the Orthodox Church sites in `docs/sourcs.md`:
   crimson `#6b1d1d`, gold `#ad8840`, parchment `#ece8de` (`--crimson/--gold/--parchment` in
   `app/globals.css`). Every other token (ink text, muted text, cards, borders, pin types, map colours
@@ -158,7 +158,7 @@ essential cookies → informs, no consent) shown once, remembered in local stora
 - Spam protection on sign-up (before anything is sent): Cloudflare Turnstile (when keys set), honeypot
   header `x-website`, minimum fill time header `x-form-age` (≥3 s), disposable-domain block
   (`lib/antispam.ts`), DB-backed rate limits (5 sign-ups/h per IP etc.).
-- Sign-ups are refused (`EMAIL_NOT_CONFIGURED`) on Vercel while `RESEND_API_KEY` is missing, except the
+- Sign-ups are refused (`EMAIL_NOT_CONFIGURED`) while `REQUIRE_EMAIL=1` (the server) and `RESEND_API_KEY` is missing, except the
   bootstrap case. Forgot/reset password pages exist (need Resend).
 
 **Admin** (`/admin`, Greek or English — switch at the bottom of the left sidebar, remembered in the `admin_lang` cookie)
@@ -214,50 +214,33 @@ essential cookies → informs, no consent) shown once, remembered in local stora
 
 ## 4. Deployment & infrastructure (important)
 
-**Self-hosting (in progress, 2026-10-28):** `Dockerfile` + `docker-compose.yml` (README "Self-hosting"). Data in the
-`/data` volume (`app.db` = local SQLite via `DATABASE_URL=file:/data/app.db`, `uploads/` = photos); migrate runs on
-every container start. Without Blob, `/media/photos/x` is served from `uploads/x`. Moving production off Vercel:
-`EXPORT_TOKEN` + `/api/export` (one-off, remove afterwards) → `scripts/import-dump.mjs`. Target server:
-sv.hasnofriends.com (Ubuntu, user `nmf`; SSH got refused after a few wrong-username attempts — probably fail2ban).
-Until the move is finished, the Vercel notes below still describe production.
+Since 2026-10-29 production is **our own server**, not Vercel (README "Self-hosting", "Deploying", "Backups").
+- **Server:** sv.hasnofriends.com (142.132.206.83, Ubuntu). SSH as `nmf` **only** (other usernames trigger fail2ban);
+  `nmf` is in the `docker` group but has no passwordless sudo — nginx/certbot changes are done by the owner.
+  Non-interactive SSH: add `-T` and `< /dev/null` (and `-T` on `docker compose run/exec`), or commands hang.
+- **Stack dir:** `/srv/nvme/platform/stacks/projects/odoiporiko.com/app` — compose project `odoiporiko`, container
+  `odoiporiko-app-1` on `127.0.0.1:4002`, runs as uid 1001 (`APP_UID`). `.env` there holds the secrets (SITE_URL,
+  BETTER_AUTH_URL/SECRET, APP_HOSTS, SUPERADMIN_EMAILS, HOST_PORT, APP_UID, APP_BUILD_ID). Don't name a variable `PORT`
+  in it — Next would listen on it inside the container.
+- **Data:** `storage/` → `/data`: `app.db` (SQLite, WAL), `uploads/` (photos; `/app/uploads` links there),
+  `backups/<day>/` (nightly 03:30, `nmf` crontab, 14 days), `dump.json` (the Vercel export of 2026-10-28, kept).
+- **nginx:** `/etc/nginx/sites-enabled/odoiporiko.com.conf` = `deploy/nginx-odoiporiko.com.conf`; Let's Encrypt
+  certificate for odoiporiko.com, www, odiporiko.com, www (expires 2027-01-27, certbot renews). DNS at Cloudflare,
+  grey cloud (if it is turned orange, set SSL/TLS to Full (strict) first).
+- **Deploy:** `npm run deploy` (rsync + `docker compose up -d --build`; a new `APP_BUILD_ID` empties the caches).
+  Migrations run on every container start — still the way to change production data (`scripts/migrate.mjs`).
+- **Vercel:** the project `has-no-friends/kyprosgiagion` (Turso DB, Blob store) is no longer used; the owner deletes it.
 
-
-- `npm run build` = `node scripts/migrate.mjs && next build`. **migrate runs on every Vercel build** with
-  the production credentials and is idempotent: creates/alters tables (never drops), seeds samples into
-  an empty DB, applies `IMPORTS` once (tracked in `data_imports`), runs one-off steps (publish the
-  Metropolis churches, delete probe accounts), and copies any hotlinked photo into Blob.
-  **This is the way to change production data** — the Turso URL/token are "Sensitive" in Vercel and
-  cannot be pulled locally, and Blob OIDC only works from the production environment.
-- **Turso:** integration resource `database-canary-mountain`. It originally created a *new empty database
-  per deployment* (host `dpl-<id>-vercel-…turso.io`) — data was lost on every deploy. The owner changed
-  the connection so Production uses the main DB; verified persistent (redeploy found data unchanged).
-  Turso is now connected to **Production only** → preview deployments fail at migrate (expected) until a
-  separate preview DB is connected. Work on `main` only.
-- **Blob:** store `store_ikfun1aBVL8Y…`, **private access**, OIDC auth (`BLOB_STORE_ID`, no read-write
-  token). Uploads auto-detect private stores (`lib/storage.ts`, `scripts/lib.mjs`) and are served via
-  `app/media/[...path]` (`/media/photos/...`, immutable, CDN-cached). Locally photos go to `./uploads`
-  (served by `app/uploads/[name]`).
-- Vercel CLI is logged in on the dev machine; project linked (`.vercel/`, gitignored). Useful:
-  `npx vercel@65.3.1 ls kyprosgiagion --scope has-no-friends`,
-  `npx vercel@65.3.1 inspect <deployment-url> --logs --scope has-no-friends` (shows migrate output),
-  `npx vercel@65.3.1 env ls --scope has-no-friends`.
-- After a push, the production alias can take a few minutes to switch to the new deployment.
-
-### Environment variables (Vercel)
+### Environment variables (server `.env`)
 | Variable | Status |
 |---|---|
-| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | set by integration (Production only) |
-| `BLOB_STORE_ID` (+ OIDC) | set by Blob integration |
-| `SESSION_SECRET` | set (used as Better Auth secret; `BETTER_AUTH_SECRET` optional) |
-| `SUPERADMIN_EMAILS` | set: `nmf@hnf.sh` (Production + Preview) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | **not set — deliberately postponed** until the "real" production environment |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | **not set yet** (CAPTCHA disabled until then) |
-| `SITE_URL` | optional — set to the custom domain when there is one (sitemap, canonical and OG URLs) |
-| `ADMIN_PASSWORD` | leftover from the old Express app, unused |
+| `SITE_URL`, `BETTER_AUTH_URL` | `https://odoiporiko.com` |
+| `BETTER_AUTH_SECRET` | set (new on the server; old Vercel sessions are invalid) |
+| `SUPERADMIN_EMAILS` | `nmf@hnf.sh` |
+| `RESEND_API_KEY`, `EMAIL_FROM` | **not set yet** — sign-ups refused until then (except the first superadmin) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | **not set yet** (CAPTCHA off). The site key is baked in at build time — pass it as a build arg when added |
 
-Local dev: `.env.local` has `BETTER_AUTH_SECRET`, `SUPERADMIN_EMAILS=super@example.test`, and a
-`VERCEL_OIDC_TOKEN` added by `vercel env pull`. Do **not** keep a `.env.production.local` with
-`[SENSITIVE]` placeholders — Next loads it for local production builds and the build fails.
+Local dev: `.env.local` has `BETTER_AUTH_SECRET`, `SUPERADMIN_EMAILS=super@example.test`.
 
 ## 5. Local development & testing
 
@@ -282,11 +265,11 @@ Rate limiting is only on in production (or `RATE_LIMIT=1`).
 - Missing information is shown as a challenge (gamification) — but only to signed-in users; visitors browsing
   the map and church pages don't see completeness bars (/contribute stays public).
 - Resend/e-mail postponed until moving to the real production environment.
-- Commit messages end with `Co-Authored-By: Claude …`; push to `main` deploys.
+- Commit messages end with `Co-Authored-By: Claude …`; deploy with `npm run deploy` (pushing does not deploy).
 
 ## 7. Known issues / gotchas
 
-- Local photos for the 31 imported churches live in `./uploads` (gitignored); production has its own in Blob.
+- Local photos live in `./uploads` (gitignored); production has its own in the server's `storage/uploads`.
 - `scripts/fetch-imconstantias.mjs` depends on the Metropolis site's Elementor markup; re-check if it changes.
 - `scripts/sync.mjs` copies churches and photos only — not videos, Metropolises or Metropolis assignments.
 - Metropolis sources: churchofcyprus.org.cy is behind a Cloudflare challenge (no feed/history/logo for the
@@ -307,8 +290,8 @@ Then (same day): `/en/` URLs and six more languages with user-suggested fixes (s
 Suggested next: 1 (backups) — production still has none — then 3 (feast days). Also: have native speakers check the
 drafted translations (agents' notes: see names in Bulgarian/Serbian, Georgian feast names, plural forms in Russian).
 
-1. **Backups**: nightly export of the DB (+ Blob inventory) and a tested restore. Production has no backups yet —
-   do this before contributors grow.
+1. **Backups**: nightly on the server since 2026-10-29 (README "Backups"). Still to do: an off-server copy and a
+   tested restore.
 2. ~~Image performance~~ — done (see §2 "Photo copies").
 3. **Feast days / panigyria**: patron saint + feast day per church (+ century, current state: in use / ruined /
    occupied) as structured fields and map filters. Tie into name days: "Πανηγυρίζουν σήμερα" in the name-day bar
@@ -322,7 +305,7 @@ drafted translations (agents' notes: see names in Bulgarian/Serbian, Georgian fe
 7. Change history / undo (audit log of edits and approvals).
 8. Contributor e-mails (approved/rejected, points) — after Resend.
 9. English translations of the Metropolis histories (only Greek was imported).
-Smaller: privacy policy (accounts = personal data), Vercel Analytics, error monitoring, separate preview DB,
+Smaller: analytics, error monitoring, a staging copy,
 monthly leaderboard, public contributor profiles.
 
 **Decided by the owner (2026-10-27):**
@@ -331,4 +314,4 @@ monthly leaderboard, public contributor profiles.
 - Priority: polish what's already there until the owner is happy with it, then continue with the roadmap.
 
 **Owner will look at later** (don't act on these unprompted): which see Panagia Kantariotissa belongs to;
-Turnstile keys + custom domain; Resend.
+Turnstile keys; Resend.

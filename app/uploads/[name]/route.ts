@@ -3,7 +3,7 @@ import path from "node:path"
 import { IMAGE_TYPES } from "@/lib/storage"
 import { originalBase } from "@/lib/photo-sizes.mjs"
 
-// Serves photos stored locally (development). In production photos are in Vercel Blob.
+// Serves the stored photos (./uploads; on the server the /data/uploads volume).
 const TYPES = Object.fromEntries(Object.entries(IMAGE_TYPES).map(([type, ext]) => [ext, type]))
 const read = (name: string) => fs.readFile(path.join(process.cwd(), "uploads", name)).catch(() => null)
 

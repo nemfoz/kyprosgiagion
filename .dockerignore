@@ -10,3 +10,4 @@ docs
 *.pdf
 *.tsbuildinfo
 storage
+data/backups

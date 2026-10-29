@@ -26,13 +26,13 @@ const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
 
 export const auth = betterAuth({
   appName: "Οδοιπορικό",
-  // A fixed URL in production if BETTER_AUTH_URL is set; otherwise the request host, limited to ours
-  // (so Vercel preview deployments work too).
+  // A fixed URL in production (BETTER_AUTH_URL=https://odoiporiko.com on the server); otherwise the request
+  // host, limited to ours.
   baseURL: process.env.BETTER_AUTH_URL || {
     allowedHosts: [
-      "localhost:3000", "kyprosgiagion.vercel.app", "kyprosgiagion-*.vercel.app",
+      "localhost:3000",
       "odoiporiko.com", "www.odoiporiko.com",
-      // the self-hosted server (Dockerfile): APP_HOSTS="a.example.com,b.example.com"
+      // more host names: APP_HOSTS="a.example.com,b.example.com"
       ...(process.env.APP_HOSTS || "").split(",").map((h) => h.trim()).filter(Boolean),
     ],
   },
@@ -114,7 +114,7 @@ export const auth = betterAuth({
       if (ctx.path !== "/sign-up/email") return
       // The confirmation e-mail is sent in the background, so check up front that it can be sent at all.
       const firstSuperadmin = isSuperadminEmail(ctx.body?.email) && (await needsFirstSuperadmin())
-      if ((process.env.VERCEL || process.env.REQUIRE_EMAIL) && !process.env.RESEND_API_KEY && !firstSuperadmin) {
+      if (process.env.REQUIRE_EMAIL && !process.env.RESEND_API_KEY && !firstSuperadmin) {
         throw new APIError("SERVICE_UNAVAILABLE", { message: "Οι εγγραφές δεν είναι ακόμα διαθέσιμες. Δοκιμάστε αργότερα.", code: "EMAIL_NOT_CONFIGURED" })
       }
       const h = ctx.headers

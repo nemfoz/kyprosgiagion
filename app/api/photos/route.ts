@@ -8,7 +8,7 @@ import { isAdmin } from "@/lib/permissions"
 import { addPhoto, getSite } from "@/lib/sites"
 import { IMAGE_TYPES, storePhoto } from "@/lib/storage"
 
-// Photo upload. The body is the image itself (the browser resizes it first; Vercel limits bodies to 4.5 MB).
+// Photo upload. The body is the image itself (the browser resizes it first, to stay well under the size limit).
 //   ?site=<id>  admins: stored and attached to the church right away
 //   (no site)   approved users/admins: stored for a proposal, attached when an admin approves it
 export async function POST(req: Request) {
