@@ -27,7 +27,7 @@ export default async function TranslationsPage({ searchParams }: PageProps<"/adm
     ...EXTRA_LOCALES.map((l) => ({ href: `/admin/translations?locale=${l}`, label: LOCALE_NAMES[l], active: l === locale, n: isAdmin(me.role) ? count(l) : 0 })),
   ]
   const rows: LocaleRow[] = locale
-    ? translatableTexts().map((r) => ({ ...r, draft: LOCALE_MESSAGES[locale][r.key] ?? "", override: overrides[r.key]?.[locale] ?? "" }))
+    ? (await translatableTexts()).map((r) => ({ ...r, draft: LOCALE_MESSAGES[locale][r.key] ?? "", override: overrides[r.key]?.[locale] ?? "" }))
     : []
   const suggestions: Suggestion[] = locale
     ? pending.filter((s) => s.locale === locale && (isAdmin(me.role) || s.authorId === me.id))

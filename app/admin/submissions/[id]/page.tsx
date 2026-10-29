@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { paths } from "@/lib/editions"
 import { notFound } from "next/navigation"
 import { ExternalLink } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +7,7 @@ import { StatusBadge } from "@/components/admin/status-badge"
 import { ReviewForm } from "@/components/admin/review-form"
 import { LANGS, TEXT_FIELDS, TYPE_LABELS, type SiteType } from "@/lib/content"
 import { isAdmin } from "@/lib/permissions"
-import { regions } from "@/lib/regions"
+import { listRegions } from "@/lib/regions-server"
 import { requireUser } from "@/lib/session"
 import { getSite } from "@/lib/sites"
 import { getSubmission } from "@/lib/submissions"
@@ -29,7 +28,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
   const admin = isAdmin(user.role)
   const sub = await getSubmission(Number((await params).id))
   if (!sub || (!admin && sub.authorId !== user.id)) notFound()
-  const [current, cfg, t] = await Promise.all([sub.siteId ? getSite({ id: sub.siteId }) : null, getPointsConfig(), getAdminT()])
+  const [current, cfg, t, regions] = await Promise.all([sub.siteId ? getSite({ id: sub.siteId }) : null, getPointsConfig(), getAdminT(), listRegions()])
   const regionName = (id: string) => regions.find((r) => r.id === id)?.name[t.lang] ?? id
   const p = sub.payload.site
   const showAll = sub.kind === "create" || !current
@@ -63,7 +62,7 @@ export default async function SubmissionPage({ params }: PageProps<"/admin/submi
         <StatusBadge status={sub.status} />
         {current && (
           <Button variant="outline" size="sm" asChild className="ml-auto">
-            <Link href={paths.site(current.slug)} target="_blank">{t("editor.sub.currentPage")}<ExternalLink /></Link>
+            <Link href={`/site/${encodeURIComponent(current.slug)}`} target="_blank">{t("editor.sub.currentPage")}<ExternalLink /></Link>
           </Button>
         )}
       </div>

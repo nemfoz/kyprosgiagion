@@ -3,7 +3,8 @@ import metropolises from "@/data/imports/metropolises.json"
 import { BADGES, BONUSES, LEVEL_NAMES, SECTIONS } from "@/lib/completeness"
 import { slugify, TYPE_LABELS } from "@/lib/content"
 import { MESSAGE_GROUPS, type Message } from "@/lib/i18n"
-import { regions, siteTitle } from "@/lib/regions"
+import { listEditions } from "@/lib/editions-server"
+import { listRegions } from "@/lib/regions-server"
 
 export type Translatable = { key: string; group: "public" | "auth" | "data"; el: string; en: string }
 
@@ -11,13 +12,19 @@ export type Translatable = { key: string; group: "public" | "auth" | "data"; el:
  * Every text the public pages show in the extra languages: the interface text (public and sign-in pages)
  * and labels kept as data (church types, regions, badges, feasts, the names of the sees…).
  */
-export function translatableTexts(): Translatable[] {
+export async function translatableTexts(): Promise<Translatable[]> {
+  const [editions, regions] = await Promise.all([listEditions(), listRegions()])
   const out: Translatable[] = []
   const add = (group: Translatable["group"], key: string, m: { el: string; en: string }) => out.push({ key, group, el: m.el, en: m.en })
   for (const group of ["public", "auth"] as const) {
     for (const [key, m] of Object.entries(MESSAGE_GROUPS[group] as Record<string, Message>)) if (key !== "auth.switchLang") add(group, key, m)
   }
-  add("data", "data.siteTitle", siteTitle)
+  for (const e of editions) {
+    add("data", `data.edition.${e.id}`, e.name)
+    add("data", `data.church.${e.id}`, e.church)
+    add("data", e.id === "cyprus" ? "data.siteTitle" : `data.editionTitle.${e.id}`, e.title)
+  }
+  add("data", "data.region.all", { el: "Όλη η Κύπρος", en: "All of Cyprus" })
   for (const r of regions) add("data", `data.region.${r.id}`, r.name)
   for (const [k, m] of Object.entries(TYPE_LABELS)) add("data", `data.type.${k}`, m)
   for (const s of SECTIONS) { add("data", `data.section.${s.key}`, s.label); add("data", `data.section.${s.key}.hint`, s.hint) }

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ExternalLink, Loader2, Send, Trash2 } from "lucide-react"
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { deleteSiteAction, proposeAction, saveSiteAction } from "@/app/admin/actions"
 import { LocationPicker } from "@/components/admin/location-picker"
+import type { Bounds } from "@/lib/editions"
 import { PhotoManager, type PhotoFields, type StoredPhoto } from "@/components/admin/photo-manager"
 import { VideoManager, type StoredVideo, type VideoFields } from "@/components/admin/video-manager"
 import { EXTRA_FIELDS, LANGS, SITE_TYPES, slugify, TYPE_LABELS, type Lang, type SiteContent, type SiteType } from "@/lib/content"
@@ -64,6 +64,9 @@ const parseCoords = (text: string) => {
   return m ? [Number(m[1]), Number(m[2])] as const : null
 }
 
+/** A region in the editor's list (lib/regions-server.ts → regionOptions). */
+export type RegionOption = { id: string; name: string; active: boolean; edition: string; bounds: Bounds; boundary: boolean }
+
 export function SiteForm(props: {
   mode: "direct" | "propose"
   siteId: number | null
@@ -71,8 +74,8 @@ export function SiteForm(props: {
   photos: StoredPhoto[]
   videos: StoredVideo[]
   points: PointsConfig
-  regions: { id: string; name: string; active: boolean }[]
-  metropolises: { id: number; name: string }[]
+  regions: RegionOption[]
+  metropolises: { id: number; name: string; edition: string }[]
   /** Open the "other languages" tab on this language (from a church page's "translate it" link). */
   translate?: string
 }) {
@@ -171,7 +174,7 @@ export function SiteForm(props: {
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">{t("editor.metropolisNone")}</SelectItem>
-                    {props.metropolises.map((m) => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
+                    {props.metropolises.filter((m) => m.edition === (props.regions.find((r) => r.id === v.region)?.edition ?? m.edition)).map((m) => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -278,7 +281,7 @@ export function SiteForm(props: {
             {!direct && !v.coordsVerified && <p className="text-xs text-muted-foreground">{t("editor.moveThePin", { n: locationPoints })}</p>}
           </CardHeader>
           <CardContent className="grid gap-3">
-            <LocationPicker lat={v.lat} lng={v.lng} type={v.type} onChange={(lat, lng) => setV((s) => ({ ...s, lat, lng }))} />
+            <LocationPicker lat={v.lat} lng={v.lng} type={v.type} onChange={(lat, lng) => setV((s) => ({ ...s, lat, lng }))} area={props.regions.find((r) => r.id === v.region)} />
             <p className="text-xs text-muted-foreground">{t("editor.mapHelp")}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -339,7 +342,7 @@ export function SiteForm(props: {
         <Button type="button" variant="ghost" asChild><Link href="/admin/sites">{t("editor.cancel")}</Link></Button>
         {siteId && v.slug && (
           <Button type="button" variant="outline" asChild className="ml-auto">
-            <Link href={paths.site(v.slug)} target="_blank">{t("editor.viewPage")}<ExternalLink /></Link>
+            <Link href={`/site/${encodeURIComponent(v.slug)}`} target="_blank">{t("editor.viewPage")}<ExternalLink /></Link>
           </Button>
         )}
         {direct && siteId && (

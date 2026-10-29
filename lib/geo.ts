@@ -18,3 +18,19 @@ export function formatDistance(km: number, lang: Locale) {
 /** Google Maps directions from wherever the phone is to a point. */
 export const directionsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${lat}%2C${lng}`
+
+type Ring = number[][]
+const inRing = (lng: number, lat: number, ring: Ring) => {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+/** Whether a point lies inside a GeoJSON Polygon / MultiPolygon (holes respected). */
+export function inGeometry(lat: number, lng: number, g: { type: string; coordinates: unknown }) {
+  const polys = (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []) as Ring[][]
+  return polys.some(([outer, ...holes]) => inRing(lng, lat, outer) && !holes.some((h) => inRing(lng, lat, h)))
+}

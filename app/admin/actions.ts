@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath, updateTag } from "next/cache"
-import { paths } from "@/lib/editions"
 import { PUBLIC_TAG } from "@/lib/cache"
 import { eq } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
@@ -35,7 +34,7 @@ const refresh = (slug?: string) => {
   updateTag(PUBLIC_TAG)
   revalidatePath("/")
   revalidatePath("/admin", "layout")
-  if (slug) revalidatePath(paths.site(slug))
+  if (slug) revalidatePath("/[edition]/site/[slug]", "page")
 }
 
 // ---- churches (admins edit directly) ----
@@ -43,7 +42,7 @@ const refresh = (slug?: string) => {
 export async function saveSiteAction(id: number | null, raw: Record<string, unknown>) {
   return run(async () => {
     await assertRole("admin")
-    const { errors, data } = validateSite(raw)
+    const { errors, data } = await validateSite(raw)
     if (errors.length) throw new UserError(errors)
     if (await slugTaken(data.slug, id ?? undefined)) throw new UserError("error.site.slugTaken", { slug: data.slug })
     let siteId = id
@@ -75,7 +74,7 @@ export async function proposeAction(siteId: number | null, raw: Record<string, u
     const user = await assertRole("approved")
     const current = siteId ? await getSite({ id: siteId }) : null
     if (siteId && !current) throw new UserError("error.site.notFound")
-    const { errors, data } = validateSite({
+    const { errors, data } = await validateSite({
       ...raw,
       // Only admins decide these:
       slug: current?.slug ?? raw.slug,

@@ -4,8 +4,9 @@ import { db, schema } from "@/lib/db"
 import { distanceKm } from "@/lib/geo"
 import { siteSummaries, type SiteSummary } from "@/lib/sites"
 import { publicMetropolises } from "@/lib/metropolises"
-import { regionAncestors, regions } from "@/lib/regions"
-import { CYPRUS, EDITIONS } from "@/lib/editions"
+import { regionAncestors } from "@/lib/regions"
+import { getRegions } from "@/lib/regions-server"
+import { getEditions } from "@/lib/editions-server"
 import { UserError } from "@/lib/session"
 
 // A user's odoiporiko: the churches they have visited. "I'm here" checks the browser's location against the
@@ -85,24 +86,26 @@ const tally = (all: SiteSummary[], seen: Set<number>, key: (s: SiteSummary) => s
 
 /** A user's visits with the counts: overall, by country (edition), region and see — "X of Y". */
 export async function odoiporiko(userId: string) {
-  const [rows, all, metros] = await Promise.all([
+  const [rows, all, metros, regions, editions] = await Promise.all([
     db.select({ siteId: visits.siteId, verified: visits.verified, visitedAt: visits.visitedAt }).from(visits)
       .where(eq(visits.userId, userId)).orderBy(desc(visits.visitedAt)),
     siteSummaries(),
     publicMetropolises(),
+    getRegions(),
+    getEditions(),
   ])
   const byId = new Map(all.map((s) => [s.id, s]))
   const list = rows.flatMap((v) => (byId.has(v.siteId) ? [{ ...v, site: byId.get(v.siteId)! }] : []))
   const seen = new Set(list.map((v) => v.siteId))
-  const byRegion = tally(all, seen, (s) => regionAncestors(s.region))
+  const byRegion = tally(all, seen, (s) => regionAncestors(regions, s.region))
+  const byEdition = tally(all, seen, (s) => [s.edition])
   const bySee = tally(all, seen, (s) => (s.metropolisId ? [String(s.metropolisId)] : []))
   return {
     visited: list.length,
     verified: list.filter((v) => v.verified).length,
     total: all.length,
     list,
-    // Every region belongs to the Cyprus edition for now; the other Churches have no churches yet.
-    countries: EDITIONS.filter((e) => e.active).map((e) => ({ edition: e, visited: e.id === CYPRUS.id ? list.length : 0, total: e.id === CYPRUS.id ? all.length : 0 })),
+    countries: editions.filter((e) => e.active && byEdition.has(e.id)).map((e) => ({ edition: e, ...byEdition.get(e.id)! })),
     regions: regions.filter((r) => byRegion.has(r.id)).map((r) => ({ region: r, ...byRegion.get(r.id)! })),
     sees: metros.filter((m) => bySee.has(String(m.id))).map((m) => ({ see: m, ...bySee.get(String(m.id))! }))
       .sort((a, b) => b.visited - a.visited || b.total - a.total),

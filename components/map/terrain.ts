@@ -4,6 +4,7 @@ import type { SiteType } from "@/lib/content"
 
 // Map colours, mixed from the site palette (crimson #6b1d1d, gold #ad8840, parchment #ece8de; see globals.css):
 // an old-atlas look with parchment land, a gold-tinted sea and the selected region outlined in crimson.
+// The areas of Cyprus under occupation are always tinted crimson, also where the rest is faded.
 const COLORS = {
   sea: "#d9cfba", island: "#e6e0d2", land: "#f6f3ec", mask: "#ece8de", accent: "#6b1d1d",
   shadow: "#3b1f19", highlight: "#fbf9f4", hillAccent: "#8a6d38",
@@ -36,12 +37,15 @@ export function mapStyle(): StyleSpecification {
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
       },
-      cyprus: { type: "geojson", data: "/data/cyprus.geojson", attribution: "Natural Earth" },
+      world: { type: "geojson", data: "/data/world.geojson", attribution: "Natural Earth" },
+      cyprus: { type: "geojson", data: "/data/cyprus.geojson" },
+      occupied: { type: "geojson", data: "/data/occupied.geojson" },
       mask: { type: "geojson", data: EMPTY },
       region: { type: "geojson", data: EMPTY, attribution: "Boundaries © OpenStreetMap contributors" },
     },
     layers: [
       { id: "sea", type: "background", paint: { "background-color": COLORS.sea } },
+      { id: "world", type: "fill", source: "world", paint: { "fill-color": COLORS.island } },
       { id: "island", type: "fill", source: "cyprus", paint: { "fill-color": COLORS.island } },
       { id: "land", type: "fill", source: "region", paint: { "fill-color": COLORS.land } },
       { id: "satellite", type: "raster", source: "satellite", layout: { visibility: "none" }, paint: { "raster-saturation": -0.1 } },
@@ -56,6 +60,8 @@ export function mapStyle(): StyleSpecification {
         },
       },
       { id: "mask", type: "fill", source: "mask", paint: { "fill-color": COLORS.mask, "fill-opacity": 0.86 } },
+      { id: "occupied", type: "fill", source: "occupied", paint: { "fill-color": COLORS.accent, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0.2, 12, 0.1] } },
+      { id: "occupied-line", type: "line", source: "occupied", paint: { "line-color": COLORS.accent, "line-width": 1.2, "line-opacity": 0.7, "line-dasharray": [3, 2] } },
       { id: "region-glow", type: "line", source: "region", paint: { "line-color": COLORS.accent, "line-width": 10, "line-blur": 8, "line-opacity": 0.28 } },
       { id: "region-line", type: "line", source: "region", paint: { "line-color": COLORS.accent, "line-width": 1.6, "line-opacity": 0.8 } },
     ],
@@ -73,7 +79,7 @@ export function mapStyle(): StyleSpecification {
 
 type Boundaries = GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon, { region: string }>
 let boundariesPromise: Promise<Boundaries> | undefined
-const boundaries = (): Promise<Boundaries> => (boundariesPromise ??= fetch("/data/boundaries.geojson").then((r) => r.json()))
+const boundaries = (): Promise<Boundaries> => (boundariesPromise ??= fetch("/api/boundaries").then((r) => r.json()))
 
 /** Highlights one region: its land is drawn warm and outlined, everything outside is faded. */
 export async function setRegion(map: MlMap, boundaryId?: string) {

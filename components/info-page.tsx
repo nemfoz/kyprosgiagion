@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
-import { Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ContactForm } from "@/components/contact/contact-form"
 import { PublicHeader } from "@/components/public-header"
 import { SiteFooter } from "@/components/site-footer"
 import { markdown } from "@/lib/content"
@@ -38,7 +37,7 @@ export const infoPage = (page: InfoPage) => async function InfoPageView({ search
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <div className="prose-site" dangerouslySetInnerHTML={{ __html: markdown(pageText(info, page, baseLang(lang))) }} />
         {page === "contact" && (
-          <Button asChild size="lg" className="mt-6 h-11"><a href={`mailto:${info.contactEmail}`}><Mail />{info.contactEmail}</a></Button>
+          <div className="mt-8"><ContactForm lang={lang} user={session ? { name: session.user.name, email: session.user.email } : null} /></div>
         )}
         {updated && ["privacy", "cookies", "terms"].includes(page) && (
           <p className="mt-8 text-xs text-muted-foreground">{t("pageUpdated", lang, { date: updated })}</p>

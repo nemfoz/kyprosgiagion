@@ -43,9 +43,12 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 | Path | What it is |
 |---|---|
 | `app/page.tsx` | Home page: the brand and the choice of Church (`lib/editions.ts`; only Cyprus is open) |
-| `app/cyprus/page.tsx` | The Cyprus edition's landing page (regions, sees, featured churches) |
-| `app/cyprus/map/`, `components/map/` | Public 3D map (MapLibre) with list, search and filters |
-| `app/cyprus/site/[slug]/`, `app/cyprus/metropolis/` | Church pages and the sees (old `/site/…`, `/metropolis/…` links redirect, `next.config.ts`) |
+| `app/[edition]/page.tsx` | An edition's landing page (regions, sees, featured churches); editions and regions are data (`lib/editions-server.ts`, `lib/regions-server.ts`, `/admin/editions`, `/admin/regions`) |
+| `app/[edition]/map/`, `components/map/` | Public 3D map (MapLibre) with list, search and filters |
+| `app/[edition]/site/[slug]/`, `app/[edition]/metropolis/` | Church pages and the sees (`/site/<slug>` and `/metropolis/<slug>` redirect to the right edition) |
+| `/admin/import`, `lib/church-import.ts`, `lib/parish-sources/` | Adding churches: quick add, spreadsheet, Metropolis websites — checked (location, region, duplicates) before writing |
+| `lib/contact.ts`, `/admin/messages` | Contact form and its inbox |
+| `app/home-0x/`, `components/home/` | Three home page versions to choose from |
 | `app/profile/`, `app/u/[id]/`, `lib/visits.ts` | Visited churches ("I'm here" GPS check-in or a manual mark), the user's odoiporiko, public profiles |
 | `app/(info)/`, `lib/pages.ts`, `/admin/pages` | About, Contact, Privacy, Cookies, Terms (texts editable by superadmins), footer, cookie notice |
 | `app/(auth)/` | Sign in / sign up |
@@ -58,7 +61,7 @@ are defined in `lib/permissions.ts`; Better Auth's admin plugin enforces them fo
 | `lib/photo-sizes.mjs`, `lib/photo-variants.mjs` | Smaller WebP copies of every photo (`sized(src, "sm" \| "md")`) |
 | `lib/seo.ts`, `app/sitemap.ts`, `app/robots.ts`, `**/opengraph-image.tsx` | SEO, hreflang and share previews |
 | `data/regions.json`, `public/data/*.geojson` | Regions, map labels, outlines |
-| `scripts/` | migrate, import, rehost-photos, backup |
+| `scripts/` | migrate (+ `seed-geo`), import, rehost-photos, backup, `build-geodata` (world, occupied areas, districts), `test-parish-sources.mts` |
 | `Dockerfile`, `docker-compose.yml`, `deploy/` | The server: image, compose file, nginx config, `deploy.sh` |
 
 ## Photos and links

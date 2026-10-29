@@ -16,8 +16,7 @@ const nextConfig: NextConfig = {
       { source: `/${LANG}`, has: [{ type: "query" as const, key }], destination: "/:lang/cyprus/map", permanent: true },
     ]);
     return [
-      ...moved("/site/:slug*", "/cyprus/site/:slug*"),
-      ...moved("/metropolis/:slug*", "/cyprus/metropolis/:slug*"),
+      // /site/x and /metropolis/x (old links, admin links) find their edition: app/site, app/metropolis.
       ...moved("/metropolis", "/cyprus/metropolis"),
       ...oldMap,
     ];

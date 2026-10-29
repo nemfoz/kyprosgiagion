@@ -3,7 +3,9 @@ import { and, asc, desc, eq, sql } from "drizzle-orm"
 import { db, schema } from "@/lib/db"
 import { byLocale, normaliseContent, SITE_TYPES, slugify, translatedInto, type SiteContent, type SiteType } from "@/lib/content"
 import { cached } from "@/lib/cache"
-import { regions } from "@/lib/regions"
+import { DEFAULT_EDITION } from "@/lib/editions"
+import { listEditions } from "@/lib/editions-server"
+import { listRegions } from "@/lib/regions-server"
 import { distanceKm } from "@/lib/geo"
 import { deleteStored } from "@/lib/storage"
 import type { ErrorMessage } from "@/lib/session"
@@ -49,11 +51,16 @@ export async function listSites({ publishedOnly }: { publishedOnly: boolean }) {
  * What the map, lists and "nearby" need of each published church: names, places and summaries in every
  * language, without the histories. One query, cached across requests.
  */
-export const siteSummaries = cached("siteSummaries", async () => (await listSites({ publishedOnly: true })).map((s) => ({
-  id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, lat: s.lat, lng: s.lng, coordsVerified: s.coordsVerified,
-  cover: s.cover, metropolisId: s.metropolisId, updatedAt: s.updatedAt, locales: translatedInto(s.content),
-  name: byLocale(s.content, "name"), location: byLocale(s.content, "location"), summary: byLocale(s.content, "summary"),
-})))
+export const siteSummaries = cached("siteSummaries", async () => {
+  const [list, regions] = await Promise.all([listSites({ publishedOnly: true }), listRegions()])
+  const editionOf = new Map(regions.map((r) => [r.id, r.edition]))
+  return list.map((s) => ({
+    id: s.id, slug: s.slug, type: s.type as SiteType, region: s.region, edition: editionOf.get(s.region) ?? DEFAULT_EDITION,
+    lat: s.lat, lng: s.lng, coordsVerified: s.coordsVerified,
+    cover: s.cover, metropolisId: s.metropolisId, updatedAt: s.updatedAt, locales: translatedInto(s.content),
+    name: byLocale(s.content, "name"), location: byLocale(s.content, "location"), summary: byLocale(s.content, "summary"),
+  }))
+})
 export type SiteSummary = Awaited<ReturnType<typeof siteSummaries>>[number]
 
 /** The published churches closest to a point, nearest first. */
@@ -77,17 +84,22 @@ export async function getSite(where: { id: number } | { slug: string }): Promise
 }
 
 /** Checks and cleans form input. Returns error messages as text keys. */
-export function validateSite(raw: Record<string, unknown>): { errors: ErrorMessage[]; data: SiteInput } {
+export async function validateSite(raw: Record<string, unknown>): Promise<{ errors: ErrorMessage[]; data: SiteInput }> {
   const errors: ErrorMessage[] = []
   const content = normaliseContent(raw.content)
   const lat = Number(raw.lat)
   const lng = Number(raw.lng)
   const type = raw.type as SiteType
   const region = String(raw.region ?? "")
-  if (!Number.isFinite(lat) || lat < 34.4 || lat > 35.8) errors.push({ key: "error.site.lat" })
-  if (!Number.isFinite(lng) || lng < 32.2 || lng > 34.7) errors.push({ key: "error.site.lng" })
+  // The location must lie within the region's edition (its map area, with a margin).
+  const [regions, editions] = await Promise.all([listRegions(), listEditions()])
+  const r = regions.find((x) => x.id === region)
+  const [[s, w], [n, e]] = editions.find((x) => x.id === r?.edition)?.bounds ?? r?.bounds ?? [[-90, -180], [90, 180]]
+  const m = 0.3, fix = (x: number) => Math.round(x * 10) / 10
+  if (!Number.isFinite(lat) || lat < s - m || lat > n + m) errors.push({ key: "error.site.lat", vars: { min: fix(s - m), max: fix(n + m) } })
+  if (!Number.isFinite(lng) || lng < w - m || lng > e + m) errors.push({ key: "error.site.lng", vars: { min: fix(w - m), max: fix(e + m) } })
   if (!SITE_TYPES.includes(type)) errors.push({ key: "error.site.type" })
-  if (!regions.some((r) => r.id === region)) errors.push({ key: "error.site.region" })
+  if (!r) errors.push({ key: "error.site.region" })
   if (!content.el.name && !content.en.name) errors.push({ key: "error.site.name" })
   const slug = slugify(String(raw.slug || content.en.name || ""))
   if (!slug) errors.push({ key: "error.site.slug" })

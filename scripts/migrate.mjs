@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import { seedSites } from './seed-data.mjs';
 import { importChurches, slugify } from './import-core.mjs';
 import { rehostPhotos } from './rehost-core.mjs';
+import { seedGeo } from './seed-geo.mjs';
 import { readStored, rehost, storeVariants } from './lib.mjs';
 
 // Reviewed content files applied once per database (tracked in data_imports), in order.
@@ -53,6 +54,9 @@ if (Number(rows[0].n) === 0) {
   }
   console.log(`migrate: seeded ${seedSites.length} sample sites (run "npm run rehost-photos" to copy their photos into storage)`);
 }
+
+const geo = await seedGeo(db);
+if (geo) console.log(`migrate: added ${geo} editions/regions`);
 
 console.log(`migrate: database ready (${url.startsWith('file:') ? 'local file' : 'remote'})`);
 // The Docker build only needs the tables (and the sample churches) to prerender pages: no imports or downloads.

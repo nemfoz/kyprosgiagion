@@ -1,43 +1,148 @@
 {
-  "siteTitle": { "el": "Κύπρος – Αγίων Γη", "en": "Cyprus – Land of Saints" },
-  "defaultRegion": "famagusta",
+  "_note": "Seed for the regions table (scripts/seed-geo.mjs) and the village labels of the Cyprus map (places).",
   "regions": [
     {
       "id": "famagusta",
-      "name": { "el": "Επαρχία Αμμοχώστου", "en": "Famagusta District" },
+      "name": {
+        "el": "Επαρχία Αμμοχώστου",
+        "en": "Famagusta District"
+      },
       "boundary": "famagusta",
-      "bounds": [[34.94, 33.53], [35.72, 34.62]],
-      "camera": { "bearing": -20, "pitch": 50 },
+      "bounds": [
+        [
+          34.94,
+          33.53
+        ],
+        [
+          35.72,
+          34.62
+        ]
+      ],
+      "camera": {
+        "bearing": -20,
+        "pitch": 50
+      },
       "active": true
     },
     {
       "id": "karpasia",
       "parent": "famagusta",
-      "name": { "el": "Χερσόνησος Καρπασίας", "en": "Karpasia Peninsula" },
+      "name": {
+        "el": "Χερσόνησος Καρπασίας",
+        "en": "Karpasia Peninsula"
+      },
       "boundary": "karpasia",
-      "bounds": [[35.21, 33.77], [35.71, 34.61]],
-      "camera": { "bearing": -36, "pitch": 58 },
+      "bounds": [
+        [
+          35.21,
+          33.77
+        ],
+        [
+          35.71,
+          34.61
+        ]
+      ],
+      "camera": {
+        "bearing": -36,
+        "pitch": 58
+      },
       "active": true
     },
     {
       "id": "kyrenia",
-      "name": { "el": "Επαρχία Κερύνειας", "en": "Kyrenia District" },
-      "bounds": [[35.18, 32.90], [35.42, 33.80]],
+      "name": {
+        "el": "Επαρχία Κερύνειας",
+        "en": "Kyrenia District"
+      },
+      "bounds": [
+        [
+          35.18,
+          32.9
+        ],
+        [
+          35.42,
+          33.8
+        ]
+      ],
       "active": false
     }
   ],
   "places": [
-    { "el": "Αμμόχωστος", "en": "Famagusta", "lat": 35.1210, "lng": 33.9380, "major": true },
-    { "el": "Τρίκωμο", "en": "Trikomo", "lat": 35.2870, "lng": 33.8920, "major": true },
-    { "el": "Ριζοκάρπασο", "en": "Rizokarpaso", "lat": 35.6000, "lng": 34.3800, "major": true },
-    { "el": "Γιαλούσα", "en": "Yialousa", "lat": 35.5330, "lng": 34.1880, "major": true },
-    { "el": "Λευκόνοικο", "en": "Lefkoniko", "lat": 35.2560, "lng": 33.7350 },
-    { "el": "Ακανθού", "en": "Akanthou", "lat": 35.3740, "lng": 33.7570 },
-    { "el": "Λεονάρισσο", "en": "Leonarisso", "lat": 35.4700, "lng": 34.1400 },
-    { "el": "Κώμη Κεπίρ", "en": "Komi Kebir", "lat": 35.4180, "lng": 34.0860 },
-    { "el": "Λιθράγκωμη", "en": "Lythrangomi", "lat": 35.5100, "lng": 34.2250 },
-    { "el": "Παραλίμνι", "en": "Paralimni", "lat": 35.0380, "lng": 33.9820 },
-    { "el": "Αγία Νάπα", "en": "Ayia Napa", "lat": 34.9880, "lng": 33.9990 },
-    { "el": "Δερύνεια", "en": "Deryneia", "lat": 35.0640, "lng": 33.9590 }
+    {
+      "el": "Αμμόχωστος",
+      "en": "Famagusta",
+      "lat": 35.121,
+      "lng": 33.938,
+      "major": true
+    },
+    {
+      "el": "Τρίκωμο",
+      "en": "Trikomo",
+      "lat": 35.287,
+      "lng": 33.892,
+      "major": true
+    },
+    {
+      "el": "Ριζοκάρπασο",
+      "en": "Rizokarpaso",
+      "lat": 35.6,
+      "lng": 34.38,
+      "major": true
+    },
+    {
+      "el": "Γιαλούσα",
+      "en": "Yialousa",
+      "lat": 35.533,
+      "lng": 34.188,
+      "major": true
+    },
+    {
+      "el": "Λευκόνοικο",
+      "en": "Lefkoniko",
+      "lat": 35.256,
+      "lng": 33.735
+    },
+    {
+      "el": "Ακανθού",
+      "en": "Akanthou",
+      "lat": 35.374,
+      "lng": 33.757
+    },
+    {
+      "el": "Λεονάρισσο",
+      "en": "Leonarisso",
+      "lat": 35.47,
+      "lng": 34.14
+    },
+    {
+      "el": "Κώμη Κεπίρ",
+      "en": "Komi Kebir",
+      "lat": 35.418,
+      "lng": 34.086
+    },
+    {
+      "el": "Λιθράγκωμη",
+      "en": "Lythrangomi",
+      "lat": 35.51,
+      "lng": 34.225
+    },
+    {
+      "el": "Παραλίμνι",
+      "en": "Paralimni",
+      "lat": 35.038,
+      "lng": 33.982
+    },
+    {
+      "el": "Αγία Νάπα",
+      "en": "Ayia Napa",
+      "lat": 34.988,
+      "lng": 33.999
+    },
+    {
+      "el": "Δερύνεια",
+      "en": "Deryneia",
+      "lat": 35.064,
+      "lng": 33.959
+    }
   ]
 }

@@ -16,7 +16,7 @@ import { HONEYPOT_FIELD } from "@/lib/antispam"
 import { useT } from "@/components/i18n-provider"
 import { localePath, type Locale } from "@/lib/locales"
 import type { MessageKey, TFn } from "@/lib/i18n"
-import { siteName } from "@/lib/regions"
+import { brandName } from "@/lib/editions"
 
 // Error codes from Better Auth (and lib/auth.ts) with a translated message; others show their own message.
 const ERROR_KEYS: Record<string, MessageKey> = {
@@ -50,7 +50,7 @@ export function AuthHeader({ lang }: { lang: Locale }) {
   return (
     <div className="grid justify-items-center gap-1">
       <Link href={withLang("/", lang)} className="flex items-center justify-center gap-2 font-heading text-xl font-bold">
-        <span className="text-primary">☦</span>{siteName(lang)}
+        <span className="text-primary">☦</span>{brandName(lang)}
       </Link>
       <LangMenu lang={lang} path={params.size ? `${path}?${params}` : path} className="text-xs text-muted-foreground" />
     </div>

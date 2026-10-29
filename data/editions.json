@@ -1,0 +1,385 @@
+{
+ "_note": "Seed for the editions table (scripts/migrate.mjs inserts missing ids; superadmins edit them at /admin/editions).",
+ "editions": [
+  {
+   "id": "constantinople",
+   "sort": 0,
+   "name": {
+    "el": "Κωνσταντινούπολη",
+    "en": "Constantinople"
+   },
+   "church": {
+    "el": "Οικουμενικό Πατριαρχείο",
+    "en": "Ecumenical Patriarchate"
+   },
+   "active": false,
+   "bounds": [
+    [
+     35.8,
+     25.6
+    ],
+    [
+     42.2,
+     44.8
+    ]
+   ],
+   "countries": [
+    "TR"
+   ]
+  },
+  {
+   "id": "alexandria",
+   "sort": 1,
+   "name": {
+    "el": "Αλεξάνδρεια",
+    "en": "Alexandria"
+   },
+   "church": {
+    "el": "Πατριαρχείο Αλεξανδρείας",
+    "en": "Patriarchate of Alexandria"
+   },
+   "active": false,
+   "bounds": [
+    [
+     22.0,
+     24.7
+    ],
+    [
+     31.7,
+     36.9
+    ]
+   ],
+   "countries": [
+    "EG"
+   ]
+  },
+  {
+   "id": "antioch",
+   "sort": 2,
+   "name": {
+    "el": "Αντιόχεια",
+    "en": "Antioch"
+   },
+   "church": {
+    "el": "Πατριαρχείο Αντιοχείας",
+    "en": "Patriarchate of Antioch"
+   },
+   "active": false,
+   "bounds": [
+    [
+     32.3,
+     35.1
+    ],
+    [
+     37.3,
+     42.4
+    ]
+   ],
+   "countries": [
+    "SY",
+    "LB"
+   ]
+  },
+  {
+   "id": "jerusalem",
+   "sort": 3,
+   "name": {
+    "el": "Ιεροσόλυμα",
+    "en": "Jerusalem"
+   },
+   "church": {
+    "el": "Πατριαρχείο Ιεροσολύμων",
+    "en": "Patriarchate of Jerusalem"
+   },
+   "active": false,
+   "bounds": [
+    [
+     29.4,
+     34.2
+    ],
+    [
+     33.4,
+     39.3
+    ]
+   ],
+   "countries": [
+    "IL",
+    "PS",
+    "JO"
+   ]
+  },
+  {
+   "id": "russia",
+   "sort": 4,
+   "name": {
+    "el": "Ρωσία",
+    "en": "Russia"
+   },
+   "church": {
+    "el": "Εκκλησία της Ρωσίας",
+    "en": "Church of Russia"
+   },
+   "active": false,
+   "bounds": [
+    [
+     41.2,
+     27.0
+    ],
+    [
+     70.0,
+     60.0
+    ]
+   ],
+   "countries": [
+    "RU",
+    "BY",
+    "MD",
+    "KZ"
+   ]
+  },
+  {
+   "id": "serbia",
+   "sort": 5,
+   "name": {
+    "el": "Σερβία",
+    "en": "Serbia"
+   },
+   "church": {
+    "el": "Εκκλησία της Σερβίας",
+    "en": "Church of Serbia"
+   },
+   "active": false,
+   "bounds": [
+    [
+     42.2,
+     18.8
+    ],
+    [
+     46.2,
+     23.0
+    ]
+   ],
+   "countries": [
+    "RS",
+    "ME",
+    "MK",
+    "BA",
+    "XK"
+   ]
+  },
+  {
+   "id": "romania",
+   "sort": 6,
+   "name": {
+    "el": "Ρουμανία",
+    "en": "Romania"
+   },
+   "church": {
+    "el": "Εκκλησία της Ρουμανίας",
+    "en": "Church of Romania"
+   },
+   "active": false,
+   "bounds": [
+    [
+     43.6,
+     20.2
+    ],
+    [
+     48.3,
+     29.7
+    ]
+   ],
+   "countries": [
+    "RO"
+   ]
+  },
+  {
+   "id": "bulgaria",
+   "sort": 7,
+   "name": {
+    "el": "Βουλγαρία",
+    "en": "Bulgaria"
+   },
+   "church": {
+    "el": "Εκκλησία της Βουλγαρίας",
+    "en": "Church of Bulgaria"
+   },
+   "active": false,
+   "bounds": [
+    [
+     41.2,
+     22.3
+    ],
+    [
+     44.2,
+     28.6
+    ]
+   ],
+   "countries": [
+    "BG"
+   ]
+  },
+  {
+   "id": "georgia",
+   "sort": 8,
+   "name": {
+    "el": "Γεωργία",
+    "en": "Georgia"
+   },
+   "church": {
+    "el": "Εκκλησία της Γεωργίας",
+    "en": "Church of Georgia"
+   },
+   "active": false,
+   "bounds": [
+    [
+     41.0,
+     40.0
+    ],
+    [
+     43.6,
+     46.7
+    ]
+   ],
+   "countries": [
+    "GE"
+   ]
+  },
+  {
+   "id": "cyprus",
+   "sort": 9,
+   "name": {
+    "el": "Κύπρος",
+    "en": "Cyprus"
+   },
+   "church": {
+    "el": "Εκκλησία της Κύπρου",
+    "en": "Church of Cyprus"
+   },
+   "active": true,
+   "bounds": [
+    [
+     34.55,
+     32.25
+    ],
+    [
+     35.72,
+     34.62
+    ]
+   ],
+   "countries": [
+    "CY"
+   ],
+   "title": {
+    "el": "Κύπρος – Αγίων Γη",
+    "en": "Cyprus – Land of Saints"
+   },
+   "defaultRegion": "famagusta"
+  },
+  {
+   "id": "greece",
+   "sort": 10,
+   "name": {
+    "el": "Ελλάδα",
+    "en": "Greece"
+   },
+   "church": {
+    "el": "Εκκλησία της Ελλάδος",
+    "en": "Church of Greece"
+   },
+   "active": false,
+   "bounds": [
+    [
+     34.8,
+     19.3
+    ],
+    [
+     41.8,
+     29.7
+    ]
+   ],
+   "countries": [
+    "GR"
+   ]
+  },
+  {
+   "id": "poland",
+   "sort": 11,
+   "name": {
+    "el": "Πολωνία",
+    "en": "Poland"
+   },
+   "church": {
+    "el": "Εκκλησία της Πολωνίας",
+    "en": "Church of Poland"
+   },
+   "active": false,
+   "bounds": [
+    [
+     49.0,
+     14.1
+    ],
+    [
+     54.9,
+     24.2
+    ]
+   ],
+   "countries": [
+    "PL"
+   ]
+  },
+  {
+   "id": "albania",
+   "sort": 12,
+   "name": {
+    "el": "Αλβανία",
+    "en": "Albania"
+   },
+   "church": {
+    "el": "Εκκλησία της Αλβανίας",
+    "en": "Church of Albania"
+   },
+   "active": false,
+   "bounds": [
+    [
+     39.6,
+     19.2
+    ],
+    [
+     42.7,
+     21.1
+    ]
+   ],
+   "countries": [
+    "AL"
+   ]
+  },
+  {
+   "id": "czech-slovakia",
+   "sort": 13,
+   "name": {
+    "el": "Τσεχία και Σλοβακία",
+    "en": "Czech Lands and Slovakia"
+   },
+   "church": {
+    "el": "Εκκλησία Τσεχίας και Σλοβακίας",
+    "en": "Church of the Czech Lands and Slovakia"
+   },
+   "active": false,
+   "bounds": [
+    [
+     47.7,
+     12.1
+    ],
+    [
+     51.1,
+     22.6
+    ]
+   ],
+   "countries": [
+    "CZ",
+    "SK"
+   ]
+  }
+ ]
+}

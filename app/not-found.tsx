@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { paths } from "@/lib/editions"
+import { DEFAULT_EDITION, editionPaths } from "@/lib/editions"
 import { headers } from "next/headers"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,7 @@ export default async function NotFound() {
         <p className="font-heading text-5xl font-bold text-primary">404</p>
         <h1 className="text-2xl font-bold">{t("nfTitle", lang)}</h1>
         <p className="text-muted-foreground">{t("nfText", lang)}</p>
-        <Button asChild size="lg" className="mt-2 h-11"><Link href={localePath(paths.map, lang)}><ArrowLeft />{t("backToMap", lang)}</Link></Button>
+        <Button asChild size="lg" className="mt-2 h-11"><Link href={localePath(editionPaths(DEFAULT_EDITION).map, lang)}><ArrowLeft />{t("backToMap", lang)}</Link></Button>
       </main>
       <SiteFooter lang={lang} />
     </div>

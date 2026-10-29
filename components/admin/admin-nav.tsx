@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { paths } from "@/lib/editions"
+import { DEFAULT_EDITION, editionPaths } from "@/lib/editions"
 import { localePath } from "@/lib/locales"
 import { usePathname, useRouter } from "next/navigation"
 import { useTransition } from "react"
-import { CalendarDays, Church, ExternalLink, FileClock, FileText, Footprints, Landmark, Languages, LayoutDashboard, Trophy, Users } from "lucide-react"
+import { CalendarDays, Church, CirclePlus, Inbox, ExternalLink, FileClock, FileText, Footprints, Globe2, Landmark, Languages, LayoutDashboard, MapPinned, Trophy, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useAdminT } from "@/components/i18n-provider"
 import { setAdminLangAction } from "@/app/admin/i18n-actions"
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 type Item = { href: string; label: MessageKey; icon: React.ReactNode; exact?: boolean; count?: number }
 
 /** Vertical admin menu (sidebar on wide screens, sheet on phones). */
-export function AdminNav({ role, pending, translations = 0, onNavigate }: { role: Role; pending: number; translations?: number; onNavigate?: () => void }) {
+export function AdminNav({ role, pending, translations = 0, messages = 0, onNavigate }: { role: Role; pending: number; translations?: number; messages?: number; onNavigate?: () => void }) {
   const t = useAdminT()
   const path = usePathname()
   const admin = role !== "user"
@@ -26,10 +26,14 @@ export function AdminNav({ role, pending, translations = 0, onNavigate }: { role
     { href: "/admin/submissions", label: admin ? "admin.nav.submissions" : "admin.nav.mySubmissions", icon: <FileClock />, count: admin ? pending : 0 },
     { href: localePath("/profile", t.lang), label: "myOdoiporiko" as MessageKey, icon: <Footprints /> },
     ...(admin ? [
+      { href: "/admin/messages", label: "admin.nav.messages", icon: <Inbox />, count: messages } as Item,
       { href: "/admin/metropolises", label: "admin.nav.metropolises", icon: <Landmark /> } as Item,
       { href: "/admin/users", label: "admin.nav.users", icon: <Users /> } as Item,
     ] : []),
     ...(role === "superadmin" ? [
+      { href: "/admin/import", label: "admin.nav.import", icon: <CirclePlus /> } as Item,
+      { href: "/admin/editions", label: "admin.nav.editions", icon: <Globe2 /> } as Item,
+      { href: "/admin/regions", label: "admin.nav.regions", icon: <MapPinned /> } as Item,
       { href: "/admin/points", label: "admin.nav.points", icon: <Trophy /> } as Item,
       { href: "/admin/pages", label: "admin.nav.pages", icon: <FileText /> } as Item,
     ] : []),
@@ -49,7 +53,7 @@ export function AdminNav({ role, pending, translations = 0, onNavigate }: { role
         )
       })}
       <div className="my-2 border-t" />
-      <Link href={localePath(paths.map, t.lang)} target="_blank" className={link}><ExternalLink />{t("admin.nav.publicMap")}</Link>
+      <Link href={localePath(editionPaths(DEFAULT_EDITION).map, t.lang)} target="_blank" className={link}><ExternalLink />{t("admin.nav.publicMap")}</Link>
       <Link href={`/eortologio${t.lang === "en" ? "?lang=en" : ""}`} target="_blank" className={link}><CalendarDays />{t("navNameDays" as MessageKey)}</Link>
     </nav>
   )

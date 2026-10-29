@@ -69,7 +69,7 @@ export async function metropolisPage(slug: string) {
   return { ...m, churches, news }
 }
 
-export type MetroInput = { slug: string; sort: number; website: string; feedUrl: string; logo: string; content: MetroContent }
+export type MetroInput = { slug: string; edition: string; sort: number; website: string; feedUrl: string; logo: string; content: MetroContent }
 
 export async function saveMetropolis(id: number | null, input: MetroInput) {
   const values = { ...input, content: JSON.stringify(input.content), updatedAt: sql`(datetime('now'))` }

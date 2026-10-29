@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useT } from "@/components/i18n-provider"
 import { localePath, type Locale } from "@/lib/locales"
-import { siteName } from "@/lib/regions"
-import { brandName, paths } from "@/lib/editions"
+import { brandName, editionPaths } from "@/lib/editions"
 
 /** Phones: the header's navigation as a menu that slides in from the right, with labels. */
-export function MobileNav({ lang, signedIn }: { lang: Locale; signedIn: boolean }) {
+export function MobileNav({ lang, signedIn, edition }: { lang: Locale; signedIn: boolean; edition: { id: string; title: string } }) {
   const t = useT()
+  const paths = editionPaths(edition.id)
   const links = [
-    { href: localePath(paths.home, lang), label: siteName(lang), icon: <Home /> },
+    { href: localePath(paths.home, lang), label: edition.title, icon: <Home /> },
     { href: localePath(paths.map, lang), label: t("map", lang), icon: <MapIcon /> },
     { href: localePath(paths.metropolises, lang), label: t("navMetropolises", lang), icon: <Landmark /> },
     { href: localePath("/eortologio", lang), label: t("navNameDays", lang), icon: <CalendarDays /> },

@@ -3,7 +3,7 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SitesTable } from "@/components/admin/sites-table"
 import { isAdmin } from "@/lib/permissions"
-import { regions } from "@/lib/regions"
+import { listRegions } from "@/lib/regions-server"
 import { requireUser } from "@/lib/session"
 import { getAdminT } from "@/lib/i18n-server"
 import { listSites } from "@/lib/sites"
@@ -12,8 +12,8 @@ import type { SiteType } from "@/lib/content"
 export default async function SitesPage() {
   const user = await requireUser()
   const admin = isAdmin(user.role)
-  const [sites, t] = await Promise.all([listSites({ publishedOnly: !admin }), getAdminT()])
-  const regionName = Object.fromEntries(regions.map((r) => [r.id, r.name[t.lang]]))
+  const [sites, t, regions] = await Promise.all([listSites({ publishedOnly: !admin }), getAdminT(), listRegions()])
+  const regionName = Object.fromEntries(regions.map((r) => [r.id, r.name[t.lang] || r.name.el]))
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-3">

@@ -15,9 +15,9 @@ import { trData } from "@/lib/i18n"
 import { LangMenu } from "@/components/lang-menu"
 import { MobileNav } from "@/components/mobile-nav"
 import { useT } from "@/components/i18n-provider"
-import { places, regionAncestors, regionName, regions as allRegions, siteName, defaultRegion, type Region } from "@/lib/regions"
+import { places, regionAncestors, regionName, regionTree, type Region } from "@/lib/regions"
 import { cn } from "@/lib/utils"
-import { brandName, paths } from "@/lib/editions"
+import { brandName, editionPaths, type Bounds, type Camera } from "@/lib/editions"
 import { INFO_PAGES, PAGE_TITLE_KEY } from "@/lib/pages"
 import { FooterCredits } from "@/components/footer-credits"
 import { TypeBadge, typeBorder, typeDot, typeText } from "@/components/type-badge"
@@ -45,7 +45,21 @@ export type MapSite = {
   summary: Partial<Record<Locale, string>>
 }
 
+/** The edition shown: its title and "all regions" label in every language, and its map area. */
+export type MapEdition = {
+  id: string
+  title: Partial<Record<Locale, string>>
+  allLabel: Partial<Record<Locale, string>>
+  bounds: Bounds
+  camera: Camera | null
+}
+
 type Props = {
+  edition: MapEdition
+  /** The edition's active regions. */
+  regions: Region[]
+  /** The region the map opens on when the address names none ("all": the whole edition). */
+  defaultRegion: string
   sites: MapSite[]
   initialLang: Locale
   initialRegion: string
@@ -59,15 +73,7 @@ type Props = {
   foundationUrl: string
 }
 
-// Active regions, parents first with their sub-regions after them; "all" (the whole island) when there are
-// several top-level regions.
-const ALL: Region = { id: "all", name: { el: "Όλη η Κύπρος", en: "All of Cyprus" }, bounds: [[34.55, 32.25], [35.72, 34.62]], active: true }
-const active = allRegions.filter((r) => r.active)
-const tops = active.filter((r) => !r.parent || !active.some((p) => p.id === r.parent))
-const regions = [
-  ...(tops.length > 1 ? [ALL] : []),
-  ...tops.flatMap((r) => [r, ...active.filter((c) => c.parent === r.id)]),
-]
+const ALL_ID = "all"
 const fold = (s: string) => s.toLocaleLowerCase("el").normalize("NFD").replace(/[̀-ͯ]/g, "")
 
 // Phones: the list is a sheet over the map, dragged between three heights.
@@ -87,8 +93,16 @@ function regionCamera(map: MlMap, r: Region, is3d: boolean, fit = false, bottom 
   return { ...cam, bearing, pitch: is3d ? r.camera?.pitch ?? 50 : 0, zoom: (cam?.zoom ?? 8) + extra }
 }
 
-export function Explorer({ sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays, foundationUrl }: Props) {
+export function Explorer({ edition, regions: active, defaultRegion, sites, initialLang, initialRegion, initialMetropolis, metropolises, initialSlug, account, nameDays, foundationUrl }: Props) {
   const t = useT()
+  const paths = editionPaths(edition.id)
+  const siteName = (l: Locale) => tr(edition.title, l)
+  // "All" (the whole edition) first, then the regions, parents first with their sub-regions after them.
+  const regions = useMemo(() => {
+    const all: Region = { id: ALL_ID, edition: edition.id, parent: null, sort: -1, name: { el: "", en: "" }, bounds: edition.bounds, camera: edition.camera, hasBoundary: false, active: true }
+    return [all, ...regionTree(active)]
+  }, [active, edition])
+  const regionLabel = (r: Region, l: Locale) => (r.id === ALL_ID ? tr(edition.allLabel, l) : regionName(r, l))
   const [lang, setLang] = useState<Locale>(initialLang)
   const [regionId, setRegionId] = useState(initialRegion)
   const [metroId, setMetroId] = useState<number | null>(() => metropolises.find((m) => m.slug === initialMetropolis)?.id ?? null)
@@ -115,11 +129,11 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   const controls = useRef<ButtonsControl | null>(null)
 
   const region = regions.find((r) => r.id === regionId) ?? regions[0]
-  const sitesWithRegions = useMemo(() => sites.map((s) => ({ ...s, regions: regionAncestors(s.region) })), [sites])
+  const sitesWithRegions = useMemo(() => sites.map((s) => ({ ...s, regions: regionAncestors(active, s.region) })), [sites, active])
   const visible = useMemo(() => {
     const q = fold(query.trim())
     return sitesWithRegions.filter((s) =>
-      (regionId === ALL.id || s.regions.includes(regionId)) && (metroId === null || s.metropolisId === metroId) && types.has(s.type) &&
+      (regionId === ALL_ID || s.regions.includes(regionId)) && (metroId === null || s.metropolisId === metroId) && types.has(s.type) &&
       (!q || fold([...Object.values(s.name), ...Object.values(s.location)].join(" ")).includes(q)))
   }, [sitesWithRegions, regionId, metroId, types, query])
   const current = sites.find((s) => s.id === selected) ?? null
@@ -188,8 +202,9 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
       map = new ml.Map({
         container: mapEl.current,
         style: mapStyle(),
-        center: [33.4, 35.1], zoom: 7.6, // whole island first, then fly into the region
-        maxPitch: 65, minZoom: 7, attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),
+        // the whole edition first, then fly into the region
+        bounds: [[edition.bounds[0][1], edition.bounds[0][0]], [edition.bounds[1][1], edition.bounds[1][0]]],
+        maxPitch: 65, minZoom: 3, attributionControl: { compact: true }, pixelRatio: PIXEL_RATIO(),
       })
       mapRef.current = map
       map.addControl(new ml.NavigationControl({ visualizePitch: true }), "top-right")
@@ -222,8 +237,8 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     controls.current?.refresh()
     const map = mapRef.current
     if (!ready || !map) return
-    setPlaces(map, places.map((p) => ({ lng: p.lng, lat: p.lat, text: p[baseLang(lang)], major: !!p.major })))
-  }, [lang, ready])
+    if (edition.id === "cyprus") setPlaces(map, places.map((p) => ({ lng: p.lng, lat: p.lat, text: p[baseLang(lang)], major: !!p.major })))
+  }, [lang, ready, edition.id])
 
   // ---- pins ----
   // Drawn by the map (clustered up to zoom 13); the selected church keeps its own, larger pin.
@@ -324,7 +339,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map) return
-    setRegion(map, region.boundary)
+    setRegion(map, region.hasBoundary ? region.id : undefined)
     if (firstFly.current && selected) { firstFly.current = false; return } // deep link: fly to the site instead
     firstFly.current = false
     map.flyTo({ ...regionCamera(map, area(), view.current.is3d, metroId !== null, insetRef.current), duration: 2200, essential: true, curve: 1.2 })
@@ -386,10 +401,10 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
     const metro = metropolises.find((m) => m.id === metroId)
     if (metro) p.set("metropolis", metro.slug)
     if (current) p.set("site", current.slug)
-    history.replaceState(null, "", localePath(`${paths.map}${p.size ? `?${p}` : ""}`, lang))
+    history.replaceState(null, "", localePath(`${editionPaths(edition.id).map}${p.size ? `?${p}` : ""}`, lang))
     document.documentElement.lang = lang
-    document.title = `${siteName(lang)} – ${brandName(lang)}`
-  }, [lang, regionId, metroId, metropolises, current])
+    document.title = `${tr(edition.title, lang)} – ${brandName(lang)}`
+  }, [lang, regionId, defaultRegion, metroId, metropolises, current, edition])
 
   // Alphabetical, or nearest first after "Near me".
   const km = (s: MapSite) => (here ? distanceKm(here, s) : 0)
@@ -439,7 +454,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
               <span className="hidden lg:inline">{account ? t("dashboard", lang) : t("signIn", lang)}</span>
             </Link>
           </Button>
-          <MobileNav lang={lang} signedIn={!!account} />
+          <MobileNav lang={lang} signedIn={!!account} edition={{ id: edition.id, title: siteName(lang) }} />
         </div>
       </header>
 
@@ -523,7 +538,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
                         <SelectTrigger size="sm" className="w-full min-w-0 text-sm max-md:h-11! md:text-xs" aria-label={t("filterRegion", lang)}><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {regions.map((r) => (
-                            <SelectItem key={r.id} value={r.id} className={cn("py-2.5 text-sm md:py-1.5 md:text-xs", r.parent && "pl-6")}>{regionName(r, lang)}</SelectItem>
+                            <SelectItem key={r.id} value={r.id} className={cn("py-2.5 text-sm md:py-1.5 md:text-xs", r.parent && "pl-6")}>{regionLabel(r, lang)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -621,7 +636,7 @@ export function Explorer({ sites, initialLang, initialRegion, initialMetropolis,
           </button>
           <div className="pointer-events-none absolute bottom-7 left-5 hidden max-w-[calc(100%-40px)] items-center gap-2.5 rounded-lg border border-border bg-card/95 px-4 py-3 text-[10px] text-foreground/80 shadow-sm md:flex">
             <span className="size-1.5 flex-none rounded-full bg-primary" />
-            <span className="font-semibold">{tr(metropolises.find((m) => m.id === metroId)?.name, lang) || regionName(region, lang)}</span>
+            <span className="font-semibold">{tr(metropolises.find((m) => m.id === metroId)?.name, lang) || regionLabel(region, lang)}</span>
             <span className="hidden h-3 w-px bg-border lg:block" />
             <span className="hidden text-muted-foreground lg:block">{current ? name(current) : t("hint", lang)}</span>
           </div>

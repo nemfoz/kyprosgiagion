@@ -1,4 +1,4 @@
-// Database tables, created idempotently by scripts/migrate.mjs (also used by scripts/sync.mjs).
+// Database tables, created idempotently by scripts/migrate.mjs.
 // Must match lib/db/schema.ts (Drizzle) — column names are snake_case in both.
 
 export const SCHEMA = [
@@ -170,6 +170,49 @@ export const SCHEMA = [
     public     INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Editions: one per Orthodox Church (lib/editions.ts). content = {name, church, title, intro} each {el, en}.
+  `CREATE TABLE IF NOT EXISTS editions (
+    id             TEXT PRIMARY KEY,
+    sort           INTEGER NOT NULL DEFAULT 0,
+    content        TEXT NOT NULL DEFAULT '{}',
+    active         INTEGER NOT NULL DEFAULT 0,
+    bounds         TEXT NOT NULL,                -- JSON [[south, west], [north, east]]
+    camera         TEXT,                         -- JSON {bearing, pitch}
+    default_region TEXT,
+    countries      TEXT NOT NULL DEFAULT '[]',   -- JSON ISO codes, for the world map
+    updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  // Regions of an edition (districts, peninsulas…) — the map's filter and highlighted outline (lib/regions.ts).
+  `CREATE TABLE IF NOT EXISTS regions (
+    id         TEXT PRIMARY KEY,
+    edition    TEXT NOT NULL DEFAULT 'cyprus',
+    parent     TEXT,
+    sort       INTEGER NOT NULL DEFAULT 0,
+    name       TEXT NOT NULL DEFAULT '{}',      -- JSON {el, en}
+    bounds     TEXT NOT NULL,                   -- JSON [[south, west], [north, east]]
+    camera     TEXT,                            -- JSON {bearing, pitch}
+    boundary   TEXT,                            -- GeoJSON (Multi)Polygon geometry, optional
+    active     INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  // Messages from the contact form (lib/messages-inbox.ts), read at /admin/messages.
+  `CREATE TABLE IF NOT EXISTS contact_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    email      TEXT NOT NULL,
+    topic      TEXT NOT NULL DEFAULT 'general',
+    subject    TEXT NOT NULL DEFAULT '',
+    body       TEXT NOT NULL,
+    lang       TEXT NOT NULL DEFAULT 'el',
+    user_id    TEXT,
+    ip_hash    TEXT,                            -- salted hash, only for the hourly limit
+    status     TEXT NOT NULL DEFAULT 'new',     -- 'new' | 'read' | 'done'
+    emailed    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    handled_by TEXT,
+    handled_at TEXT
+  )`,
+  'CREATE INDEX IF NOT EXISTS contact_messages_status ON contact_messages(status, created_at)',
   `CREATE TABLE IF NOT EXISTS rate_limit (
     id           TEXT PRIMARY KEY,
     key          TEXT NOT NULL UNIQUE,
@@ -185,4 +228,6 @@ export const ADDED_COLUMNS = [
   ['submissions', 'completed', "TEXT NOT NULL DEFAULT '[]'"], // missions and bonuses the approval earned (JSON)
   ['photos', 'historic', 'INTEGER NOT NULL DEFAULT 0'], // old/archive photo (bonus points)
   ['sites', 'metropolis_id', 'INTEGER REFERENCES metropolises(id) ON DELETE SET NULL'], // the Metropolis it belongs to
+  ['metropolises', 'edition', "TEXT NOT NULL DEFAULT 'cyprus'"], // the Church (edition) the see belongs to
+  ['contact_messages', 'ip_hash', 'TEXT'], // salted hash of the sender's address, for the hourly limit
 ];

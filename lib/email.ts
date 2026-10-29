@@ -5,7 +5,7 @@ import "server-only"
 
 const FROM = process.env.EMAIL_FROM || "Οδοιπορικό <onboarding@resend.dev>"
 
-export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
+export async function sendEmail({ to, subject, html, text, replyTo }: { to: string; subject: string; html: string; text: string; replyTo?: string }) {
   const key = process.env.RESEND_API_KEY
   if (!key) {
     if (process.env.REQUIRE_EMAIL) throw new Error("Η αποστολή e-mail δεν έχει ρυθμιστεί (RESEND_API_KEY).")
@@ -15,7 +15,7 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html, text }),
+    body: JSON.stringify({ from: FROM, to, subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
   })
   if (!res.ok) {
     console.error("Resend error", res.status, await res.text())

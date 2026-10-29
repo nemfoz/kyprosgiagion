@@ -7,18 +7,21 @@ import { MobileNav } from "@/components/mobile-nav"
 import { getT } from "@/lib/i18n-server"
 import { baseLang, localePath, type Locale } from "@/lib/locales"
 import { nameDaysAround } from "@/lib/namedays"
-import { siteName } from "@/lib/regions"
-import { brandName, paths } from "@/lib/editions"
+import { brandName, editionPaths, editionTitle } from "@/lib/editions"
+import { linkedEdition } from "@/lib/edition-page"
 
 /**
  * Header of the public pages (except the map, which has its own): name-day bar, title, navigation.
  * `path` is the page's own address without the language prefix (with its parameters), for the language menu;
- * `children` adds page buttons; `edition` shows the Cyprus edition's name next to the brand. On phones the navigation moves into a menu (MobileNav).
+ * `children` adds page buttons; `edition` is the page's edition (its title is shown next to the brand and the map/sees
+ * links go to it; default: the main edition), `false` for none. On phones the navigation moves into a menu (MobileNav).
  */
-export async function PublicHeader({ lang, path, signedIn, edition = true, children }: {
-  lang: Locale; path: string; signedIn: boolean; edition?: boolean; children?: React.ReactNode
+export async function PublicHeader({ lang, path, signedIn, edition, children }: {
+  lang: Locale; path: string; signedIn: boolean; edition?: string | false; children?: React.ReactNode
 }) {
-  const t = await getT()
+  const [t, ed] = await Promise.all([getT(), linkedEdition(edition || undefined)])
+  const paths = editionPaths(ed?.id ?? "cyprus")
+  const shown = edition !== false && ed ? { id: ed.id, title: editionTitle(ed, lang) } : null
   const nav = [
     { href: localePath(paths.map, lang), label: t("map", lang), icon: <MapIcon /> },
     { href: localePath(paths.metropolises, lang), label: t("navMetropolises", lang), icon: <Landmark /> },
@@ -33,8 +36,8 @@ export async function PublicHeader({ lang, path, signedIn, edition = true, child
           <Link href={localePath("/", lang)} className="flex shrink-0 items-center gap-2 font-heading text-lg font-bold">
             <span className="text-primary">☦</span>{brandName(lang)}
           </Link>
-          {edition && (
-            <Link href={localePath(paths.home, lang)} className="truncate text-sm text-muted-foreground hover:text-primary max-sm:hidden">· {siteName(lang)}</Link>
+          {shown && (
+            <Link href={localePath(paths.home, lang)} className="truncate text-sm text-muted-foreground hover:text-primary max-sm:hidden">· {shown.title}</Link>
           )}
         </span>
         <nav className="ml-auto flex shrink-0 items-center gap-0.5">
@@ -55,7 +58,7 @@ export async function PublicHeader({ lang, path, signedIn, edition = true, child
               {signedIn ? <LayoutDashboard /> : <LogIn />}<span className="hidden xl:inline">{signedIn ? t("dashboard", lang) : t("signIn", lang)}</span>
             </Link>
           </Button>
-          <MobileNav lang={lang} signedIn={signedIn} />
+          <MobileNav lang={lang} signedIn={signedIn} edition={{ id: ed?.id ?? "cyprus", title: ed ? editionTitle(ed, lang) : "" }} />
         </nav>
       </header>
     </>

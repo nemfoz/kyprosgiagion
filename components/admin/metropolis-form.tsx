@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { paths } from "@/lib/editions"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ExternalLink, Loader2, RefreshCw, Save, Trash2 } from "lucide-react"
@@ -9,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -21,7 +21,7 @@ import { deleteMetropolisAction, refreshNewsAction, saveMetropolisAction } from 
 import type { MessageKey } from "@/lib/i18n"
 import type { MetroContent } from "@/lib/metropolises"
 
-type Values = { slug: string; sort: number; website: string; feedUrl: string; logo: string; content: MetroContent }
+type Values = { slug: string; edition: string; sort: number; website: string; feedUrl: string; logo: string; content: MetroContent }
 const TEXT = [
   { key: "name", label: "metro.field.name" },
   { key: "seat", label: "metro.field.seat" },
@@ -30,8 +30,8 @@ const TEXT = [
 ] as const
 
 /** Admin editor for one Metropolis: bilingual texts, website, news feed and logo. */
-export function MetropolisForm({ id, initial, churches, news }: {
-  id: number | null; initial: Values
+export function MetropolisForm({ id, initial, churches, news, editions }: {
+  id: number | null; initial: Values; editions: { id: string; name: string }[]
   churches: { id: number; name: string }[]; news: { id: number; title: string; url: string; date: string | null }[]
 }) {
   const t = useAdminT()
@@ -87,6 +87,13 @@ export function MetropolisForm({ id, initial, churches, news }: {
             <div className="grid grid-cols-[1fr_96px] gap-3">
               <div className="grid gap-1.5"><Label htmlFor="slug">{t("metro.field.slug")}</Label><Input id="slug" value={v.slug} onChange={(e) => set("slug", e.target.value)} /></div>
               <div className="grid gap-1.5"><Label htmlFor="sort">{t("metro.field.sort")}</Label><Input id="sort" type="number" value={v.sort} onChange={(e) => set("sort", Number(e.target.value))} /></div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>{t("geo.edition")}</Label>
+              <Select value={v.edition} onValueChange={(e) => set("edition", e)}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>{editions.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className="grid gap-1.5"><Label htmlFor="website">{t("metro.field.website")}</Label><Input id="website" value={v.website} placeholder="https://…" onChange={(e) => set("website", e.target.value)} /></div>
             <div className="grid gap-1.5">
@@ -151,7 +158,7 @@ export function MetropolisForm({ id, initial, churches, news }: {
         <Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Save />}{t("metro.save")}</Button>
         {id && v.slug && (
           <Button type="button" variant="outline" asChild className="ml-auto">
-            <Link href={paths.metropolis(initial.slug)} target="_blank">{t("metro.view")}<ExternalLink /></Link>
+            <Link href={`/metropolis/${encodeURIComponent(initial.slug)}`} target="_blank">{t("metro.view")}<ExternalLink /></Link>
           </Button>
         )}
         {id && (

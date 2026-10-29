@@ -15,7 +15,7 @@ const MAX_PENDING_PER_USER = 200
 export async function suggestTranslation(input: { key: string; locale: string; text: string; note?: string }, authorId: string) {
   const locale = input.locale as ExtraLocale
   const text = input.text.trim().slice(0, 2000)
-  if (!EXTRA_LOCALES.includes(locale) || !translatableTexts().some((x) => x.key === input.key)) throw new UserError("error.translation.unknown")
+  if (!EXTRA_LOCALES.includes(locale) || !(await translatableTexts()).some((x) => x.key === input.key)) throw new UserError("error.translation.unknown")
   if (!text) throw new UserError("error.translation.empty")
   const [{ n }] = await db.select({ n: sql<number>`COUNT(*)` }).from(ts).where(and(eq(ts.authorId, authorId), eq(ts.status, "pending")))
   if (Number(n) >= MAX_PENDING_PER_USER) throw new UserError("error.translation.tooMany")

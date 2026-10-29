@@ -29,8 +29,51 @@ export const metropolises = sqliteTable("metropolises", {
   logo: text("logo").notNull().default(""),
   content: text("content").notNull().default("{}"),
   newsFetchedAt: text("news_fetched_at"),
+  edition: text("edition").notNull().default("cyprus"),
   createdAt: text("created_at").notNull().default(now),
   updatedAt: text("updated_at").notNull().default(now),
+})
+
+export const editions = sqliteTable("editions", {
+  id: text("id").primaryKey(),
+  sort: integer("sort").notNull().default(0),
+  content: text("content").notNull().default("{}"),
+  active: integer("active", { mode: "boolean" }).notNull().default(false),
+  bounds: text("bounds").notNull(),
+  camera: text("camera"),
+  defaultRegion: text("default_region"),
+  countries: text("countries").notNull().default("[]"),
+  updatedAt: text("updated_at").notNull().default(now),
+})
+
+export const regions = sqliteTable("regions", {
+  id: text("id").primaryKey(),
+  edition: text("edition").notNull().default("cyprus"),
+  parent: text("parent"),
+  sort: integer("sort").notNull().default(0),
+  name: text("name").notNull().default("{}"),
+  bounds: text("bounds").notNull(),
+  camera: text("camera"),
+  boundary: text("boundary"),
+  active: integer("active", { mode: "boolean" }).notNull().default(false),
+  updatedAt: text("updated_at").notNull().default(now),
+})
+
+export const contactMessages = sqliteTable("contact_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  topic: text("topic").notNull().default("general"),
+  subject: text("subject").notNull().default(""),
+  body: text("body").notNull(),
+  lang: text("lang").notNull().default("el"),
+  userId: text("user_id"),
+  ipHash: text("ip_hash"),
+  status: text("status").notNull().default("new"),
+  emailed: integer("emailed", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull().default(now),
+  handledBy: text("handled_by"),
+  handledAt: text("handled_at"),
 })
 
 export const metropolisNews = sqliteTable("metropolis_news", {

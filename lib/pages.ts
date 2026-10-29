@@ -86,12 +86,12 @@ For questions, corrections or to work with us: {email}.`,
   contact: {
     el: `Θα χαρούμε να ακούσουμε από εσάς — για διορθώσεις, φωτογραφίες, πληροφορίες για έναν ναό, ή αν θέλετε να ξεκινήσει η έκδοση της δικής σας Εκκλησίας ή Μητρόπολης.
 
-Γράψτε μας στο **{email}**.
+Γράψτε μας με τη φόρμα παρακάτω ή στο **{email}**.
 
 Για προσθήκες σε μια σελίδα εκκλησίας, ο πιο γρήγορος τρόπος είναι να δημιουργήσετε λογαριασμό και να πατήσετε «Πρόταση αλλαγής» στη σελίδα της: η πρότασή σας πηγαίνει κατευθείαν στους διαχειριστές.`,
     en: `We'd love to hear from you — about corrections, photographs, information on a church, or if you would like an edition for your own Church or Metropolis.
 
-Write to us at **{email}**.
+Write to us with the form below, or at **{email}**.
 
 To add to a church's page, the quickest way is to create an account and press "Suggest a change" on that page: your proposal goes straight to the admins.`,
   },
@@ -105,6 +105,10 @@ To add to a church's page, the quickest way is to create an account and press "S
 ## Με λογαριασμό
 
 Όταν δημιουργείτε λογαριασμό, κρατάμε το όνομα και τη διεύθυνση e-mail σας και τον κωδικό σας σε κρυπτογραφημένη (hashed) μορφή. Κρατάμε επίσης τις προτάσεις σας και τους πόντους τους. Στον πίνακα συνεργατών εμφανίζεται μόνο το μικρό σας όνομα και το αρχικό του επωνύμου σας.
+
+## Φόρμα επικοινωνίας
+
+Όταν μας γράφετε με τη φόρμα, κρατάμε το όνομα, το e-mail και το μήνυμά σας για να σας απαντήσουμε, και τα διαγράφουμε όταν δεν χρειάζονται πια. Τα διαβάζουν μόνο οι διαχειριστές του ιστότοπου.
 
 ## Επισκέψεις σε εκκλησίες
 
@@ -128,6 +132,10 @@ You can use the map and every page without an account. We use no analytics, adve
 ## With an account
 
 When you create an account we keep your name, your e-mail address and your password in hashed (unreadable) form. We also keep your proposals and their points. The contributors' board shows only your first name and last initial.
+
+## Contact form
+
+When you write to us with the form, we keep your name, e-mail address and message so that we can reply, and delete them when they are no longer needed. Only the site's administrators read them.
 
 ## Church visits
 

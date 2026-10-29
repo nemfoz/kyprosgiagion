@@ -47,7 +47,7 @@ export async function reviewSuggestionAction(id: number, approve: boolean, text?
 export async function setLocaleTextAction(key: string, locale: string, text: string) {
   return run(async () => {
     const user = await assertRole("superadmin")
-    if (!EXTRA_LOCALES.includes(locale as ExtraLocale) || !translatableTexts().some((x) => x.key === key)) throw new UserError("error.translation.unknown")
+    if (!EXTRA_LOCALES.includes(locale as ExtraLocale) || !(await translatableTexts()).some((x) => x.key === key)) throw new UserError("error.translation.unknown")
     await setLocaleText(key, locale as ExtraLocale, text, user.id)
   })
 }

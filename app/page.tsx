@@ -4,13 +4,14 @@ import { ArrowRight, Church, Landmark, MapPinned } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PublicHeader } from "@/components/public-header"
 import { SiteFooter } from "@/components/site-footer"
-import { brandName, editionChurch, editionName, EDITIONS, paths } from "@/lib/editions"
+import { brandName, editionChurch, editionName, editionPaths, editionTitle } from "@/lib/editions"
+import { getEditions } from "@/lib/editions-server"
 import { langFrom } from "@/lib/i18n"
 import { getT } from "@/lib/i18n-server"
 import { localePath } from "@/lib/locales"
 import { publicMetropolises } from "@/lib/metropolises"
 import { sized } from "@/lib/photo-sizes.mjs"
-import { regions, siteName } from "@/lib/regions"
+import { getRegions } from "@/lib/regions-server"
 import { getSession } from "@/lib/session"
 import { siteSummaries } from "@/lib/sites"
 import { alternates, openGraph } from "@/lib/seo"
@@ -28,15 +29,18 @@ export async function generateMetadata({ searchParams }: PageProps<"/">): Promis
 /** Οδοιπορικό's home page: what it is, and a choice of Church (edition). Only Cyprus is open so far. */
 export default async function Home({ searchParams }: PageProps<"/">) {
   const lang = langFrom((await searchParams).lang)
-  const [t, session, sites, metros] = await Promise.all([getT(), getSession(), siteSummaries(), publicMetropolises()])
+  const [t, session, all, allMetros, editions, regions] = await Promise.all([getT(), getSession(), siteSummaries(), publicMetropolises(), getEditions(), getRegions()])
+  const cyprus = editions.find((e) => e.id === "cyprus")!
+  const paths = editionPaths(cyprus.id)
+  const sites = all.filter((s) => s.edition === cyprus.id)
+  const metros = allMetros.filter((m) => m.edition === cyprus.id)
   const covers = sites.filter((s) => s.cover && s.coordsVerified).slice(0, 3)
   const stats = [
     { n: sites.length, label: t("statChurches", lang), icon: <Church /> },
     { n: metros.length, label: t("statSees", lang), icon: <Landmark /> },
-    { n: regions.filter((r) => r.active).length, label: t("statRegions", lang), icon: <MapPinned /> },
+    { n: regions.filter((r) => r.active && r.edition === cyprus.id).length, label: t("statRegions", lang), icon: <MapPinned /> },
   ]
-  const others = EDITIONS.filter((e) => !e.active)
-  const cyprus = EDITIONS.find((e) => e.id === "cyprus")!
+  const others = editions.filter((e) => e.id !== cyprus.id)
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -61,7 +65,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <Link href={localePath(paths.home, lang)} className="group grid overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:border-primary/40 hover:shadow-md md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <div className="grid content-start gap-4 p-6 md:p-8">
             <p className="text-[11px] font-semibold tracking-[.14em] text-gold-deep uppercase">{editionChurch(cyprus, lang)}</p>
-            <h3 className="font-heading text-3xl leading-tight font-bold md:text-4xl">{siteName(lang)}</h3>
+            <h3 className="font-heading text-3xl leading-tight font-bold md:text-4xl">{editionTitle(cyprus, lang)}</h3>
             <dl className="grid grid-cols-3 gap-3 border-y py-4">
               {stats.map((s) => (
                 <div key={s.label} className="grid gap-0.5">

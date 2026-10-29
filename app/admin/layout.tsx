@@ -9,19 +9,20 @@ import { isAdmin, isRole, ROLE_LABELS } from "@/lib/permissions"
 import { requireUser } from "@/lib/session"
 import { countPendingSuggestions } from "@/lib/translations"
 import { countPending } from "@/lib/submissions"
+import { unreadContactMessages } from "@/lib/contact"
 
 export const metadata = { title: "Διαχείριση", robots: { index: false } }
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [user, t] = await Promise.all([requireUser(), getAdminT()])
   const admin = isAdmin(user.role)
-  const [pending, translations] = admin ? await Promise.all([countPending(), countPendingSuggestions()]) : [0, 0]
+  const [pending, translations, messages] = admin ? await Promise.all([countPending(), countPendingSuggestions(), unreadContactMessages()]) : [0, 0, 0]
   const role = isRole(user.role) ? user.role : "user"
 
   return (
     <AdminLangProvider lang={t.lang}>
       <div className="min-h-dvh bg-muted/30 md:grid md:grid-cols-[248px_minmax(0,1fr)]">
-        <AdminSidebar role={role} pending={pending} translations={translations}
+        <AdminSidebar role={role} pending={pending} translations={translations} messages={messages}
           account={<UserMenu name={user.name} email={user.email} roleLabel={ROLE_LABELS[role]} />} />
         <div className="min-w-0">
           <NameDayBar days={nameDaysAround(t.lang)} lang={t.lang} className="md:px-6" />

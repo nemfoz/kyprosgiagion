@@ -1,8 +1,35 @@
 # Project status & handover — Οδοιπορικό (formerly Κύπρος – Αγίων Γη)
 
-_Last updated: 2026-10-29 (live at https://odoiporiko.com on our own server; Vercel removed — see §0, §4). Read this first when continuing work in a new session._
+_Last updated: 2026-10-29 (editions/regions in the database, church import, contact inbox, three home page versions — see §0). Read this first when continuing work in a new session._
 
-## 0. Rebrand + editions + self-hosting (2026-10-28) — START HERE
+## 0a. 2026-10-29 — editions for every Church, adding churches, contact, home page versions — START HERE
+
+- **Editions and regions are data** (tables `editions`, `regions`; seeded by `scripts/seed-geo.mjs` from
+  `data/editions.json`, `data/regions.json`, `public/data/boundaries.geojson`, `public/data/cyprus-districts.geojson`).
+  Superadmins manage them at `/admin/editions` (public on/off, names, title, intro, map box, countries for the globe) and
+  `/admin/regions` (name, parent, map box, GeoJSON outline upload, public on/off). Pages are `app/[edition]/…`
+  (`/cyprus`, `/constantinople`…); an inactive edition opens only for admins. `/site/<slug>` and `/metropolis/<slug>`
+  redirect to the right edition (admin links use them). Sees have an `edition` column. The 6 Cyprus districts exist
+  (Nicosia, Kyrenia, Larnaca, Limassol, Paphos inactive; Famagusta + Karpasia active).
+- **Adding churches** (`/admin/import`, superadmins; `lib/church-import.ts`): quick add, spreadsheet (CSV/TSV paste,
+  template download), and **Metropolis website importers** (`lib/parish-sources/*`: Constantia, Paphos+Arsinoe,
+  Limassol+Amathus, Trimythous, Tamassos, Morphou, Kykkos, Kyrenia; Kition's robots.txt forbids crawling, the
+  Archbishopric is behind Cloudflare; test with `node scripts/test-parish-sources.mts`). Every row is checked first:
+  Google Maps links (also short ones) → coordinates, pinless rows → village centre via Nominatim (cached in `settings`
+  key `geocode`, marked approximate), region from the outlines, likely duplicates (same address, < 25 m, or < 400 m
+  with a similar name). Rows become drafts (or published), photos are copied, English names are left empty (a mission).
+  None of the ~1,000 parishes are imported yet — the owner runs the imports and reviews.
+- **Map**: the occupied areas of Cyprus are always tinted crimson (`public/data/occupied.geojson`, OSM); world land
+  under everything (`public/data/world.geojson`, Natural Earth Greek-POV, with `orthodox` and `edition` per country).
+  Data built by `scripts/build-geodata.mjs`.
+- **Contact form** on `/contact` (`lib/contact.ts`, `app/contact-actions.ts`): honeypot, fill time, 4/hour per sender,
+  Turnstile when keys are set. Saved in `contact_messages`, read at `/admin/messages` (admins; unread count in the
+  menu); also e-mailed to the contact address (Reply-To = sender) once `RESEND_API_KEY` is set.
+- **Home page versions** for the owner to choose: `/home-01` (globe first), `/home-02` (story: photo + mission),
+  `/home-03` (three ways in) — not indexed, with a 1/2/3 switch. `/` is still the old home; once chosen, the chosen
+  version becomes `app/page.tsx` and the others are deleted. Shared parts: `components/home/*`, data `lib/home.ts`.
+
+## 0. Rebrand + editions + self-hosting (2026-10-28)
 
 The project is now **Οδοιπορικό** (Latin: **Odoiporiko**) — an umbrella brand for all Orthodox churches;
 "Κύπρος – Αγίων Γη" is the title of the Cyprus edition. Domains bought by the owner: **odoiporiko.com** (main)

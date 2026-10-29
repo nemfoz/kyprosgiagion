@@ -3,7 +3,7 @@ import { CircleCheck, Footprints, History } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProgressBar } from "@/components/gamify/completeness-card"
 import { BADGES, type BadgeKey, type Level } from "@/lib/completeness"
-import { editionName, paths } from "@/lib/editions"
+import { editionName, editionPaths, sitePath } from "@/lib/editions"
 import { trData } from "@/lib/i18n"
 import type { TFn } from "@/lib/i18n"
 import { intlLocale, localePath, tr, type Locale } from "@/lib/locales"
@@ -39,10 +39,10 @@ export function OdoiporikoView({ data, lang, t, own, level, badges }: {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Breakdown title={t("pfByCountry", lang)} rows={data.countries.map((c) => ({ key: c.edition.id, label: editionName(c.edition, lang), visited: c.visited, total: c.total, href: localePath(paths.home, lang) }))} />
-        <Breakdown title={t("pfByRegion", lang)} rows={data.regions.map((r) => ({ key: r.id, label: regionName(r.region, lang), visited: r.visited, total: r.total, href: localePath(`${paths.map}?region=${r.id}`, lang) }))} />
+        <Breakdown title={t("pfByCountry", lang)} rows={data.countries.map((c) => ({ key: c.edition.id, label: editionName(c.edition, lang), visited: c.visited, total: c.total, href: localePath(editionPaths(c.edition.id).home, lang) }))} />
+        <Breakdown title={t("pfByRegion", lang)} rows={data.regions.map((r) => ({ key: r.id, label: regionName(r.region, lang), visited: r.visited, total: r.total, href: localePath(`${editionPaths(r.region.edition).map}?region=${r.id}`, lang) }))} />
         {data.sees.length > 0 && (
-          <Breakdown title={t("pfBySee", lang)} rows={data.sees.map((s) => ({ key: s.id, label: metroText(s.see, "name", lang), visited: s.visited, total: s.total, href: localePath(paths.metropolis(s.see.slug), lang) }))} />
+          <Breakdown title={t("pfBySee", lang)} rows={data.sees.map((s) => ({ key: s.id, label: metroText(s.see, "name", lang), visited: s.visited, total: s.total, href: localePath(editionPaths(s.see.edition).metropolis(s.see.slug), lang) }))} />
         )}
       </div>
 
@@ -71,7 +71,7 @@ export function OdoiporikoView({ data, lang, t, own, level, badges }: {
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.list.map((v) => (
               <li key={v.siteId}>
-                <Link href={localePath(paths.site(v.site.slug), lang)} className="grid grid-cols-[56px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
+                <Link href={localePath(sitePath(v.site), lang)} className="grid grid-cols-[56px_1fr] items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40 hover:shadow-sm">
                   {v.site.cover
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={sized(v.site.cover, "sm")} alt="" loading="lazy" className="h-14 w-14 rounded-t-[28px] rounded-b-md object-cover" />
