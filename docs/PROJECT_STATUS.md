@@ -25,11 +25,13 @@ _Last updated: 2026-10-29 (editions/regions in the database, church import, cont
 - **Contact form** on `/contact` (`lib/contact.ts`, `app/contact-actions.ts`): honeypot, fill time, 4/hour per sender,
   Turnstile when keys are set. Saved in `contact_messages`, read at `/admin/messages` (admins; unread count in the
   menu); also e-mailed to the contact address (Reply-To = sender) once `RESEND_API_KEY` is set.
-- **Home page** (`app/page.tsx`, chosen by the owner 2026-10-29 from three versions): a globe of the Orthodox world on
-  the right (Orthodox countries bright, occupied Cyprus crimson, a marker per Church — open ones lead in; text on the
-  left), then a church photograph with "So that no church is forgotten", three ways in (explore / your odoiporiko /
-  help) over its lower edge, the numbers, churches from the map and every Church. Parts: `components/home/*`, data
-  `lib/home.ts` (cached; counts churches in the occupied areas from `occupied.geojson`).
+- **Home page** (`app/page.tsx`, reworked 2026-10-29 at the owner's request to be about the whole Orthodox world,
+  not Cyprus): the globe (Orthodox countries bright, occupied Cyprus crimson, a marker per Church — open ones lead
+  in) with the brand and a worldwide line on the left ("The fourteen Churches" → the grid, "The first edition:
+  Cyprus" as a quiet link); the fourteen Churches in diptych order (open / in preparation); a crimson mission band
+  (free record, written by the community, priority to churches at risk) with atlas-wide numbers; three ways in
+  (explore the atlas / your odoiporiko / help); "Recently recorded"; "Does your Church want its edition?" → contact.
+  Parts: `components/home/*`, data `lib/home.ts` (cached).
 
 ## 0. Rebrand + editions + self-hosting (2026-10-28)
 

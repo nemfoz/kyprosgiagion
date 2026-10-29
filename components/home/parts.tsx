@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Camera, Church, Landmark, MapPinned, Users } from "lucide-react"
+import { ArrowRight, Camera, Church, Globe2, Landmark, Users } from "lucide-react"
 import { TypeBadge } from "@/components/type-badge"
 import type { WorldEdition } from "@/components/home/world-map"
 import { editionChurch, editionName, editionPaths, sitePath } from "@/lib/editions"
@@ -32,10 +32,10 @@ export function WorldLegend({ t, lang, className }: { t: TFn; lang: Locale; clas
 
 export function stats(data: HomeData, t: TFn, lang: Locale) {
   return [
+    { n: data.totals.editions, label: t("statEditions", lang), icon: <Landmark /> },
+    { n: data.totals.open, label: t("statOpen", lang), icon: <Globe2 /> },
     { n: data.totals.churches, label: t("statChurches", lang), icon: <Church /> },
-    { n: data.totals.occupied, label: t("statOccupied", lang), icon: <MapPinned /> },
     { n: data.totals.photos, label: t("statPhotos", lang), icon: <Camera /> },
-    { n: data.totals.sees, label: t("statSees", lang), icon: <Landmark /> },
     ...(data.totals.contributors ? [{ n: data.totals.contributors, label: t("statContributors", lang), icon: <Users /> }] : []),
   ]
 }
@@ -82,37 +82,39 @@ export function FeaturedChurches({ data, t, lang, count = 6, skip = 0 }: { data:
 }
 
 /** Every Church: open editions as cards with their numbers, the others as "coming soon". */
-export function EditionsGrid({ data, t, lang }: { data: HomeData; t: TFn; lang: Locale }) {
+export function EditionsGrid({ data, t, lang, id }: { data: HomeData; t: TFn; lang: Locale; id?: string }) {
   return (
-    <section className="grid gap-4">
+    <section id={id} className="grid gap-5 scroll-mt-6">
       <div>
         <h2 className="text-2xl font-bold">{t("hAllChurches", lang)}</h2>
-        <p className="mt-1 max-w-2xl text-muted-foreground">{t("hAllChurchesText", lang)}</p>
+        <p className="mt-1 max-w-3xl text-muted-foreground">{t("hAllChurchesText", lang)}</p>
       </div>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[...data.editions].sort((a, b) => Number(b.edition.active) - Number(a.edition.active)).map(({ edition: e, churches }) => (
-          <li key={e.id}>
-            {e.active ? (
-              <Link href={localePath(editionPaths(e.id).home, lang)} className="grid h-full content-start gap-1 rounded-xl border border-primary/30 bg-card p-4 transition hover:border-primary hover:shadow-sm">
-                <span className="flex items-center justify-between gap-2">
-                  <span className="font-heading text-lg font-bold">{editionName(e, lang)}</span>
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">{t("hChurchesN", lang, { n: churches })}</span>
+      <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {data.editions.map(({ edition: e, churches }, i) => {
+          const body = (
+            <>
+              <span className="flex items-start justify-between gap-2">
+                <span className="grid min-w-0">
+                  <span className="font-heading text-[11px] text-gold-deep">{String(i + 1).padStart(2, "0")}</span>
+                  <span className={cn("font-heading text-lg leading-tight font-bold", !e.active && "text-foreground/80")}>{editionName(e, lang)}</span>
                 </span>
-                <span className="text-xs text-muted-foreground">{editionChurch(e, lang)}</span>
-              </Link>
-            ) : (
-              <div className="grid h-full content-start gap-1 rounded-xl border border-dashed bg-card/60 p-4">
-                <span className="flex items-center justify-between gap-2">
-                  <span className="font-heading text-lg font-bold text-foreground/80">{editionName(e, lang)}</span>
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] text-muted-foreground">{t("homeSoon", lang)}</span>
-                </span>
-                <span className="text-xs text-muted-foreground">{editionChurch(e, lang)}</span>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+                {e.active
+                  ? <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">{t("hOpen", lang)}</span>
+                  : <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[11px] text-muted-foreground">{t("hPreparing", lang)}</span>}
+              </span>
+              <span className="text-xs text-muted-foreground">{editionChurch(e, lang)}</span>
+              {e.active && <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary">{t("hChurchesN", lang, { n: churches })} · {t("homeEnter", lang)}<ArrowRight className="size-3.5" /></span>}
+            </>
+          )
+          return (
+            <li key={e.id}>
+              {e.active
+                ? <Link href={localePath(editionPaths(e.id).home, lang)} className="grid h-full content-start gap-1 rounded-xl border border-primary/40 bg-card p-4 shadow-sm transition hover:border-primary hover:shadow-md">{body}</Link>
+                : <div className="grid h-full content-start gap-1 rounded-xl border border-dashed bg-card/60 p-4">{body}</div>}
+            </li>
+          )
+        })}
+      </ol>
     </section>
   )
 }
-

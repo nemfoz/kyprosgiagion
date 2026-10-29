@@ -46,6 +46,8 @@ export const homeData = cached("home", async () => {
   return {
     editions: perEdition,
     totals: {
+      editions: editions.length,
+      open: editions.filter((e) => e.active).length,
       churches: sites.length,
       photos: Number(photos?.n ?? 0),
       occupied: sites.filter((s) => s.edition === "cyprus" && isOccupied(s.lat, s.lng)).length,
